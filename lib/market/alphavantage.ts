@@ -17,20 +17,89 @@ function key(): string {
   return k;
 }
 
-async function fetchJson<T>(params: Record<string, string>, revalidateSeconds: number): Promise<T> {
+/**
+ * In-process cache para sobrevivir al rate-limit de AV free-tier (25/día, 5/min).
+ *
+ * Persiste durante la vida del proceso (en dev: hasta que mates next dev; en prod:
+ * vida de cada lambda warm). NO compartido entre instancias — para eso necesitas
+ * Upstash, que está pendiente.
+ *
+ * Devolvemos cached "stale" cuando AV está rate-limited: mejor un dato de hace
+ * 10 minutos que ninguno. El cliente verá un campo `_cache_age_s` para saber
+ * si los datos son frescos.
+ */
+interface CacheEntry<T = unknown> {
+  data: T;
+  expiresAt: number; // unix ms
+  storedAt: number; // unix ms
+}
+const memoryCache = new Map<string, CacheEntry>();
+const MAX_STALE_MS = 24 * 60 * 60 * 1000; // 24h — más antigua = ignorada
+
+function cacheKey(params: Record<string, string>): string {
+  return Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join('&');
+}
+
+async function fetchJson<T>(
+  params: Record<string, string>,
+  revalidateSeconds: number
+): Promise<T> {
+  const ck = cacheKey(params);
+  const now = Date.now();
+
+  // 1. Cache hit fresco
+  const cached = memoryCache.get(ck) as CacheEntry<T> | undefined;
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  // 2. Fetch
   const url = new URL(BASE);
   Object.entries({ ...params, apikey: key() }).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), { next: { revalidate: revalidateSeconds } });
-  if (!res.ok) throw new Error(`AlphaVantage ${params.function} failed: ${res.status}`);
-  const data = (await res.json()) as Record<string, unknown> & T;
 
-  // AV soft-errors are 200 OK with body { "Note": "...rate limited..." } or { "Information": "..." }
-  if (typeof data === 'object' && data !== null) {
-    const note = (data as { Note?: string; Information?: string }).Note;
-    const info = (data as { Information?: string }).Information;
-    if (note || info) throw new Error(`AlphaVantage soft error: ${note ?? info}`);
+  try {
+    const res = await fetch(url.toString(), { next: { revalidate: revalidateSeconds } });
+    if (!res.ok) throw new Error(`AlphaVantage ${params.function} failed: ${res.status}`);
+    const data = (await res.json()) as Record<string, unknown> & T;
+
+    // AV soft-errors: body con Note/Information (rate limit)
+    if (typeof data === 'object' && data !== null) {
+      const note = (data as { Note?: string; Information?: string }).Note;
+      const info = (data as { Information?: string }).Information;
+      if (note || info) {
+        // Si tenemos un stale aún válido, lo devolvemos en silencio
+        if (cached && now - cached.storedAt < MAX_STALE_MS) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[AV] rate-limited, serving stale cache for ${params.function}/${params.symbol ?? '?'} (age ${Math.floor((now - cached.storedAt) / 1000)}s)`
+          );
+          return cached.data;
+        }
+        throw new Error(`AlphaVantage soft error: ${note ?? info}`);
+      }
+    }
+
+    // 3. Store fresh
+    memoryCache.set(ck, {
+      data,
+      expiresAt: now + revalidateSeconds * 1000,
+      storedAt: now,
+    });
+    return data;
+  } catch (err) {
+    // Network / parse error: si hay stale válido, úsalo
+    if (cached && now - cached.storedAt < MAX_STALE_MS) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[AV] fetch failed, serving stale cache for ${params.function}/${params.symbol ?? '?'}: ${err instanceof Error ? err.message : 'unknown'}`
+      );
+      return cached.data;
+    }
+    throw err;
   }
-  return data as T;
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────

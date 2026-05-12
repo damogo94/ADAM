@@ -56,23 +56,48 @@ export async function POST(req: NextRequest) {
 
   const startedAt = Date.now();
   try {
-    // Step 1: market data fan-out
+    // Step 1: market data fan-out — TODAS las llamadas son resilientes.
+    // Si AV está rate-limited, el caché en memoria devuelve stale si lo hay;
+    // si no hay nada, la fuente devuelve null/[] y los agentes corren con
+    // datos sparse pero con confianza baja (comportamiento esperado del producto).
     const [q, ov, news, daily, intraday] = await Promise.all([
-      quote(ticker).then(normalizeQuote),
+      quote(ticker).then(normalizeQuote).catch(() => null),
       overview(ticker).then(normalizeOverview).catch(() => null),
       newsSentiment(ticker, 5).then((n) => normalizeNews(n, 5)).catch(() => []),
       timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
       timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
     ]);
 
-    if (!q) {
-      return NextResponse.json({ error: 'no_quote', detail: `Sin cotización para ${ticker}` }, { status: 404 });
+    // Recovery: si no hay quote pero hay OHLCV diario, usa el último close
+    let currentPrice = q?.current ?? null;
+    let changePct24h = q?.change_pct_24h ?? 0;
+    if (currentPrice === null && daily.length >= 2) {
+      const last = daily[daily.length - 1];
+      const prev = daily[daily.length - 2];
+      if (last && prev) {
+        currentPrice = last.c;
+        changePct24h = ((last.c - prev.c) / prev.c) * 100;
+      }
+    }
+
+    // Si tampoco hay candles, no podemos correr el pipeline con seriedad.
+    if (currentPrice === null && daily.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'market_data_unavailable',
+          detail:
+            `Sin datos de mercado para ${ticker}. Alpha Vantage free-tier puede estar al límite (25/día, 5/min). ` +
+            `Espera ~1 minuto y reintenta, o configura Upstash para caché compartido.`,
+          partial: { quote: null, daily_candles: 0, intraday_candles: intraday.length },
+        },
+        { status: 503 }
+      );
     }
 
     const market_snapshot = {
       quote: {
-        current: q.current,
-        change_pct_24h: q.change_pct_24h,
+        current: currentPrice ?? 0,
+        change_pct_24h: changePct24h,
         change_pct_7d: 0,
         currency: ov?.currency ?? 'USD',
       },
