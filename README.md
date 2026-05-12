@@ -242,10 +242,15 @@ Cubierto por dos suites complementarias (65 tests entre ambas):
 **Sprint 2 — Persistencia + CMT:**
 - [x] Supabase schema + migrations + RLS ([supabase/migrations/0001_init.sql](./supabase/migrations/0001_init.sql))
 - [x] DB types TypeScript + clients (`lib/supabase/{server,browser,admin}.ts`)
-- [ ] Auth flows (login, signup, session middleware)
-- [ ] Watchlist screen + CRUD endpoints
-- [ ] Módulo CMT scanner (cron 5min, Haiku)
-- [ ] Pantalla SEÑALES con copy-to-clipboard
+- [x] Auth flows: login/signup pages + session middleware (`@supabase/ssr`)
+- [x] Header user menu con logout
+- [x] Watchlist screen + CRUD endpoints (`/api/watchlist`)
+- [x] Persistencia de `analyses_log` al ejecutar A4 (admin client)
+- [x] Módulo CMT autónomo (prompt + schema + cliente Haiku, mismo aislamiento que A3)
+- [x] Scanner CMT (`POST /api/cmt/scan`) — escanea watchlist del user
+- [x] Pantalla SEÑALES con copy-to-clipboard y mark-as-read
+- [x] Pantalla SISTEMA con métricas reales de `analyses_log` + `signals_history`
+- [ ] Cron multi-user del CMT scanner (Vercel cron, Sprint 2.5)
 
 **Sprint 3 — Pulido:**
 - [ ] Pantalla SISTEMA con métricas reales

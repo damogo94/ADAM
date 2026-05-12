@@ -17,6 +17,8 @@ import {
   normalizeDaily,
   normalizeIntraday,
 } from '@/lib/market/alphavantage';
+import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -45,6 +47,14 @@ export async function POST(req: NextRequest) {
   }
   const { ticker } = parsed.data;
 
+  // Auth — proteger gasto de tokens contra acceso anonimo
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  const startedAt = Date.now();
   try {
     // Step 1: market data fan-out
     const [q, ov, news, daily, intraday] = await Promise.all([
@@ -96,6 +106,31 @@ export async function POST(req: NextRequest) {
 
     // Step 4: A4 ensambla
     const a4 = await runA4({ a1, a2, a3, debate });
+    const latency_ms = Date.now() - startedAt;
+
+    // Step 5: persistir en analyses_log (admin client bypasea RLS).
+    // No bloquea la respuesta si el log falla — solo se pierde la entrada.
+    try {
+      const admin = createSupabaseAdmin();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await admin.from('analyses_log').insert({
+        user_id: user.id,
+        ticker,
+        confluence_pct: a4.confluence?.score_total_pct ?? 0,
+        direction: a4.direccion,
+        confidence: a4.confianza,
+        a1_output: a1,
+        a2_output: a2,
+        a3_output: a3,
+        debate_output: debate ?? null,
+        a4_output: a4,
+        latency_ms,
+        tokens_used: null,
+      } as any);
+    } catch (logErr) {
+      // eslint-disable-next-line no-console
+      console.error('[a4] failed to persist analyses_log:', logErr instanceof Error ? logErr.message : logErr);
+    }
 
     return NextResponse.json({ a1, a2, a3, debate, a4 });
   } catch (err) {

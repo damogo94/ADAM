@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
 import { SectionLabel, FlowArrow } from '@/components/section-label';
@@ -50,6 +51,18 @@ const INITIAL: RunState = {
 
 export default function AnalysisScreen() {
   const [state, setState] = useState<RunState>(INITIAL);
+  const search = useSearchParams();
+  const autoTicker = search.get('ticker');
+  const autoRanRef = useRef<string | null>(null);
+
+  // Auto-trigger cuando viene desde /watchlist con ?ticker=X
+  useEffect(() => {
+    if (autoTicker && autoRanRef.current !== autoTicker) {
+      autoRanRef.current = autoTicker;
+      void handleRun(autoTicker.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoTicker]);
 
   async function handleRun(ticker: string) {
     setState({

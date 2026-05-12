@@ -1,10 +1,12 @@
 import { cn } from '@/lib/utils';
+import { UserMenu } from './user-menu';
 
 type Status = 'offline' | 'running' | 'ok' | 'error';
 
 interface HeaderProps {
   tagline?: string;
   status?: Status;
+  showUser?: boolean;
 }
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -21,7 +23,11 @@ const STATUS_CLS: Record<Status, string> = {
   error: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
 };
 
-export function Header({ tagline = 'Anomaly Detection & Analysis Module', status = 'offline' }: HeaderProps) {
+export function Header({
+  tagline = 'Anomaly Detection & Analysis Module',
+  status = 'offline',
+  showUser = true,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-surface/95 backdrop-blur-xl px-5 py-2.5">
       <div className="flex flex-col">
@@ -30,14 +36,17 @@ export function Header({ tagline = 'Anomaly Detection & Analysis Module', status
         </div>
         <div className="font-mono text-[8px] text-slate tracking-wider mt-px">{tagline}</div>
       </div>
-      <span
-        className={cn(
-          'font-mono text-[9px] font-medium tracking-wider px-2.5 py-1 rounded border transition-all duration-300',
-          STATUS_CLS[status]
-        )}
-      >
-        {STATUS_LABEL[status]}
-      </span>
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'font-mono text-[9px] font-medium tracking-wider px-2.5 py-1 rounded border transition-all duration-300',
+            STATUS_CLS[status]
+          )}
+        >
+          {STATUS_LABEL[status]}
+        </span>
+        {showUser && <UserMenu />}
+      </div>
     </header>
   );
 }
