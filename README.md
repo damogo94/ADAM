@@ -151,6 +151,36 @@ Respuesta esperada: JSON con keys `a1`, `a2`, `a3`, `debate` (null si no hubo an
 
 ---
 
+## Setup de Supabase (Sprint 2)
+
+1. **Crear proyecto Supabase** (free tier: 500MB DB, 2GB transfer, 50K MAU).
+   - https://supabase.com/dashboard → New Project
+   - Region recomendada: Frankfurt (eu-central-1) o West US según latencia
+   - Anota la `Project URL` y guarda la `Database password`
+
+2. **Obtener las 3 keys** desde Project Settings → API:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY` (segura para cliente, protegida por RLS)
+   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (⚠️ NUNCA exponer al cliente — bypasea RLS)
+
+3. **Aplicar el schema** — copia [supabase/migrations/0001_init.sql](./supabase/migrations/0001_init.sql) al SQL Editor del dashboard y ejecuta. Crea:
+   - `profiles`, `watchlists`, `watchlist_items`, `signals_history`, `analyses_log`
+   - Trigger que auto-crea profile al hacer signup
+   - RLS policies por tabla (cada user sólo ve lo suyo)
+   - Inserts a `signals_history` y `analyses_log` desde server requieren service_role
+
+4. **Validar RLS**: en SQL Editor: `select * from pg_policies where schemaname = 'public';` debe devolver al menos 11 policies.
+
+5. **Pegar las keys en `.env.local`** y reiniciar `pnpm dev`. La sesión de Supabase persiste vía cookies, leída por `lib/supabase/server.ts`.
+
+**Regenerar types tras cambios de schema:**
+```bash
+npx supabase gen types typescript --project-id YOUR_REF > types/db/supabase.ts
+```
+Y re-exporta desde `types/db/index.ts`. Hasta entonces, los tipos hand-written en [types/db/index.ts](./types/db/index.ts) son la fuente de verdad.
+
+---
+
 ## Deploy a Vercel
 
 1. `vercel link` desde el repo
@@ -210,11 +240,12 @@ Cubierto por dos suites complementarias (65 tests entre ambas):
 - [ ] Deploy Vercel inicial
 
 **Sprint 2 — Persistencia + CMT:**
-- [ ] Supabase schema + migrations + RLS
-- [ ] Auth flows
-- [ ] Watchlist screen
+- [x] Supabase schema + migrations + RLS ([supabase/migrations/0001_init.sql](./supabase/migrations/0001_init.sql))
+- [x] DB types TypeScript + clients (`lib/supabase/{server,browser,admin}.ts`)
+- [ ] Auth flows (login, signup, session middleware)
+- [ ] Watchlist screen + CRUD endpoints
 - [ ] Módulo CMT scanner (cron 5min, Haiku)
-- [ ] Pantalla SEÑALES
+- [ ] Pantalla SEÑALES con copy-to-clipboard
 
 **Sprint 3 — Pulido:**
 - [ ] Pantalla SISTEMA con métricas reales
