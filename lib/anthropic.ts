@@ -18,7 +18,32 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  // Up from default 2 — covers transient 408/409/429/500/503/529 (Overloaded)
+  // with exponential backoff. Total worst-case latency added: ~30s.
+  maxRetries: 5,
 });
+
+/**
+ * Errores transitorios de Anthropic. Códigos HTTP que NO son culpa del input
+ * y se autocuran con backoff: rate-limit, overload, capacity, transient 5xx.
+ */
+function isTransientAnthropicError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  // Anthropic SDK levanta APIError con .status numérico
+  const status = (err as { status?: number }).status;
+  if (typeof status === 'number') {
+    if (status === 408 || status === 409 || status === 429) return true;
+    if (status >= 500 && status <= 599) return true;
+  }
+  // Algunos errores de red (DNS, socket reset) no traen status pero traen .name
+  const name = (err as { name?: string }).name;
+  if (name === 'APIConnectionError' || name === 'APIConnectionTimeoutError') return true;
+  return false;
+}
+
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export const MODELS = {
   SONNET: 'claude-sonnet-4-6',
@@ -81,13 +106,31 @@ export async function runAgent<T extends z.ZodTypeAny>(
     agentName,
   } = args;
 
-  const response = await anthropic.messages.create({
-    model,
-    max_tokens: maxTokens,
-    temperature,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
-  });
+  // Belt-and-suspenders retry: el SDK ya hace maxRetries=5 internamente con
+  // backoff, pero en periodos de Overloaded sostenido eso no basta. Aquí
+  // añadimos UN reintento extra después de 4s si el SDK ya agotó los suyos.
+  let response;
+  try {
+    response = await anthropic.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+  } catch (err) {
+    if (!isTransientAnthropicError(err)) throw err;
+    // eslint-disable-next-line no-console
+    console.warn(`[${agentName}] Anthropic transient error after SDK retries, sleeping 4s then 1 last try…`);
+    await sleep(4000);
+    response = await anthropic.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+  }
 
   const text = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
