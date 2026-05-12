@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --void: #020610;
+    --surface: #07091a;
+    --surface-2: #0b0e21;
+    --surface-3: #10142a;
+    --bdr: rgba(255, 255, 255, 0.055);
+    --bdr-2: rgba(255, 255, 255, 0.09);
+  }
+
+  html,
+  body {
+    background: var(--void);
+    color-scheme: dark;
+  }
+
+  /* Hide scrollbars (matching demo aesthetic) */
+  ::-webkit-scrollbar {
+    width: 0;
+  }
+}
+
+@layer utilities {
+  .text-mono {
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  }
+  .text-orbitron {
+    font-family: 'Orbitron', monospace;
+  }
+}
