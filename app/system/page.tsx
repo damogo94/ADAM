@@ -13,6 +13,8 @@ interface SystemStats {
   avg_latency_ms: number;
   last_analysis_at: string | null;
   watchlist_tickers: number;
+  tokens_total: number;
+  cost_usd_estimated: number;
 }
 
 const AGENTS: { id: string; label: string; model: string; accent: string }[] = [
@@ -80,6 +82,8 @@ export default function SystemScreen() {
         <Stat n={stats?.watchlist_tickers ?? 0} l="activos en watchlist" />
         <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" cls="text-a3" />
         <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media A4" />
+        <Stat n={fmtTokens(stats?.tokens_total ?? 0)} l="tokens consumidos" cls="text-a2" />
+        <Stat n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`} l="coste estimado (USD)" cls="text-emerald" />
       </div>
 
       <SectionLabel>agentes</SectionLabel>
@@ -125,6 +129,12 @@ export default function SystemScreen() {
       </footer>
     </div>
   );
+}
+
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 function Stat({ n, l, cls }: { n: number | string; l: string; cls?: string }) {

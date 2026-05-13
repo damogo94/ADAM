@@ -69,6 +69,15 @@ function extractJson(text: string): string {
   return text.trim();
 }
 
+export interface AgentUsage {
+  agent: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+}
+
 interface RunAgentArgs<T extends z.ZodTypeAny> {
   systemPrompt: string;
   userMessage: string;
@@ -77,6 +86,8 @@ interface RunAgentArgs<T extends z.ZodTypeAny> {
   maxTokens?: number;
   temperature?: number;
   agentName: string;
+  /** Callback opcional para tracking de coste — invocado tras parsing OK */
+  onUsage?: (usage: AgentUsage) => void;
 }
 
 export class AgentParseError extends Error {
@@ -174,6 +185,30 @@ export async function runAgent<T extends z.ZodTypeAny>(
       );
     }
     throw new AgentParseError(text, result.error.issues, agentName);
+  }
+
+  // Tracking de uso (no-op si caller no pasa callback)
+  if (args.onUsage && response.usage) {
+    try {
+      // Las versiones recientes del SDK exponen cache_* — el tipo todavía no las
+      // declara, así que las leemos en runtime.
+      const usage = response.usage as {
+        input_tokens: number;
+        output_tokens: number;
+        cache_read_input_tokens?: number;
+        cache_creation_input_tokens?: number;
+      };
+      args.onUsage({
+        agent: agentName,
+        model,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_read_input_tokens: usage.cache_read_input_tokens,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens,
+      });
+    } catch {
+      /* tracking callback no debe romper el flujo */
+    }
   }
 
   return result.data;

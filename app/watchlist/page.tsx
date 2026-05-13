@@ -4,12 +4,14 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
+import { Sparkline } from '@/components/sparkline';
 import { cn, fmtPct } from '@/lib/utils';
 import type { Watchlist, WatchlistItem, AssetType } from '@/types/db';
 
 interface QuoteState {
   current: number;
   change_pct_24h: number;
+  spark7d?: number[];
   loading: boolean;
   error?: string;
 }
@@ -56,12 +58,17 @@ export default function WatchlistScreen() {
   async function loadQuote(ticker: string) {
     setQuotes((q) => ({ ...q, [ticker]: { current: 0, change_pct_24h: 0, loading: true } }));
     try {
-      const r = await fetch(`/api/market/quote?symbol=${encodeURIComponent(ticker)}`);
+      const r = await fetch(`/api/market/quote?symbol=${encodeURIComponent(ticker)}&spark=1`);
       if (!r.ok) throw new Error('quote_failed');
-      const q = (await r.json()) as { current: number; change_pct_24h: number };
+      const q = (await r.json()) as { current: number; change_pct_24h: number; spark7d?: number[] };
       setQuotes((prev) => ({
         ...prev,
-        [ticker]: { current: q.current, change_pct_24h: q.change_pct_24h, loading: false },
+        [ticker]: {
+          current: q.current,
+          change_pct_24h: q.change_pct_24h,
+          spark7d: q.spark7d,
+          loading: false,
+        },
       }));
     } catch {
       setQuotes((prev) => ({
@@ -216,6 +223,10 @@ function WatchlistRow({
             {item.asset_type}
           </div>
         </div>
+
+        {quote?.spark7d && quote.spark7d.length >= 2 && (
+          <Sparkline values={quote.spark7d} width={56} height={18} />
+        )}
 
         <div className="flex flex-col items-end gap-0.5">
           {quote?.loading ? (

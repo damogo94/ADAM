@@ -1,4 +1,4 @@
-import { runAgent, MODELS } from '@/lib/anthropic';
+import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
 import { DEBATE_SYSTEM_PROMPT } from './prompt';
 import { DEBATE_OUTPUT_SCHEMA, type DebateOutput } from './schema';
 import type { A1Output } from '@/agents/a1/schema';
@@ -12,7 +12,7 @@ export interface DebateInput {
 /**
  * ⚠️ El debate NO recibe ni envía nada a A3. Sólo cruza A1 y A2.
  */
-export async function runDebate(input: DebateInput): Promise<DebateOutput> {
+export async function runDebate(input: DebateInput, onUsage?: (u: AgentUsage) => void): Promise<DebateOutput> {
   const userMessage = [
     `Ticker: ${input.a1.ticker}`,
     '',
@@ -33,5 +33,6 @@ export async function runDebate(input: DebateInput): Promise<DebateOutput> {
     model: MODELS.OPUS,
     maxTokens: 2048,
     temperature: 0.4,
+    onUsage,
   });
 }

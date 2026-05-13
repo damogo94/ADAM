@@ -1,4 +1,4 @@
-import { runAgent, MODELS } from '@/lib/anthropic';
+import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
 import { A1_SYSTEM_PROMPT } from './prompt';
 import { A1_OUTPUT_SCHEMA, type A1Output } from './schema';
 
@@ -12,7 +12,7 @@ export interface A1Input {
   };
 }
 
-export async function runA1(input: A1Input): Promise<A1Output> {
+export async function runA1(input: A1Input, onUsage?: (u: AgentUsage) => void): Promise<A1Output> {
   const userMessage = [
     `Activo a analizar: ${input.ticker}`,
     '',
@@ -26,5 +26,6 @@ export async function runA1(input: A1Input): Promise<A1Output> {
     userMessage,
     schema: A1_OUTPUT_SCHEMA,
     model: MODELS.SONNET,
+    onUsage,
   });
 }

@@ -1,18 +1,22 @@
 import type { A3Output } from '@/agents/a3/schema';
 import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
+import { MiniCandleChart } from '@/components/mini-candle-chart';
 import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
+
+interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
 
 interface A3CardProps {
   status: AgentStatus;
   data: A3Output | null;
+  dailyCandles?: Candle[];
 }
 
 /**
  * A3 card — siempre visible, badge LIVE.
  * Subline recuerda: "usuario único comandante · sin contexto externo".
  */
-export function A3Card({ status, data }: A3CardProps) {
+export function A3Card({ status, data, dailyCandles }: A3CardProps) {
   // A3 is "siempre activo" — once we have data, the dot stays as 'live'
   const dotStatus = data ? 'live' : status;
   return (
@@ -37,12 +41,14 @@ export function A3Card({ status, data }: A3CardProps) {
         />
       )}
       {status === 'error' && <div className="font-mono text-[10px] text-rose py-2">error en A3 — reintenta</div>}
-      {(status === 'done' || status === 'anomaly' || (status === 'live' && data)) && data && <A3Body data={data} />}
+      {(status === 'done' || status === 'anomaly' || (status === 'live' && data)) && data && (
+        <A3Body data={data} dailyCandles={dailyCandles} />
+      )}
     </AgentCardShell>
   );
 }
 
-function A3Body({ data }: { data: A3Output }) {
+function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[] }) {
   const { tendencia, operativa, medias, volumen, patron_detectado, narrative, confidence } = data;
   const sigCls =
     operativa.signal === 'buy' ? 'bull' : operativa.signal === 'sell' ? 'bear' : 'neut';
@@ -50,6 +56,18 @@ function A3Body({ data }: { data: A3Output }) {
 
   return (
     <>
+      {dailyCandles && dailyCandles.length >= 5 && (
+        <div className="mb-2 rounded-lg border border-white/5 bg-black/30 overflow-hidden">
+          <MiniCandleChart
+            candles={dailyCandles}
+            entry={operativa.entrada}
+            stop={operativa.stop_loss}
+            target={operativa.target}
+            height={140}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-1.5 mb-2">
         <TechBox label="ENTRADA" value={fmtNum(operativa.entrada)} valueCls="text-white" />
         <TechBox label="STOP LOSS" value={fmtNum(operativa.stop_loss)} valueCls="text-rose" />

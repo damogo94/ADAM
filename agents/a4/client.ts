@@ -1,4 +1,4 @@
-import { runAgent, MODELS } from '@/lib/anthropic';
+import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
 import { A4_SYSTEM_PROMPT } from './prompt';
 import { A4_OUTPUT_SCHEMA, type A4Output } from './schema';
 import type { A1Output } from '@/agents/a1/schema';
@@ -25,7 +25,7 @@ export interface A4Input {
  * A4 ensambla pero NO envía nada de vuelta a A3. A3 sigue aislado para futuros
  * análisis. Esta función sólo produce el output al usuario.
  */
-export async function runA4(input: A4Input): Promise<A4Output> {
+export async function runA4(input: A4Input, onUsage?: (u: AgentUsage) => void): Promise<A4Output> {
   const part = (label: string, value: unknown, note?: string) => {
     if (value === null || value === undefined) {
       return [`## ${label}:`, `(agente no disponible en este análisis${note ? ` — ${note}` : ''})`].join('\n');
@@ -64,5 +64,6 @@ export async function runA4(input: A4Input): Promise<A4Output> {
     model: MODELS.OPUS,
     maxTokens: 2048,
     temperature: 0.3,
+    onUsage,
   });
 }

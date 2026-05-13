@@ -21,6 +21,8 @@ import type { DebateOutput } from '@/agents/debate/schema';
 import type { A4Output } from '@/agents/a4/schema';
 import type { AgentStatus } from '@/components/agent-card-shell';
 
+interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
+
 interface RunState {
   ticker: string | null;
   a1Status: AgentStatus;
@@ -36,6 +38,7 @@ interface RunState {
   error: UserError | null;
   partial: boolean;
   failures: { agent: string; message: string }[];
+  dailyCandles: Candle[];
 }
 
 const INITIAL: RunState = {
@@ -53,6 +56,7 @@ const INITIAL: RunState = {
   error: null,
   partial: false,
   failures: [],
+  dailyCandles: [],
 };
 
 export default function AnalysisScreen() {
@@ -108,7 +112,7 @@ export default function AnalysisScreen() {
         return;
       }
 
-      const { a1, a2, a3, debate, a4, partial, failures } = data as {
+      const { a1, a2, a3, debate, a4, partial, failures, chart_data } = data as {
         a1: A1Output | null;
         a2: A2Output | null;
         a3: A3Output | null;
@@ -116,6 +120,7 @@ export default function AnalysisScreen() {
         a4: A4Output;
         partial?: boolean;
         failures?: { agent: string; message: string }[];
+        chart_data?: { daily: Candle[] };
       };
 
       setState({
@@ -133,6 +138,7 @@ export default function AnalysisScreen() {
         error: null,
         partial: !!partial,
         failures: failures ?? [],
+        dailyCandles: chart_data?.daily ?? [],
       });
     } catch (e) {
       setState((s) => ({
@@ -225,7 +231,7 @@ export default function AnalysisScreen() {
       {/* A3 always visible */}
       <SectionLabel>motor técnico autónomo</SectionLabel>
       <div className="px-4">
-        <A3Card status={state.a3Status} data={state.a3} />
+        <A3Card status={state.a3Status} data={state.a3} dailyCandles={state.dailyCandles} />
       </div>
 
       {/* Confluence */}

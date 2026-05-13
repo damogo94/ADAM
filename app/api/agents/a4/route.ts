@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import * as Sentry from '@sentry/nextjs';
 import { runA1 } from '@/agents/a1/client';
 import { runA2 } from '@/agents/a2/client';
 import { runA3 } from '@/agents/a3/client';
@@ -20,6 +21,7 @@ import {
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
+import type { AgentUsage } from '@/lib/anthropic';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
 import type { A3Output } from '@/agents/a3/schema';
@@ -136,10 +138,14 @@ export async function POST(req: NextRequest) {
     ];
 
     // Step 2: agents con Promise.allSettled — un fallo NO tira el pipeline
+    // Tracking de coste: cada agente reporta su usage via callback.
+    const usages: AgentUsage[] = [];
+    const trackUsage = (u: AgentUsage) => usages.push(u);
+
     const settled = await Promise.allSettled([
-      runA1({ ticker, market_snapshot }),
-      runA2({ ticker, macro_snapshot: {} }),
-      runA3({ ticker, ohlcv }),
+      runA1({ ticker, market_snapshot }, trackUsage),
+      runA2({ ticker, macro_snapshot: {} }, trackUsage),
+      runA3({ ticker, ohlcv }, trackUsage),
     ]);
 
     const a1: A1Output | null = settled[0]!.status === 'fulfilled' ? settled[0]!.value : null;
@@ -172,7 +178,7 @@ export async function POST(req: NextRequest) {
     // Step 3: debate solo si A1 Y A2 vivos y al menos uno detecta señal
     let debate = null;
     if (a1 && a2 && (a1.anomaly_detected || a2.opportunity_detected)) {
-      debate = await runDebate({ a1, a2 }).catch((err) => {
+      debate = await runDebate({ a1, a2 }, trackUsage).catch((err) => {
         // eslint-disable-next-line no-console
         console.warn('[a4] debate failed, continuing without it:', err instanceof Error ? err.message : err);
         return null;
@@ -180,8 +186,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 4: A4 ensambla con lo que haya
-    const a4 = await runA4({ ticker, a1, a2, a3, debate, failures });
+    const a4 = await runA4({ ticker, a1, a2, a3, debate, failures }, trackUsage);
     const latency_ms = Date.now() - startedAt;
+    const tokens_used = usages.reduce((acc, u) => acc + u.input_tokens + u.output_tokens, 0);
 
     // Step 5: persistir log (best-effort)
     try {
@@ -199,7 +206,7 @@ export async function POST(req: NextRequest) {
         debate_output: debate ?? null,
         a4_output: a4,
         latency_ms,
-        tokens_used: null,
+        tokens_used,
       } as any);
     } catch (logErr) {
       // eslint-disable-next-line no-console
@@ -214,6 +221,8 @@ export async function POST(req: NextRequest) {
       a4,
       partial: failures.length > 0,
       failures: failures.length > 0 ? failures : undefined,
+      // Candles diarias para el mini-chart en A3 card (últimos 60 días)
+      chart_data: daily.length >= 5 ? { daily: daily.slice(-60) } : undefined,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
@@ -222,6 +231,16 @@ export async function POST(req: NextRequest) {
       payload.zodIssues = (err as { zodIssues: unknown }).zodIssues;
       payload.agent = (err as { agent?: string }).agent;
     }
+    // No log en Sentry de errores conocidos (rate-limit, AV soft, etc) — ya filtrados
+    // en beforeSend. Sí capturamos el resto con contexto del análisis.
+    Sentry.captureException(err, {
+      tags: {
+        endpoint: 'api/agents/a4',
+        ticker,
+        failing_agent: (payload.agent as string) ?? 'orchestrator',
+      },
+      extra: { user_id: user.id },
+    });
     return NextResponse.json(payload, { status: 500 });
   }
 }

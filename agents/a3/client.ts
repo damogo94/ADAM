@@ -1,4 +1,4 @@
-import { runAgent, MODELS } from '@/lib/anthropic';
+import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
 import { A3_SYSTEM_PROMPT } from './prompt';
 import { A3_OUTPUT_SCHEMA, type A3Output } from './schema';
 
@@ -23,7 +23,7 @@ export interface A3Input {
   }[];
 }
 
-export async function runA3(input: A3Input): Promise<A3Output> {
+export async function runA3(input: A3Input, onUsage?: (u: AgentUsage) => void): Promise<A3Output> {
   // Defensa adicional: comprobar que no se cuelan campos no permitidos.
   const allowedKeys = new Set(['ticker', 'ohlcv']);
   for (const key of Object.keys(input)) {
@@ -49,5 +49,6 @@ export async function runA3(input: A3Input): Promise<A3Output> {
     schema: A3_OUTPUT_SCHEMA,
     model: MODELS.SONNET,
     temperature: 0.2, // technical analysis: lower variance
+    onUsage,
   });
 }

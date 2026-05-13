@@ -1,4 +1,4 @@
-import { runAgent, MODELS } from '@/lib/anthropic';
+import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
 import { CMT_SYSTEM_PROMPT } from './prompt';
 import { CMT_OUTPUT_SCHEMA, type CMTOutput } from './schema';
 
@@ -14,7 +14,7 @@ export interface CMTInput {
   }[];
 }
 
-export async function runCMT(input: CMTInput): Promise<CMTOutput> {
+export async function runCMT(input: CMTInput, onUsage?: (u: AgentUsage) => void): Promise<CMTOutput> {
   const allowedKeys = new Set(['ticker', 'ohlcv']);
   for (const key of Object.keys(input)) {
     if (!allowedKeys.has(key)) {
@@ -39,5 +39,6 @@ export async function runCMT(input: CMTInput): Promise<CMTOutput> {
     model: MODELS.HAIKU,
     temperature: 0.2,
     maxTokens: 2048,
+    onUsage,
   });
 }

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app/api/agents/a1/route.ts": { "maxDuration": 60 },
+    "app/api/agents/a2/route.ts": { "maxDuration": 60 },
+    "app/api/agents/a3/route.ts": { "maxDuration": 60 },
+    "app/api/agents/a4/route.ts": { "maxDuration": 300 },
+    "app/api/agents/debate/route.ts": { "maxDuration": 60 },
+    "app/api/cmt/scan/route.ts": { "maxDuration": 300 }
+  },
+  "_note_crons": "Cron multi-user del CMT scanner pendiente (Sprint 2.5). Cuando se implemente, anadir aqui: { \"crons\": [{ \"path\": \"/api/cmt/scan\", \"schedule\": \"*/15 * * * *\" }] }. Requiere CRON_SECRET env var.",
+  "_note_maxDuration": "300s requiere plan Vercel Pro. Free tier: max 10s, Hobby: max 60s. Si despliegas en Hobby, baja a 60 y acepta timeouts en A4 cuando Opus tarda."
+}
