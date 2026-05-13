@@ -10,7 +10,5 @@
   },
   "crons": [
     { "path": "/api/cmt/scan", "schedule": "0 */6 * * *" }
-  ],
-  "_note_plan": "Hobby permite maxDuration 60s max. Cuando upgrades a Pro, sube /a4 y /cmt/scan a 300. El cron 6h es agresivo en AV free-tier (25/dia) — si tienes 4+ users con watchlists, alcanzaras el limite. Subir a 1d cuando crezca user base.",
-  "_note_cron_auth": "/api/cmt/scan acepta header Authorization: Bearer ${CRON_SECRET}. Vercel cron lo manda automaticamente cuando CRON_SECRET esta en env vars."
+  ]
 }
