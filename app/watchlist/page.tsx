@@ -47,7 +47,7 @@ export default function WatchlistScreen() {
       const data = (await r.json()) as { watchlist: Watchlist; items: WatchlistItem[] };
       setWatchlist(data.watchlist);
       setItems(data.items);
-      for (const it of data.items) void loadQuote(it.ticker);
+      if (data.items.length > 0) void loadQuotesBatch(data.items.map((it) => it.ticker));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     } finally {
@@ -55,27 +55,47 @@ export default function WatchlistScreen() {
     }
   }
 
-  async function loadQuote(ticker: string) {
-    setQuotes((q) => ({ ...q, [ticker]: { current: 0, change_pct_24h: 0, loading: true } }));
+  async function loadQuotesBatch(tickers: string[]) {
+    // Set loading state para todos
+    setQuotes((prev) => {
+      const next = { ...prev };
+      for (const t of tickers) next[t] = { current: 0, change_pct_24h: 0, loading: true };
+      return next;
+    });
     try {
-      const r = await fetch(`/api/market/quote?symbol=${encodeURIComponent(ticker)}&spark=1`);
-      if (!r.ok) throw new Error('quote_failed');
-      const q = (await r.json()) as { current: number; change_pct_24h: number; spark7d?: number[] };
-      setQuotes((prev) => ({
-        ...prev,
-        [ticker]: {
-          current: q.current,
-          change_pct_24h: q.change_pct_24h,
-          spark7d: q.spark7d,
-          loading: false,
-        },
-      }));
+      const r = await fetch(`/api/market/quotes?symbols=${tickers.map(encodeURIComponent).join(',')}&spark=1`);
+      if (!r.ok) throw new Error('batch_quotes_failed');
+      const data = (await r.json()) as {
+        quotes: { symbol: string; current?: number; change_pct_24h?: number; spark7d?: number[]; error?: string }[];
+      };
+      setQuotes((prev) => {
+        const next = { ...prev };
+        for (const q of data.quotes) {
+          if (q.error || q.current === undefined) {
+            next[q.symbol] = { current: 0, change_pct_24h: 0, loading: false, error: q.error ?? 'no_quote' };
+          } else {
+            next[q.symbol] = {
+              current: q.current,
+              change_pct_24h: q.change_pct_24h ?? 0,
+              spark7d: q.spark7d,
+              loading: false,
+            };
+          }
+        }
+        return next;
+      });
     } catch {
-      setQuotes((prev) => ({
-        ...prev,
-        [ticker]: { current: 0, change_pct_24h: 0, loading: false, error: 'no_quote' },
-      }));
+      setQuotes((prev) => {
+        const next = { ...prev };
+        for (const t of tickers) next[t] = { current: 0, change_pct_24h: 0, loading: false, error: 'no_quote' };
+        return next;
+      });
     }
+  }
+
+  async function loadQuote(ticker: string) {
+    // Versión single — usada solo al añadir un nuevo ticker
+    return loadQuotesBatch([ticker]);
   }
 
   async function onAdd(e: FormEvent) {

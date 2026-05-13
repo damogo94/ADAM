@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { checkSameOrigin, sanitizeDbError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
@@ -8,9 +9,12 @@ export const runtime = 'nodejs';
  * RLS garantiza que sólo el dueño puede borrar.
  */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ itemId: string }> }
 ) {
+  const csrf = checkSameOrigin(req);
+  if (csrf) return csrf;
+
   const { itemId } = await ctx.params;
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,7 +22,7 @@ export async function DELETE(
 
   const { error } = await supabase.from('watchlist_items').delete().eq('id', itemId);
   if (error) {
-    return NextResponse.json({ error: 'delete_failed', detail: error.message }, { status: 500 });
+    return NextResponse.json(sanitizeDbError(error, 'delete_failed'), { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

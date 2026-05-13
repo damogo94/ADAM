@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { getOrCreateDefaultWatchlist } from '@/lib/watchlist';
+import { checkSameOrigin, sanitizeDbError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
@@ -34,6 +35,9 @@ const AddSchema = z.object({
  * POST /api/watchlist → añade un ticker a la watchlist default.
  */
 export async function POST(req: NextRequest) {
+  const csrf = checkSameOrigin(req);
+  if (csrf) return csrf;
+
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest) {
     if (error.code === '23505') {
       return NextResponse.json({ error: 'duplicate', detail: `${parsed.data.ticker} ya está en tu watchlist` }, { status: 409 });
     }
-    return NextResponse.json({ error: 'insert_failed', detail: error.message }, { status: 500 });
+    return NextResponse.json(sanitizeDbError(error, 'insert_failed'), { status: 500 });
   }
 
   return NextResponse.json({ item: data });

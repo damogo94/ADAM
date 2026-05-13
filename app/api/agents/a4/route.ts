@@ -21,6 +21,7 @@ import {
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
+import { checkSameOrigin } from '@/lib/api-helpers';
 import type { AgentUsage } from '@/lib/anthropic';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
@@ -52,6 +53,10 @@ type AgentFailure = { agent: 'A1' | 'A2' | 'A3'; message: string };
  * Coste por llamada (sin cache compartido): 5 calls Alpha Vantage + 3 Sonnet + 1 Opus + opcional 1 Opus debate.
  */
 export async function POST(req: NextRequest) {
+  // CSRF
+  const csrf = checkSameOrigin(req);
+  if (csrf) return csrf;
+
   // Auth
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();

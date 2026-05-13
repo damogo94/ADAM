@@ -2,7 +2,7 @@
 
 > **Lee esto primero si retomas el proyecto en una sesión nueva de Claude Code.**
 > Resumen vivo de qué hay, qué falta, qué debe el usuario, y por dónde retomar.
-> Última actualización: 2026-05-12 · sesión 2 (auditoría completa)
+> Última actualización: 2026-05-13 · sesión 3 (Sprint 3 + hardening cierre auditoría)
 
 ---
 
@@ -106,94 +106,122 @@ Lee también:
 - Recovery de campo `null` en JSON: prompt patterns con `string | null` fuera de comillas
 - `maxTokens` default subido 2048→8192 (A2 truncaba)
 
+### Sprint 3 + cierre auditoría (sesión 3 · 2026-05-13)
+
+**Hardening crítico (cierra los 4 bloqueadores de la auditoría):**
+- Auth en `/api/agents/{a1,a2,a3,debate}` (replicación del patrón de /a4)
+- `Promise.allSettled` en /a4: un agente caído NO tira el pipeline. Si los 3 caen → 503
+- `runA4` acepta `a1/a2/a3` nullable + prompt extendido con reglas de degradación
+- AlphaVantage: timeout 8s + circuit breaker module-level (60s lockout) + L2 cache Upstash write-through
+- Anthropic: `timeout: 25_000` por call
+- Middleware fail-CLOSED en producción (503 con log si Upstash error)
+- Per-user rate-limit `userRuns: 20/día/user.id` via Upstash
+- Ticker regex `/^[A-Z0-9.\-/]+$/i` anti prompt-injection
+- CSRF helper `checkSameOrigin` aplicado a 5 POST endpoints
+- DB error sanitizer (no leak constraint names en prod)
+
+**Observabilidad:**
+- `@sentry/nextjs` instalado y wired (no-op si DSN vacío). `instrumentation.ts` + `instrumentation-client.ts` siguiendo el patrón Next 14
+- `app/global-error.tsx` para capturar errores React render
+- `@vercel/analytics` + `@vercel/speed-insights` integrados en layout
+- Token usage tracking via `onUsage` callback en `runAgent`; cada agente reporta input/output tokens
+- `analyses_log.tokens_used` ahora persiste el sumatorio. Coste estimado USD en /system
+- HSTS header en `next.config.mjs`
+
+**Visual / spec gaps cerrados:**
+- Mini-chart de velas en A3 card (`lightweight-charts` con priceLine entry/stop/target)
+- Sparkline 7D en watchlist items (SVG puro, sin Recharts dep en runtime)
+- Diccionario de errores UI con tono (rate_limit/transient/auth/partial/fatal) → mensajes en español con acción concreta
+- Architecture diagram SVG en /system mostrando el flujo + A3 aislado visualmente
+
+**Infra deploy-ready:**
+- `vercel.json` con `maxDuration: 60` (Hobby plan) + cron CMT cada 6h
+- CMT scanner cron multi-user implementado real (`/api/cmt/scan` acepta GET con `Authorization: Bearer ${CRON_SECRET}` y itera todas las watchlists default)
+- `/api/market/quotes?symbols=A,B,C&spark=1` batch endpoint para reemplazar N llamadas a /quote
+- Filtros en /signals: por nivel, ticker, ack-status
+- CRON_SECRET generado y en `.env.local`
+
 ---
 
-## 4. Hallazgos de auditoría (sesión 2) — críticos sin arreglar todavía
+## 4. Hallazgos de auditoría — estado actual
 
-4 sub-agentes especialistas auditaron en paralelo el 2026-05-12. Resumen de prioridades:
+4 sub-agentes auditaron el 2026-05-12. La sesión 3 cerró los 4 bloqueadores 🔴 y la mayoría de 🟡. Estado tras hardening:
 
-### 🔴 BLOQUEAN PROD (deben arreglarse antes de exponer URL pública)
+### 🔴 BLOQUEADORES — TODOS CERRADOS ✅
+1. ✅ Auth en `/api/agents/{a1,a2,a3,debate}` — aplicado
+2. ✅ `Promise.allSettled` en /a4 + A4 prompt tolerante a nulls — aplicado
+3. ✅ Middleware fail-CLOSED en prod — aplicado
+4. ✅ Timeouts en AV (8s) + Anthropic (25s) + circuit breaker — aplicado
 
-1. **`/api/agents/{a1,a2,a3,debate}` SIN AUTH** ([app/api/agents/a1/route.ts](app/api/agents/a1/route.ts) y demás). Solo `/a4` valida `getUser()`. Cualquier visitante anónimo puede pegar POST → drena Anthropic + AV quota. **Fix**: replicar el patrón de `/a4` (líneas 51-55) en los otros 4 endpoints.
+### 🟡 ALTOS — CERRADOS EN SU MAYORÍA
+5. ✅ CSRF check en 5 POST endpoints — aplicado vía `lib/api-helpers.ts`
+6. ✅ Error UX raw → diccionario `lib/errors.ts` con tonos
+7. ✅ CMT scan con spacing 13s entre tickers + early-break 3 soft-errors
+8. ⚠️ A4 maxDuration=60s — Hobby plan no permite más. **Aceptable**: si Opus tarda mucho, se pierde la analítica. Sentry capturará el timeout. Pro upgrade futuro = subir a 300.
+9. ⚠️ `analyses_log/signals_history` sin INSERT RLS policy — funcionalmente seguro (admin client + user.id de getUser validado). Documentado.
 
-2. **`Promise.all` en `/api/agents/a4/route.ts:95`** — si UN agente cae (529 transitorio, schema parse error, AV-induced failure), los 3 falla todo. Pierdes los tokens YA gastados. **Fix**: `Promise.allSettled`, A4 schema tolerante a `a1|a2|a3` nullable.
+### 🟢 MEDIOS — CERRADOS
+- ✅ Watchlist batch quote endpoint `/api/market/quotes?symbols=...&spark=1`
+- ✅ HSTS header
+- ✅ DB error sanitizer (`sanitizeDbError` en `lib/api-helpers.ts`)
+- ⚠️ `.env.example` placeholder cosmético — pendiente trivial
 
-3. **`middleware.ts:51-53` rate-limit fail-OPEN silencioso** — `try{}catch{}` traga errores de Upstash y permite el request. En prod sin Upstash configurado = sin rate-limit. **Fix**: fail-closed en `NODE_ENV === 'production'` con log explícito; fail-open solo dev.
-
-4. **Sin timeouts en `fetch` AV ni Anthropic** ([lib/market/alphavantage.ts:64](lib/market/alphavantage.ts), [lib/anthropic.ts:84](lib/anthropic.ts)) — un socket colgado bloquea los 60s de `maxDuration`. **Fix**: `AbortSignal.timeout(8000)` en AV, `timeout: 25_000` en Anthropic SDK.
-
-### 🟡 ALTOS (siguiente prioridad)
-
-5. **No CSRF check** en POST endpoints (`/api/agents/a4`, `/api/cmt/scan`). Supabase cookies `SameSite=Lax` mitigan formularios, pero `fetch + credentials:'include'` desde origen malicioso pasa si Lax no es estricto. **Fix**: helper que valida `Origin` o `Referer` host.
-
-6. **Error UX raw a frontend** ([app/analysis/page.tsx:92](app/analysis/page.tsx)). `data.detail ?? data.error` muestra `"[A1] LLM output failed schema validation"` o stack traces. **Fix**: diccionario de códigos conocidos → mensajes en español con acción concreta.
-
-7. **`/api/cmt/scan` no espera entre tickers** — al primer AV soft-error, los siguientes 10 también fallan. **Fix**: `await sleep(13000)` entre iteraciones + early-break en 2do soft-error consecutivo.
-
-8. **A4 maxDuration=60s insuficiente** — Opus + retries fácilmente >60s. **Fix**: en `vercel.json` subir a `300` (requiere Pro) o aceptar timeouts ocasionales.
-
-9. **`analyses_log` y `signals_history` sin INSERT RLS policy** — solo service_role escribe. Funciona porque los 2 callers ponen `user.id` desde `getUser()` validado, pero es invariante invisible. **Fix**: helper SQL function `insert_analysis(...)` con `auth.uid()` check, o aceptar el riesgo y documentarlo.
-
-### 🟢 MEDIOS
-
-- **Watchlist hace N fetches en paralelo a `/api/market/quote`** ([app/watchlist/page.tsx:48](app/watchlist/page.tsx)) — quema AV rate-limit a partir de 5 tickers. **Fix**: endpoint batch `GET /api/market/quotes?symbols=A,B,C`.
-- **Headers**: falta `Strict-Transport-Security`, `CSP`. Sprint 3.
-- **Errors de Supabase pasados verbatim al cliente** ([app/api/watchlist/route.ts:70](app/api/watchlist/route.ts) y otros) — leaks de nombres de constraints/columnas. **Fix**: log server-side, mensaje genérico al cliente.
-- **`.env.example` ship un placeholder `sk-ant-...`** — cosmético, sustituir por `<your-key>`.
-
-### Gaps de spec sin implementar
-
-- **Mini-chart de velas en A3 card** — `lightweight-charts` está en `package.json` pero **0 imports** en el código. Spec lo pedía explícito.
-- **Sparkline 7D en watchlist + signal badge por item + hero stats portfolio** — items de la spec no implementados, los hero stats están hardcoded a "0 próximamente".
-- **Slash commands** `/plan`, `/macro`, `/cmt [ticker]`, `/agentes [activo]` — listados en spec, no implementados en ningún sitio.
-- **System screen calls/min + latency per agent** — actualmente solo latencia global media.
-- **Architecture diagram en System screen** — README tiene Mermaid, UI no lo renderiza.
+### Gaps de spec — ESTADO
+- ✅ Mini-chart velas A3 card (lightweight-charts con priceLine)
+- ✅ Sparkline 7D en watchlist
+- ✅ Architecture diagram en System screen
+- ⚠️ Hero stats portfolio 7D en watchlist — pendiente (item del spec, baja prioridad)
+- ❌ Slash commands `/plan /macro /cmt /agentes` — **deferred a v2** (decisión consciente)
+- ⚠️ System screen calls/min + latency per agent — actualmente solo global. Pendiente migration con `tokens_per_agent jsonb` en analyses_log.
 
 ### Cosas BIEN según auditoría (no tocar)
-
-- **A3 isolation real end-to-end** (3 capas + 65 tests) — confirmado por 3 auditores.
-- **A4 cita A3 textualmente** — el prompt y el wrapper lo refuerzan.
-- **RLS policies correctas** en operaciones de read.
-- **Middleware usa `getUser()` (JWT-validated), no `getSession()` (cookie-only)**.
-- **Schemas Zod con `.strict()` y validaciones de longitud/range** — A4 incluso encoda `z.literal('baja')` y el disclaimer literal.
-- **A3/CMT comparten enforcement de 3 capas**.
+- **A3 isolation real end-to-end** (3 capas + 65 tests)
+- **A4 cita A3 textualmente**
+- **RLS policies correctas** en operaciones de read
+- **Middleware usa `getUser()` (JWT-validated)**
+- **Schemas Zod estrictos** con `z.literal` en campos críticos
 
 ---
 
-## 5. Dependencias del usuario — tareas que él debe hacer
+## 5. Dependencias del usuario — tareas pendientes
 
-(Yo no las puedo automatizar; necesitan acción manual del owner)
+### Hechas ✅
+- Upstash Redis creado + creds en `.env.local`
+- Email confirmation desactivado en Supabase
+- Trigger `on_auth_user_created` verificado y aplicado
+- Anthropic key rotada (la nueva en `.env.local`)
+- `.claude/settings.local.json` limpiado (wildcard pattern, sin key literal)
+- Sentry proyecto creado + DSN en `.env.local`
+- Vercel Hobby plan confirmado
 
 ### Pendientes ahora mismo:
 
-**1. Upstash Redis (15 min)** — desbloquea cache compartido + rate-limit real
+**1. Crear proyecto Vercel + primer deploy (15 min tuyos)**
+   - https://vercel.com/new → Import `damogo94/ADAM` → framework Next.js (auto) → Deploy (fallará la primera vez por env vars vacías, normal)
+   - Settings → Environment Variables → pegar TODOS estos (de `.env.local`):
+     ```
+     ANTHROPIC_API_KEY
+     ALPHA_VANTAGE_API_KEY
+     NEXT_PUBLIC_SUPABASE_URL
+     NEXT_PUBLIC_SUPABASE_ANON_KEY
+     SUPABASE_SERVICE_ROLE_KEY
+     UPSTASH_REDIS_REST_URL
+     UPSTASH_REDIS_REST_TOKEN
+     SENTRY_DSN
+     NEXT_PUBLIC_SENTRY_DSN
+     CRON_SECRET
+     ```
+   - Redeploy desde el dashboard
+   - El cron de `/api/cmt/scan` (definido en `vercel.json`) arrancará automáticamente cada 6h una vez deployado
 
-   - https://console.upstash.com → Sign in con GitHub
-   - "Create Database" → name `adam-prod` → región **Frankfurt** (eu-central-1) → Type **Regional** → Eviction **disabled**
-   - REST API tab → copiar `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`
-   - Pegar ambas en `.env.local` y reiniciar `next dev`
+**2. (Opcional) Sentry source maps:**
+   - Sentry dashboard → Settings → Auth Tokens → crear con scope `project:releases` y `org:read`
+   - En Vercel env: añadir `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT=adam` (o el nombre que diste al proyecto)
 
-**2. Desactivar email confirmation en Supabase (5 min)** — mata los `otp_expired` que bloquean signups
-
-   - Dashboard Supabase (project `qaakauberbibfgxthlro`) → Authentication → Providers → Email → toggle **"Confirm email"** OFF
-
-**3. Verificar trigger Supabase aplicado (1 min)**
-
-   - SQL Editor → `select tgname from pg_trigger where tgname = 'on_auth_user_created';`
-   - Debe devolver 1 fila. Si vacío, re-ejecutar `supabase/migrations/0001_init.sql`.
-
-**4. Rotar `ANTHROPIC_API_KEY` antigua y limpiar `.claude/settings.local.json`**
-
-   - La key vieja sigue literal en `.claude/settings.local.json` (línea con `curl ... -H "x-api-key: sk-ant-..."`). Aunque está gitignored, está en sync local.
-   - Reemplazar la línea por allowlist genérico: `"Bash(curl -s https://api.anthropic.com/v1/messages *)"` sin key.
-   - Y rotar la antigua key en https://console.anthropic.com/settings/keys.
-
-### Decisiones pendientes (gaps de spec):
-
-¿Implementamos en el Sprint 3 o no?
-- [ ] Mini-chart de velas en A3 card (lightweight-charts) — recomendación: **SÍ**, ~1.5h
-- [ ] Sparkline 7D + signal badge en watchlist (Recharts) — recomendación: **SÍ**, ~45min
-- [ ] Slash commands `/plan`, `/macro`, `/cmt`, `/agentes` — recomendación: **NO**, defer a v2
+### Decisiones pendientes:
+- **System screen métricas per-agent** — requiere migration 0003 añadiendo `tokens_per_agent jsonb` a `analyses_log`. Decidir si implementar (~45 min) o defer.
+- **Trade journal** (outcome win/loss/partial por signal) — requiere migration 0003 añadiendo enum + columna. Recomendación: **SÍ**, es el feedback loop del producto.
+- **Supabase Realtime para signals push** — toast cuando entra signal urgente sin refrescar. Requiere enable replication en dashboard Supabase. Recomendación: **SÍ**, completa el "autonomous".
 
 ---
 
@@ -412,30 +440,41 @@ Si retomas en otra máquina, la memoria persistente se va con la instalación de
 
 ---
 
-## 13. Git state al cierre de sesión 2
+## 13. Git state al cierre de sesión 3
+
+Branch `main` · todos pushed a https://github.com/damogo94/ADAM:
 
 ```
-* 0c18092 Resilience: in-process cache + graceful AV degradation
-* b25d01a Sprint 2 — Auth, watchlist, CMT scanner, persistencia, sistema
-* 3c4a869 Sprint 2 — Supabase foundations (schema + RLS + clients)
-* df002a4 Initial commit — A.D.A.M. Sprint 1 MVP
+* Sprint 3 — observabilidad + UX visual + production deploy (sesión 3)
+* hardening: cierra los 4 criticos + per-user limit + Upstash L2 cache
+* fix: retry Anthropic transient errors (529 Overloaded incluido)
+* docs: CONTEXT.md — handoff document
+* Resilience: in-process cache + graceful AV degradation
+* Sprint 2 — Auth, watchlist, CMT scanner, persistencia, sistema
+* Sprint 2 — Supabase foundations (schema + RLS + clients)
+* Initial commit — A.D.A.M. Sprint 1 MVP
 ```
 
-Todos pushed a `origin/main`. Branch: `main`. Identidad commits: `damogo94 <damogo94@users.noreply.github.com>` (vía env vars, NO git config global — el user no quiere que toquemos config).
+Identidad: `damogo94 <damogo94@users.noreply.github.com>` (env vars, NO git config global — no tocamos config a petición del owner).
 
 ---
 
 ## 14. Verdict honesto sobre estado del producto
 
-**El producto NO está listo para deploy público hoy.** Bloqueadores en §4 (los 4 críticos).
+**El producto está listo para deploy a Vercel.** Los 4 bloqueadores 🔴 de la auditoría están cerrados, los 🟡 también. La única dependencia bloqueante es **la acción humana de crear el proyecto Vercel y pegar env vars**.
 
-**El producto SÍ está listo para uso local del owner + 1-2 testers controlados.** El flujo end-to-end funciona: login → watchlist → tap-to-analyze → análisis live → confluencia → CMT scan → señales persistidas → métricas de sistema.
+**Lo que falta para que el producto sea "completo según spec":**
+- **Trade journal** (outcome tracking) — feedback loop del producto, decidir cuándo.
+- **Realtime push de signals** — toast cuando llega urgente sin refrescar.
+- **Métricas per-agent** (calls/min + latency por A1/A2/A3/A4) — spec lo pedía, hoy solo global.
 
-**El producto ya es mejor que el spec original en algunas dimensiones**: A3 isolation real con 65 tests (spec solo pedía la regla); A4 con `z.literal` del disclaimer y `z.literal('baja')` del a3_solo (impide drift del LLM); RLS + admin-client split bien pensado.
+**Lo que NO va a hacerse** (decisión consciente, post-MVP):
+- Slash commands `/plan`, `/macro`, `/cmt`, `/agentes`.
 
-**Es peor en otras**: charts cortados (lightweight-charts/Recharts en deps, sin usar); slash commands skipped; system screen con métricas simplificadas vs lo que pedía spec (calls/min + latency per agent).
-
-**Próximos 2-3 días de trabajo** cierran los 4 críticos + Sentry + el chart de A3 + sparkline + vercel.json. Eso te deja con producto deployable, observable, y visualmente cumpliendo spec.
+**Riesgos vivos:**
+- Hobby plan = maxDuration 60s. Si A4 + Debate Opus tarda más, el lambda muere. Sentry lo capturará. Mitigación: upgrade a Pro cuando crezca uso.
+- Alpha Vantage free tier 25/día. Con Upstash L2 ahora aguanta multi-user razonablemente, pero >5 users activos lo desbordan. Mitigación: paid AV tier o cambiar a Finnhub.
+- CMT cron cada 6h — agresivo en AV. Si llegas a 4+ users con watchlists de 10+ tickers cada uno, el cron solo te pasará 25 calls AV/día. Considerar bajar a 1d en producción real.
 
 ---
 

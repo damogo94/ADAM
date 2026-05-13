@@ -13,6 +13,9 @@ interface Stats {
   monitorear: number;
 }
 
+type LevelFilter = 'all' | SignalLevel;
+type AckFilter = 'all' | 'unread' | 'acknowledged';
+
 export default function SignalsScreen() {
   const router = useRouter();
   const [signals, setSignals] = useState<SignalHistory[]>([]);
@@ -21,6 +24,19 @@ export default function SignalsScreen() {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Filtros
+  const [filterLevel, setFilterLevel] = useState<LevelFilter>('all');
+  const [filterTicker, setFilterTicker] = useState('');
+  const [filterAck, setFilterAck] = useState<AckFilter>('all');
+
+  const filteredSignals = signals.filter((s) => {
+    if (filterLevel !== 'all' && s.level !== filterLevel) return false;
+    if (filterTicker && !s.ticker.toLowerCase().includes(filterTicker.toLowerCase())) return false;
+    if (filterAck === 'unread' && s.acknowledged_at) return false;
+    if (filterAck === 'acknowledged' && !s.acknowledged_at) return false;
+    return true;
+  });
 
   useEffect(() => {
     void load();
@@ -97,7 +113,58 @@ export default function SignalsScreen() {
         </div>
       )}
 
-      <SectionLabel>historial · últimas {signals.length}</SectionLabel>
+      <SectionLabel>filtros</SectionLabel>
+      <div className="px-4 space-y-1.5">
+        <div className="flex gap-1">
+          {(['all', 'urgente', 'atencion', 'monitorear'] as const).map((lv) => (
+            <button
+              key={lv}
+              onClick={() => setFilterLevel(lv)}
+              className={cn(
+                'flex-1 rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
+                filterLevel === lv
+                  ? lv === 'urgente'
+                    ? 'border-rose/50 bg-rose/10 text-rose'
+                    : lv === 'atencion'
+                      ? 'border-a3/50 bg-a3/10 text-a3'
+                      : lv === 'monitorear'
+                        ? 'border-emerald/50 bg-emerald/10 text-emerald'
+                        : 'border-white/20 bg-white/5 text-white'
+                  : 'border-white/5 bg-surface-2 text-slate-l hover:border-white/10'
+              )}
+            >
+              {lv === 'all' ? 'todas' : lv}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          <input
+            type="text"
+            value={filterTicker}
+            onChange={(e) => setFilterTicker(e.target.value)}
+            placeholder="ticker..."
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 font-mono text-[10px] uppercase text-white placeholder-slate focus:border-a1/60 focus:outline-none"
+          />
+          {(['all', 'unread', 'acknowledged'] as const).map((a) => (
+            <button
+              key={a}
+              onClick={() => setFilterAck(a)}
+              className={cn(
+                'rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
+                filterAck === a
+                  ? 'border-a1/50 bg-a1/10 text-a1'
+                  : 'border-white/5 bg-surface-2 text-slate-l hover:border-white/10'
+              )}
+            >
+              {a === 'all' ? 'todas' : a === 'unread' ? 'no leídas' : 'leídas'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <SectionLabel>
+        historial · {filteredSignals.length === signals.length ? signals.length : `${filteredSignals.length} de ${signals.length}`}
+      </SectionLabel>
       {loading ? (
         <div className="px-4 py-8 text-center font-mono text-[10px] text-slate">cargando señales…</div>
       ) : signals.length === 0 ? (
@@ -108,9 +175,13 @@ export default function SignalsScreen() {
             añade activos a tu watchlist y ejecuta un scan
           </div>
         </div>
+      ) : filteredSignals.length === 0 ? (
+        <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-6 text-center">
+          <div className="font-mono text-[10px] text-slate">ninguna señal cumple los filtros</div>
+        </div>
       ) : (
         <div className="px-4 space-y-1.5">
-          {signals.map((s) => (
+          {filteredSignals.map((s) => (
             <SignalCard
               key={s.id}
               signal={s}

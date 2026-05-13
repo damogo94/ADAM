@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { checkSameOrigin, sanitizeDbError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
@@ -7,7 +8,10 @@ export const runtime = 'nodejs';
  * POST /api/signals/[id]/ack → marca una signal como acknowledged.
  * RLS garantiza que sólo el dueño puede tocarla.
  */
-export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const csrf = checkSameOrigin(req);
+  if (csrf) return csrf;
+
   const { id } = await ctx.params;
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,7 +24,7 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
     .eq('id', id);
 
   if (error) {
-    return NextResponse.json({ error: 'update_failed', detail: error.message }, { status: 500 });
+    return NextResponse.json(sanitizeDbError(error, 'update_failed'), { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

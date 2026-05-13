@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
+import { ArchitectureDiagram } from '@/components/architecture-diagram';
 
 interface SystemStats {
   analyses_total: number;
@@ -106,6 +107,11 @@ export default function SystemScreen() {
             </div>
           </div>
         ))}
+      </div>
+
+      <SectionLabel>arquitectura</SectionLabel>
+      <div className="px-4">
+        <ArchitectureDiagram />
       </div>
 
       <SectionLabel>actividad reciente</SectionLabel>

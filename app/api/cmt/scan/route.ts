@@ -8,87 +8,73 @@ import {
   normalizeDaily,
   normalizeIntraday,
 } from '@/lib/market/alphavantage';
+import { checkSameOrigin } from '@/lib/api-helpers';
 import type { CMTOutput } from '@/agents/cmt/schema';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 /**
- * Scanner CMT — corre sobre la watchlist del usuario autenticado y persiste
- * cada signal en signals_history.
+ * Scanner CMT — dos modos:
  *
- * Auth:
- *   - User autenticado (cookie session): escanea su propia watchlist
- *   - Cron (Authorization: Bearer ${CRON_SECRET}): no implementado aún —
- *     escanearia todos los usuarios. Sprint 2.5.
+ * A) MANUAL: usuario autenticado (cookie session) → escanea SU watchlist default
+ *    POST /api/cmt/scan
  *
- * Coste por scan: N tickers × (2 calls Alpha Vantage + 1 call Haiku).
- * Pensado para correr 1×/5min en cron (Vercel) — sin caché es caro,
- * por eso Sprint 3 mete Upstash para amortiguar.
+ * B) CRON: Vercel cron via header `Authorization: Bearer ${CRON_SECRET}` →
+ *    itera TODAS las watchlists de TODOS los users, escanea, persiste por user_id.
+ *    Vercel cron manda el header automaticamente cuando CRON_SECRET esta en env.
+ *
+ * Estrategia anti-rate-limit AV (free tier 25/dia, 5/min):
+ *   - 13s entre tickers (5/min limit con margen)
+ *   - circuit breaker: 3 soft-errors consecutivos AV → break del loop
+ *   - cache L1+L2 cubre re-scans frecuentes
+ *
+ * Persiste solo signals NO `sin_senal` para no ruido en /signals.
  */
-export async function POST(req: NextRequest) {
-  // Auth path A: cron via CRON_SECRET (no implementado aun, placeholder)
-  const cronAuth = req.headers.get('authorization');
-  if (cronAuth && process.env.CRON_SECRET && cronAuth === `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json(
-      { error: 'cron_path_not_implemented', detail: 'Sprint 2.5: scan multi-user' },
-      { status: 501 }
-    );
-  }
 
-  // Auth path B: user autenticado
-  const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+const SLEEP_MS_BETWEEN_TICKERS = 13_000;
+const MAX_CONSECUTIVE_AV_FAILS = 3;
 
-  // Cargar watchlist items del user
-  const { data: watchlist } = await supabase
-    .from('watchlists')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('is_default', true)
-    .maybeSingle<{ id: string }>();
-  if (!watchlist) return NextResponse.json({ scanned: 0, signals: [] });
+interface ScanResult {
+  ticker: string;
+  ok: boolean;
+  signal?: CMTOutput;
+  error?: string;
+}
 
-  const { data: items } = await supabase
-    .from('watchlist_items')
-    .select('ticker')
-    .eq('watchlist_id', watchlist.id)
-    .returns<{ ticker: string }[]>();
-  const tickers = (items ?? []).map((it) => it.ticker);
-  if (tickers.length === 0) return NextResponse.json({ scanned: 0, signals: [] });
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
-  // Escanear cada ticker — secuencial para no quemar AV free-tier (5/min)
-  const results: { ticker: string; ok: boolean; signal?: CMTOutput; error?: string }[] = [];
-  for (const ticker of tickers) {
-    try {
-      const [daily, intraday] = await Promise.all([
-        timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
-        timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
-      ]);
-      const ohlcv = [
-        { timeframe: '1D', candles: daily.slice(-100) },
-        { timeframe: '1H', candles: intraday.slice(-100) },
-      ];
-      const signal = await runCMT({ ticker, ohlcv });
-      results.push({ ticker, ok: true, signal });
-    } catch (err) {
-      results.push({
-        ticker,
-        ok: false,
-        error: err instanceof Error ? err.message : 'unknown',
-      });
+async function scanTickerForUser(userId: string, ticker: string): Promise<ScanResult> {
+  try {
+    const [daily, intraday] = await Promise.all([
+      timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
+      timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
+    ]);
+    if (daily.length === 0 && intraday.length === 0) {
+      return { ticker, ok: false, error: 'no_market_data' };
     }
+    const ohlcv = [
+      { timeframe: '1D', candles: daily.slice(-100) },
+      { timeframe: '1H', candles: intraday.slice(-100) },
+    ];
+    const signal = await runCMT({ ticker, ohlcv });
+    return { ticker, ok: true, signal };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return { ticker, ok: false, error: msg };
   }
+}
 
-  // Persistir las signals NO sin_senal — el ruido se filtra antes del DB
+async function persistSignals(userId: string, results: ScanResult[]): Promise<number> {
   const admin = createSupabaseAdmin();
   const toInsert = results
     .filter((r) => r.ok && r.signal && r.signal.level !== 'sin_senal')
     .map((r) => {
       const s = r.signal!;
       return {
-        user_id: user.id,
+        user_id: userId,
         ticker: s.ticker,
         level: s.level,
         timeframe: s.timeframe,
@@ -103,18 +89,142 @@ export async function POST(req: NextRequest) {
       };
     });
 
-  if (toInsert.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await admin.from('signals_history').insert(toInsert as any);
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.error('[cmt-scan] failed to insert signals:', error.message);
+  if (toInsert.length === 0) return 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await admin.from('signals_history').insert(toInsert as any);
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error('[cmt-scan] persist failed:', error.message);
+    return 0;
+  }
+  return toInsert.length;
+}
+
+export async function POST(req: NextRequest) {
+  const cronAuth = req.headers.get('authorization');
+  const isCron =
+    !!cronAuth &&
+    !!process.env.CRON_SECRET &&
+    cronAuth === `Bearer ${process.env.CRON_SECRET}`;
+
+  if (isCron) {
+    return handleCron();
+  }
+
+  // CSRF aplica SOLO en path manual — cron viene de Vercel sin Origin
+  const csrf = checkSameOrigin(req);
+  if (csrf) return csrf;
+
+  return handleManual();
+}
+
+/**
+ * GET también soportado para cron — Vercel cron por defecto usa GET.
+ */
+export async function GET(req: NextRequest) {
+  const cronAuth = req.headers.get('authorization');
+  const isCron =
+    !!cronAuth &&
+    !!process.env.CRON_SECRET &&
+    cronAuth === `Bearer ${process.env.CRON_SECRET}`;
+  if (!isCron) {
+    return NextResponse.json({ error: 'method_not_allowed', detail: 'GET solo para cron autenticado' }, { status: 405 });
+  }
+  return handleCron();
+}
+
+async function handleManual() {
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const { data: watchlist } = await supabase
+    .from('watchlists')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('is_default', true)
+    .maybeSingle<{ id: string }>();
+  if (!watchlist) return NextResponse.json({ scanned: 0, persisted: 0, results: [] });
+
+  const { data: items } = await supabase
+    .from('watchlist_items')
+    .select('ticker')
+    .eq('watchlist_id', watchlist.id)
+    .returns<{ ticker: string }[]>();
+  const tickers = (items ?? []).map((it) => it.ticker);
+
+  const { results } = await runScanLoop(user.id, tickers);
+  const persisted = await persistSignals(user.id, results);
+
+  return NextResponse.json({ scanned: results.length, persisted, results });
+}
+
+async function handleCron() {
+  // Cron itera TODAS las watchlists default. Service role bypasses RLS para leer cross-user.
+  const admin = createSupabaseAdmin();
+  const wlRes = await admin
+    .from('watchlists')
+    .select('id, user_id')
+    .eq('is_default', true);
+  const watchlists = (wlRes.data ?? []) as unknown as { id: string; user_id: string }[];
+
+  if (watchlists.length === 0) {
+    return NextResponse.json({ users_scanned: 0, total_persisted: 0 });
+  }
+
+  let totalScanned = 0;
+  let totalPersisted = 0;
+  const errors: { user_id: string; error: string }[] = [];
+
+  for (const wl of watchlists) {
+    try {
+      const itemsRes = await admin
+        .from('watchlist_items')
+        .select('ticker')
+        .eq('watchlist_id', wl.id);
+      const items = (itemsRes.data ?? []) as unknown as { ticker: string }[];
+      const tickers = items.map((it) => it.ticker);
+      if (tickers.length === 0) continue;
+
+      const { results } = await runScanLoop(wl.user_id, tickers);
+      totalScanned += results.length;
+      totalPersisted += await persistSignals(wl.user_id, results);
+    } catch (err) {
+      errors.push({ user_id: wl.user_id, error: err instanceof Error ? err.message : 'unknown' });
     }
   }
 
   return NextResponse.json({
-    scanned: results.length,
-    persisted: toInsert.length,
-    results,
+    users_scanned: watchlists.length,
+    total_scanned: totalScanned,
+    total_persisted: totalPersisted,
+    errors: errors.length > 0 ? errors : undefined,
   });
+}
+
+async function runScanLoop(userId: string, tickers: string[]): Promise<{ results: ScanResult[] }> {
+  const results: ScanResult[] = [];
+  let avFailStreak = 0;
+
+  for (let i = 0; i < tickers.length; i++) {
+    const ticker = tickers[i]!;
+    const r = await scanTickerForUser(userId, ticker);
+    results.push(r);
+
+    if (!r.ok && (r.error?.includes('soft error') || r.error?.includes('rate-limited'))) {
+      avFailStreak++;
+      if (avFailStreak >= MAX_CONSECUTIVE_AV_FAILS) {
+        // eslint-disable-next-line no-console
+        console.warn(`[cmt-scan] AV throttling streak (${avFailStreak}), breaking scan at ticker ${i + 1}/${tickers.length}`);
+        break;
+      }
+    } else if (r.ok) {
+      avFailStreak = 0;
+    }
+
+    // Spacing entre tickers — respeta AV 5/min con margen
+    if (i < tickers.length - 1) await sleep(SLEEP_MS_BETWEEN_TICKERS);
+  }
+
+  return { results };
 }
