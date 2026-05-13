@@ -5,6 +5,8 @@ import { quote, normalizeQuote, timeSeriesDaily, normalizeDaily } from '@/lib/ma
 export const runtime = 'edge';
 export const maxDuration = 60;
 
+const SYMBOL_REGEX = /^[A-Z0-9.\-/]+$/i;
+
 const RequestSchema = z.object({
   symbols: z.string().min(1).max(500),
   spark: z.string().optional(),
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
   const list = parsed.data.symbols
     .split(',')
     .map((s) => s.trim().toUpperCase())
-    .filter(Boolean)
+    .filter((s) => s && s.length <= 20 && SYMBOL_REGEX.test(s)) // regex anti-abuse + cap len
     .slice(0, 20); // cap defensivo — sin esto un attacker podría pedir 1000 tickers
 
   if (list.length === 0) {

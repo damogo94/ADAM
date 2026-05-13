@@ -1,14 +1,34 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { Suspense, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowser } from '@/lib/supabase/browser';
 
+/**
+ * Valida un raw `next` query param contra open-redirect.
+ * - Sólo permite paths internos `/foo` (not `//foo`, ni `http://...`, ni `/\foo`).
+ * - Fallback a `/analysis` para cualquier valor sospechoso o null.
+ */
+function safeNext(raw: string | null): string {
+  if (!raw) return '/analysis';
+  if (!raw.startsWith('/')) return '/analysis';
+  if (raw.startsWith('//') || raw.startsWith('/\\')) return '/analysis';
+  return raw;
+}
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-sm h-64" />}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get('next') || '/analysis';
+  const next = safeNext(search.get('next'));
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

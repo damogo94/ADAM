@@ -7,8 +7,5 @@
     "app/api/agents/a4/route.ts": { "maxDuration": 60 },
     "app/api/agents/debate/route.ts": { "maxDuration": 60 },
     "app/api/cmt/scan/route.ts": { "maxDuration": 60 }
-  },
-  "crons": [
-    { "path": "/api/cmt/scan", "schedule": "0 */6 * * *" }
-  ]
+  }
 }

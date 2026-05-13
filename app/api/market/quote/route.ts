@@ -4,8 +4,9 @@ import { quote, normalizeQuote, timeSeriesDaily, normalizeDaily } from '@/lib/ma
 
 export const runtime = 'edge';
 
+const SYMBOL_REGEX = /^[A-Z0-9.\-/]+$/i;
 const RequestSchema = z.object({
-  symbol: z.string().min(1).max(20),
+  symbol: z.string().min(1).max(20).regex(SYMBOL_REGEX, 'invalid symbol'),
 });
 
 /**

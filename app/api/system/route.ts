@@ -38,6 +38,8 @@ export async function GET() {
     supabase
       .from('signals_history')
       .select('level')
+      .eq('user_id', user.id)
+      .limit(500)
       .returns<{ level: string }[]>(),
     supabase
       .from('watchlists')

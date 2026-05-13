@@ -8,6 +8,7 @@ import {
   normalizeIntraday,
 } from '@/lib/market/alphavantage';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { checkSameOrigin } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -25,6 +26,9 @@ const RequestSchema = z
   .strict(); // .strict() rechaza campos adicionales — extra defense
 
 export async function POST(req: NextRequest) {
+  const csrf = checkSameOrigin(req);
+  if (csrf) return csrf;
+
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

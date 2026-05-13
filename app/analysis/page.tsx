@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
@@ -60,11 +60,23 @@ const INITIAL: RunState = {
 };
 
 export default function AnalysisScreen() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-void" />}>
+      <AnalysisInner />
+    </Suspense>
+  );
+}
+
+function AnalysisInner() {
   const [state, setState] = useState<RunState>(INITIAL);
   const search = useSearchParams();
   const router = useRouter();
   const autoTicker = search.get('ticker');
   const autoRanRef = useRef<string | null>(null);
+  // AbortController para cancelar la request anterior si el user lanza otra rápida.
+  // Sin esto, las respuestas race y la última en llegar (potencialmente vieja)
+  // clobbers el estado del análisis en curso.
+  const abortRef = useRef<AbortController | null>(null);
 
   // Auto-trigger cuando viene desde /watchlist con ?ticker=X
   useEffect(() => {
@@ -76,6 +88,11 @@ export default function AnalysisScreen() {
   }, [autoTicker]);
 
   async function handleRun(ticker: string) {
+    // Cancela cualquier request anterior en vuelo
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
     setState({
       ...INITIAL,
       ticker,
@@ -89,8 +106,11 @@ export default function AnalysisScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker }),
+        signal: ctrl.signal,
       });
+      if (ctrl.signal.aborted) return; // request superseded, abandona setState
       const data = await res.json();
+      if (ctrl.signal.aborted) return;
 
       if (!res.ok) {
         if (res.status === 401) {
@@ -141,6 +161,8 @@ export default function AnalysisScreen() {
         dailyCandles: chart_data?.daily ?? [],
       });
     } catch (e) {
+      if (ctrl.signal.aborted) return; // AbortError esperado, no es fallo
+      if (e instanceof DOMException && e.name === 'AbortError') return;
       setState((s) => ({
         ...s,
         a1Status: 'error',

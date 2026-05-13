@@ -37,9 +37,42 @@ interface CacheEntry<T = unknown> {
   storedAt: number;
 }
 const memoryCache = new Map<string, CacheEntry>();
-let avThrottledUntil = 0; // unix ms — hasta cuándo NO pegamos a AV
 
+/**
+ * Circuit breaker DUAL:
+ *  - L1 (per-lambda): `avThrottledUntilLocal` — instant check, evita 1 round-trip Upstash
+ *    para casos de breaker que activamos en ESTA lambda
+ *  - L2 (cross-lambda en Upstash key `adam:av:breaker`): TTL 60s. Si lambda A
+ *    detecta AV soft-error, lambdas B/C lo ven en su próximo fetch y respetan
+ *    el throttle
+ *
+ * Sin L2, cada lambda tenía su breaker propio → AV soft-error en una NO protegía
+ * las concurrentes → seguían hammerizando AV.
+ */
+let avThrottledUntilLocal = 0;
+const BREAKER_KEY = 'adam:av:breaker';
 const L2_PREFIX = 'adam:av:';
+
+async function readBreakerL2(): Promise<boolean> {
+  const redis = getRedisClient();
+  if (!redis) return false;
+  try {
+    const v = await redis.get(BREAKER_KEY);
+    return v !== null;
+  } catch {
+    return false;
+  }
+}
+
+async function setBreakerL2(): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  try {
+    await redis.set(BREAKER_KEY, '1', { ex: Math.ceil(CIRCUIT_BREAKER_MS / 1000) });
+  } catch {
+    /* swallow — best effort */
+  }
+}
 
 function cacheKey(params: Record<string, string>): string {
   return Object.keys(params)
@@ -87,14 +120,15 @@ async function fetchJson<T>(
     return l2.data;
   }
 
-  // 3. Circuit breaker — si AV throttled, no llamamos. Devolvemos stale L1 o L2 si hay.
-  if (now < avThrottledUntil) {
+  // 3. Circuit breaker (L1 fast-path + L2 cross-lambda)
+  const breakerOpen = now < avThrottledUntilLocal || (await readBreakerL2());
+  if (breakerOpen) {
     const stale = l1 ?? l2;
     if (stale && now - stale.storedAt < MAX_STALE_MS) {
       memoryCache.set(ck, stale);
       // eslint-disable-next-line no-console
       console.warn(
-        `[AV] circuit-breaker ON (${Math.ceil((avThrottledUntil - now) / 1000)}s left), serving stale for ${params.function}/${params.symbol ?? '?'}`
+        `[AV] circuit-breaker open, serving stale for ${params.function}/${params.symbol ?? '?'} (age ${Math.floor((now - stale.storedAt) / 1000)}s)`
       );
       return stale.data;
     }
@@ -118,7 +152,8 @@ async function fetchJson<T>(
       const note = (data as { Note?: string; Information?: string }).Note;
       const info = (data as { Information?: string }).Information;
       if (note || info) {
-        avThrottledUntil = now + CIRCUIT_BREAKER_MS;
+        avThrottledUntilLocal = now + CIRCUIT_BREAKER_MS;
+        void setBreakerL2(); // best-effort cross-lambda
         const stale = l1 ?? l2;
         if (stale && now - stale.storedAt < MAX_STALE_MS) {
           memoryCache.set(ck, stale);

@@ -79,8 +79,16 @@ export default function SignalsScreen() {
   }
 
   async function onAck(id: string) {
+    // Optimistic update + rollback si POST falla
+    const snapshot = signals;
     setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, acknowledged_at: new Date().toISOString() } : s)));
-    await fetch(`/api/signals/${id}/ack`, { method: 'POST' });
+    try {
+      const r = await fetch(`/api/signals/${id}/ack`, { method: 'POST' });
+      if (!r.ok) throw new Error('ack_failed');
+    } catch {
+      setSignals(snapshot);
+      setError('No se pudo marcar como leída — reintenta');
+    }
   }
 
   return (

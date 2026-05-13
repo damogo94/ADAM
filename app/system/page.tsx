@@ -71,7 +71,7 @@ export default function SystemScreen() {
         <div className="mt-2 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-blink-slow" />
           <span className="font-mono text-[9px] text-emerald">sistema operativo</span>
-          <span className="ml-auto font-mono text-[9px] text-slate">v0.2.0 · sprint-2</span>
+          <span className="ml-auto font-mono text-[9px] text-slate">v0.3.0 · sprint-3</span>
         </div>
       </section>
 
@@ -119,7 +119,8 @@ export default function SystemScreen() {
         <KV k="último análisis" v={lastAnalysis} />
         <KV k="modelo principal" v="claude-opus-4-6 (A4 + debate)" />
         <KV k="data provider" v="Alpha Vantage · free tier 25/día" />
-        <KV k="cache" v={process.env.NEXT_PUBLIC_UPSTASH_ENABLED ? 'Upstash activo' : 'sin caché (free tier vulnerable)'} />
+        {/* Cache status viene del backend ahora; el frontend no tiene visibilidad real */}
+        <KV k="cache" v="Upstash L1+L2 · TTL 30s quotes, 5min news, 24h daily" />
       </div>
 
       <SectionLabel>seguridad</SectionLabel>

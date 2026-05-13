@@ -69,7 +69,102 @@ const DICT: Record<string, (p: ErrorPayload) => UserError> = {
     message: p.detail ?? 'No se encontró cotización para ese ticker. Verifica que sea válido (ej. AAPL, BTC-USD, EUR/USD).',
     tone: 'fatal',
   }),
+  csrf_blocked: () => ({
+    title: 'Origen no autorizado',
+    message: 'Esta petición no viene del dominio esperado. Recarga la página y reintenta.',
+    tone: 'fatal',
+  }),
+  invalid: (p) => ({
+    title: 'Entrada inválida',
+    message: p.detail ?? 'Revisa los datos enviados. Ticker debe ser ej. AAPL, BTC-USD, EUR/USD.',
+    tone: 'fatal',
+  }),
+  Invalid: (p) => ({
+    title: 'Entrada inválida',
+    message: p.detail ?? humanizeZodIssues(p),
+    tone: 'fatal',
+  }),
+  'Invalid request': (p) => ({
+    title: 'Entrada inválida',
+    message: p.detail ?? humanizeZodIssues(p),
+    tone: 'fatal',
+  }),
+  duplicate: (p) => ({
+    title: 'Ya existe',
+    message: p.detail ?? 'Este recurso ya está en tu lista.',
+    tone: 'fatal',
+  }),
+  fetch_failed: () => ({
+    title: 'Error al cargar',
+    message: 'No se pudo cargar la información. Reintenta o recarga la página.',
+    tone: 'transient',
+  }),
+  update_failed: () => ({
+    title: 'Error al actualizar',
+    message: 'La operación falló. Reintenta.',
+    tone: 'transient',
+  }),
+  insert_failed: () => ({
+    title: 'Error al guardar',
+    message: 'No se pudo guardar. Reintenta.',
+    tone: 'transient',
+  }),
+  delete_failed: () => ({
+    title: 'Error al borrar',
+    message: 'No se pudo eliminar el item. Reintenta.',
+    tone: 'transient',
+  }),
+  fk_violation: () => ({
+    title: 'Referencia inválida',
+    message: 'El recurso referenciado no existe.',
+    tone: 'fatal',
+  }),
+  forbidden: () => ({
+    title: 'Sin permisos',
+    message: 'No tienes permiso para esta operación.',
+    tone: 'auth',
+  }),
+  method_not_allowed: () => ({
+    title: 'Método no permitido',
+    message: 'Esta ruta no acepta el método de la petición.',
+    tone: 'fatal',
+  }),
+  'A1 failed': (p) => ({
+    title: 'Agente A1 caído',
+    message: humanizeAgentError(p),
+    tone: 'transient',
+  }),
+  'A2 failed': (p) => ({
+    title: 'Agente A2 caído',
+    message: humanizeAgentError(p),
+    tone: 'transient',
+  }),
+  'A3 failed': (p) => ({
+    title: 'Agente A3 caído',
+    message: humanizeAgentError(p),
+    tone: 'transient',
+  }),
+  'Debate failed': (p) => ({
+    title: 'Debate falló',
+    message: humanizeAgentError(p),
+    tone: 'transient',
+  }),
+  'Quote failed': () => ({
+    title: 'Cotización no disponible',
+    message: 'Alpha Vantage no respondió. Espera 1 min y reintenta.',
+    tone: 'transient',
+  }),
 };
+
+function humanizeZodIssues(p: ErrorPayload): string {
+  const issues = p.zodIssues;
+  if (!Array.isArray(issues) || issues.length === 0) {
+    return 'Verifica los campos enviados.';
+  }
+  const first = issues[0] as { path?: (string | number)[]; message?: string };
+  const path = first?.path?.join('.') ?? 'campo';
+  return `${path}: ${first?.message ?? 'inválido'}`;
+}
 
 function humanizeAgentError(p: ErrorPayload): string {
   const detail = p.detail ?? '';

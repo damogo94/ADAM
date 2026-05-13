@@ -10,12 +10,12 @@ export const runtime = 'nodejs';
  */
 export async function DELETE(
   req: NextRequest,
-  ctx: { params: Promise<{ itemId: string }> }
+  { params }: { params: { itemId: string } }
 ) {
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
 
-  const { itemId } = await ctx.params;
+  const { itemId } = params;
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
