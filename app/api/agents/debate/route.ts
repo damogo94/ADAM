@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { runDebate } from '@/agents/debate/client';
 import { A1_OUTPUT_SCHEMA } from '@/agents/a1/schema';
 import { A2_OUTPUT_SCHEMA } from '@/agents/a2/schema';
+import { createSupabaseServer } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -13,6 +14,10 @@ const RequestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {

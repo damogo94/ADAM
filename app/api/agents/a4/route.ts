@@ -19,27 +19,58 @@ import {
 } from '@/lib/market/alphavantage';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { limiters } from '@/lib/ratelimit';
+import type { A1Output } from '@/agents/a1/schema';
+import type { A2Output } from '@/agents/a2/schema';
+import type { A3Output } from '@/agents/a3/schema';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const RequestSchema = z.object({
-  ticker: z.string().min(1).max(20).toUpperCase(),
-});
+const RequestSchema = z
+  .object({
+    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/]+$/i, 'ticker invalido').toUpperCase(),
+  })
+  .strict();
+
+type AgentFailure = { agent: 'A1' | 'A2' | 'A3'; message: string };
 
 /**
  * Orquestador A4.
  *
  * Flujo:
- *   1. Fetch market data (paralelo, cacheado en Upstash)
- *   2. Lanza A1, A2, A3 en paralelo (Promise.all). A3 sólo recibe ticker + OHLCV.
- *   3. Si A1.anomaly_detected || A2.opportunity_detected → debate.
- *   4. A4 ensambla (A1, A2, A3, debate?) → output final.
+ *   0. Auth + per-user rate-limit (20/dia)
+ *   1. Fetch market data (paralelo, .catch resiliente)
+ *   2. Lanza A1/A2/A3 con Promise.allSettled — un fallo NO tira el pipeline.
+ *      A3 sólo recibe ticker + OHLCV.
+ *   3. Debate solo si A1 Y A2 vivos y al menos uno detecta señal.
+ *   4. A4 ensambla con lo que haya. Si los 3 agentes cayeron → 503.
+ *   5. Log a analyses_log (best-effort).
  *
- * Coste por llamada (sin cache): 5 calls a Alpha Vantage = 1 minuto del rate-limit
- * y 5/25 del límite diario. El caché Upstash es crítico.
+ * Coste por llamada (sin cache compartido): 5 calls Alpha Vantage + 3 Sonnet + 1 Opus + opcional 1 Opus debate.
  */
 export async function POST(req: NextRequest) {
+  // Auth
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  // Per-user rate limit (20/dia) — vector de abuso si user rota IPs
+  const userLimit = await limiters.userRuns.limit(user.id).catch(() => ({ success: true, remaining: 99, limit: 20, reset: 0 }));
+  if (!userLimit.success) {
+    const resetDate = userLimit.reset ? new Date(userLimit.reset).toISOString() : 'mañana';
+    return NextResponse.json(
+      {
+        error: 'user_quota_exceeded',
+        detail: `Has alcanzado el límite diario de ${userLimit.limit} análisis. Se renueva el ${resetDate}.`,
+      },
+      { status: 429, headers: { 'X-RateLimit-Limit': String(userLimit.limit), 'X-RateLimit-Remaining': String(userLimit.remaining) } }
+    );
+  }
+
+  // Body validation
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {
@@ -47,19 +78,9 @@ export async function POST(req: NextRequest) {
   }
   const { ticker } = parsed.data;
 
-  // Auth — proteger gasto de tokens contra acceso anonimo
-  const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
   const startedAt = Date.now();
   try {
-    // Step 1: market data fan-out — TODAS las llamadas son resilientes.
-    // Si AV está rate-limited, el caché en memoria devuelve stale si lo hay;
-    // si no hay nada, la fuente devuelve null/[] y los agentes corren con
-    // datos sparse pero con confianza baja (comportamiento esperado del producto).
+    // Step 1: market data fan-out — todas resilientes
     const [q, ov, news, daily, intraday] = await Promise.all([
       quote(ticker).then(normalizeQuote).catch(() => null),
       overview(ticker).then(normalizeOverview).catch(() => null),
@@ -68,7 +89,7 @@ export async function POST(req: NextRequest) {
       timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
     ]);
 
-    // Recovery: si no hay quote pero hay OHLCV diario, usa el último close
+    // Recovery de precio desde daily si quote falla
     let currentPrice = q?.current ?? null;
     let changePct24h = q?.change_pct_24h ?? 0;
     if (currentPrice === null && daily.length >= 2) {
@@ -80,15 +101,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Si tampoco hay candles, no podemos correr el pipeline con seriedad.
+    // Sin precio Y sin candles diarias → no podemos analizar nada
     if (currentPrice === null && daily.length === 0) {
       return NextResponse.json(
         {
           error: 'market_data_unavailable',
           detail:
-            `Sin datos de mercado para ${ticker}. Alpha Vantage free-tier puede estar al límite (25/día, 5/min). ` +
-            `Espera ~1 minuto y reintenta, o configura Upstash para caché compartido.`,
-          partial: { quote: null, daily_candles: 0, intraday_candles: intraday.length },
+            `Sin datos de mercado para ${ticker}. Alpha Vantage free-tier puede estar al límite (25/día, 5/min). Espera ~1 minuto y reintenta.`,
         },
         { status: 503 }
       );
@@ -116,25 +135,55 @@ export async function POST(req: NextRequest) {
       { timeframe: '1H', candles: intraday.slice(-100) },
     ];
 
-    // Step 2: agents in parallel — A3 ONLY receives ticker + ohlcv (regla absoluta)
-    const [a1, a2, a3] = await Promise.all([
+    // Step 2: agents con Promise.allSettled — un fallo NO tira el pipeline
+    const settled = await Promise.allSettled([
       runA1({ ticker, market_snapshot }),
       runA2({ ticker, macro_snapshot: {} }),
       runA3({ ticker, ohlcv }),
     ]);
 
-    // Step 3: debate condicional
-    let debate = null;
-    if (a1.anomaly_detected || a2.opportunity_detected) {
-      debate = await runDebate({ a1, a2 });
+    const a1: A1Output | null = settled[0]!.status === 'fulfilled' ? settled[0]!.value : null;
+    const a2: A2Output | null = settled[1]!.status === 'fulfilled' ? settled[1]!.value : null;
+    const a3: A3Output | null = settled[2]!.status === 'fulfilled' ? settled[2]!.value : null;
+
+    const failures: AgentFailure[] = [];
+    if (settled[0]!.status === 'rejected') {
+      failures.push({ agent: 'A1', message: settled[0]!.reason instanceof Error ? settled[0]!.reason.message : 'unknown' });
+    }
+    if (settled[1]!.status === 'rejected') {
+      failures.push({ agent: 'A2', message: settled[1]!.reason instanceof Error ? settled[1]!.reason.message : 'unknown' });
+    }
+    if (settled[2]!.status === 'rejected') {
+      failures.push({ agent: 'A3', message: settled[2]!.reason instanceof Error ? settled[2]!.reason.message : 'unknown' });
     }
 
-    // Step 4: A4 ensambla
-    const a4 = await runA4({ a1, a2, a3, debate });
+    // Si los 3 agentes cayeron, no tiene sentido invocar A4
+    if (!a1 && !a2 && !a3) {
+      return NextResponse.json(
+        {
+          error: 'all_agents_failed',
+          detail: 'Los 3 agentes fallaron transitoriamente. Reintenta en unos segundos.',
+          failures,
+        },
+        { status: 503 }
+      );
+    }
+
+    // Step 3: debate solo si A1 Y A2 vivos y al menos uno detecta señal
+    let debate = null;
+    if (a1 && a2 && (a1.anomaly_detected || a2.opportunity_detected)) {
+      debate = await runDebate({ a1, a2 }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn('[a4] debate failed, continuing without it:', err instanceof Error ? err.message : err);
+        return null;
+      });
+    }
+
+    // Step 4: A4 ensambla con lo que haya
+    const a4 = await runA4({ ticker, a1, a2, a3, debate, failures });
     const latency_ms = Date.now() - startedAt;
 
-    // Step 5: persistir en analyses_log (admin client bypasea RLS).
-    // No bloquea la respuesta si el log falla — solo se pierde la entrada.
+    // Step 5: persistir log (best-effort)
     try {
       const admin = createSupabaseAdmin();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,11 +206,18 @@ export async function POST(req: NextRequest) {
       console.error('[a4] failed to persist analyses_log:', logErr instanceof Error ? logErr.message : logErr);
     }
 
-    return NextResponse.json({ a1, a2, a3, debate, a4 });
+    return NextResponse.json({
+      a1,
+      a2,
+      a3,
+      debate,
+      a4,
+      partial: failures.length > 0,
+      failures: failures.length > 0 ? failures : undefined,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
-    const payload: Record<string, unknown> = { error: 'Orchestration failed', detail: msg };
-    // Surface zod issues from AgentParseError so the client can see WHY validation failed
+    const payload: Record<string, unknown> = { error: 'orchestration_failed', detail: msg };
     if (err && typeof err === 'object' && 'zodIssues' in err) {
       payload.zodIssues = (err as { zodIssues: unknown }).zodIssues;
       payload.agent = (err as { agent?: string }).agent;

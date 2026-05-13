@@ -106,30 +106,37 @@ export async function runAgent<T extends z.ZodTypeAny>(
     agentName,
   } = args;
 
-  // Belt-and-suspenders retry: el SDK ya hace maxRetries=5 internamente con
-  // backoff, pero en periodos de Overloaded sostenido eso no basta. Aquí
-  // añadimos UN reintento extra después de 4s si el SDK ya agotó los suyos.
+  // Timeout hard de 25s — un Anthropic colgado NO consume nuestros 60s de maxDuration.
+  // El SDK ya hace maxRetries=5 internamente con backoff (~30s worst case).
+  // Belt-and-suspenders: si el SDK agota retries y el error es transitorio,
+  // dormimos 4s y un último intento manual. Coste: hasta ~60s en pesimista.
   let response;
   try {
-    response = await anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    response = await anthropic.messages.create(
+      {
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      },
+      { timeout: 25_000 }
+    );
   } catch (err) {
     if (!isTransientAnthropicError(err)) throw err;
     // eslint-disable-next-line no-console
     console.warn(`[${agentName}] Anthropic transient error after SDK retries, sleeping 4s then 1 last try…`);
     await sleep(4000);
-    response = await anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    response = await anthropic.messages.create(
+      {
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      },
+      { timeout: 25_000 }
+    );
   }
 
   const text = response.content

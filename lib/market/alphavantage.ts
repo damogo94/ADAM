@@ -9,7 +9,12 @@
  * That's 5/25 daily quota → caché agresivo en Upstash es crítico.
  */
 
+import { getRedisClient } from '@/lib/ratelimit';
+
 const BASE = 'https://www.alphavantage.co/query';
+const FETCH_TIMEOUT_MS = 8000; // hard timeout — un AV colgado NO bloquea el lambda
+const CIRCUIT_BREAKER_MS = 60_000; // si AV soft-error, no le pegamos durante 60s
+const MAX_STALE_MS = 24 * 60 * 60 * 1000; // 24h max stale válido
 
 function key(): string {
   const k = process.env.ALPHA_VANTAGE_API_KEY;
@@ -18,29 +23,50 @@ function key(): string {
 }
 
 /**
- * In-process cache para sobrevivir al rate-limit de AV free-tier (25/día, 5/min).
+ * Cache de 2 capas:
+ *   L1 = Map en memoria (proceso/lambda warm) — instantáneo
+ *   L2 = Upstash Redis (compartido entre instancias) — sobrevive cold starts y multi-user
  *
- * Persiste durante la vida del proceso (en dev: hasta que mates next dev; en prod:
- * vida de cada lambda warm). NO compartido entre instancias — para eso necesitas
- * Upstash, que está pendiente.
- *
- * Devolvemos cached "stale" cuando AV está rate-limited: mejor un dato de hace
- * 10 minutos que ninguno. El cliente verá un campo `_cache_age_s` para saber
- * si los datos son frescos.
+ * Circuit breaker module-level: si AV devuelve soft-error (Note/Information),
+ * marcamos `avThrottledUntil` y durante CIRCUIT_BREAKER_MS NO le pegamos más.
+ * Las llamadas durante ese periodo van directo a L1/L2 stale o devuelven null.
  */
 interface CacheEntry<T = unknown> {
   data: T;
-  expiresAt: number; // unix ms
-  storedAt: number; // unix ms
+  expiresAt: number;
+  storedAt: number;
 }
 const memoryCache = new Map<string, CacheEntry>();
-const MAX_STALE_MS = 24 * 60 * 60 * 1000; // 24h — más antigua = ignorada
+let avThrottledUntil = 0; // unix ms — hasta cuándo NO pegamos a AV
+
+const L2_PREFIX = 'adam:av:';
 
 function cacheKey(params: Record<string, string>): string {
   return Object.keys(params)
     .sort()
     .map((k) => `${k}=${params[k]}`)
     .join('&');
+}
+
+async function readL2<T>(ck: string): Promise<CacheEntry<T> | null> {
+  const redis = getRedisClient();
+  if (!redis) return null;
+  try {
+    return (await redis.get<CacheEntry<T>>(L2_PREFIX + ck)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeL2<T>(ck: string, entry: CacheEntry<T>, ttlSeconds: number): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  try {
+    // Guardamos con TTL = MAX_STALE_MS para poder servir stale mientras dure
+    await redis.set(L2_PREFIX + ck, entry, { ex: Math.max(ttlSeconds, MAX_STALE_MS / 1000) });
+  } catch {
+    /* swallow — cache es best-effort */
+  }
 }
 
 async function fetchJson<T>(
@@ -50,53 +76,81 @@ async function fetchJson<T>(
   const ck = cacheKey(params);
   const now = Date.now();
 
-  // 1. Cache hit fresco
-  const cached = memoryCache.get(ck) as CacheEntry<T> | undefined;
-  if (cached && cached.expiresAt > now) {
-    return cached.data;
+  // 1. L1 hit fresco
+  const l1 = memoryCache.get(ck) as CacheEntry<T> | undefined;
+  if (l1 && l1.expiresAt > now) return l1.data;
+
+  // 2. L2 hit fresco — promueve a L1
+  const l2 = await readL2<T>(ck);
+  if (l2 && l2.expiresAt > now) {
+    memoryCache.set(ck, l2);
+    return l2.data;
   }
 
-  // 2. Fetch
+  // 3. Circuit breaker — si AV throttled, no llamamos. Devolvemos stale L1 o L2 si hay.
+  if (now < avThrottledUntil) {
+    const stale = l1 ?? l2;
+    if (stale && now - stale.storedAt < MAX_STALE_MS) {
+      memoryCache.set(ck, stale);
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[AV] circuit-breaker ON (${Math.ceil((avThrottledUntil - now) / 1000)}s left), serving stale for ${params.function}/${params.symbol ?? '?'}`
+      );
+      return stale.data;
+    }
+    throw new Error('AlphaVantage rate-limited (circuit breaker open) — no stale cache disponible');
+  }
+
+  // 4. Fetch con timeout duro
   const url = new URL(BASE);
   Object.entries({ ...params, apikey: key() }).forEach(([k, v]) => url.searchParams.set(k, v));
 
   try {
-    const res = await fetch(url.toString(), { next: { revalidate: revalidateSeconds } });
+    const res = await fetch(url.toString(), {
+      next: { revalidate: revalidateSeconds },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
     if (!res.ok) throw new Error(`AlphaVantage ${params.function} failed: ${res.status}`);
     const data = (await res.json()) as Record<string, unknown> & T;
 
-    // AV soft-errors: body con Note/Information (rate limit)
+    // AV soft-errors → activa circuit breaker
     if (typeof data === 'object' && data !== null) {
       const note = (data as { Note?: string; Information?: string }).Note;
       const info = (data as { Information?: string }).Information;
       if (note || info) {
-        // Si tenemos un stale aún válido, lo devolvemos en silencio
-        if (cached && now - cached.storedAt < MAX_STALE_MS) {
+        avThrottledUntil = now + CIRCUIT_BREAKER_MS;
+        const stale = l1 ?? l2;
+        if (stale && now - stale.storedAt < MAX_STALE_MS) {
+          memoryCache.set(ck, stale);
           // eslint-disable-next-line no-console
           console.warn(
-            `[AV] rate-limited, serving stale cache for ${params.function}/${params.symbol ?? '?'} (age ${Math.floor((now - cached.storedAt) / 1000)}s)`
+            `[AV] soft-error → breaker ON 60s, serving stale for ${params.function}/${params.symbol ?? '?'} (age ${Math.floor((now - stale.storedAt) / 1000)}s)`
           );
-          return cached.data;
+          return stale.data;
         }
         throw new Error(`AlphaVantage soft error: ${note ?? info}`);
       }
     }
 
-    // 3. Store fresh
-    memoryCache.set(ck, {
+    // 5. Store en L1 + L2
+    const entry: CacheEntry<T> = {
       data,
       expiresAt: now + revalidateSeconds * 1000,
       storedAt: now,
-    });
+    };
+    memoryCache.set(ck, entry);
+    void writeL2(ck, entry, revalidateSeconds);
     return data;
   } catch (err) {
-    // Network / parse error: si hay stale válido, úsalo
-    if (cached && now - cached.storedAt < MAX_STALE_MS) {
+    // Timeout o network error — fallback a stale si lo hay
+    const stale = l1 ?? l2;
+    if (stale && now - stale.storedAt < MAX_STALE_MS) {
+      memoryCache.set(ck, stale);
       // eslint-disable-next-line no-console
       console.warn(
-        `[AV] fetch failed, serving stale cache for ${params.function}/${params.symbol ?? '?'}: ${err instanceof Error ? err.message : 'unknown'}`
+        `[AV] fetch failed, serving stale for ${params.function}/${params.symbol ?? '?'}: ${err instanceof Error ? err.message : 'unknown'}`
       );
-      return cached.data;
+      return stale.data;
     }
     throw err;
   }

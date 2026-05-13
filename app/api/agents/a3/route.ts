@@ -7,6 +7,7 @@ import {
   normalizeDaily,
   normalizeIntraday,
 } from '@/lib/market/alphavantage';
+import { createSupabaseServer } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -18,11 +19,16 @@ export const maxDuration = 60;
  */
 const RequestSchema = z
   .object({
-    ticker: z.string().min(1).max(20).toUpperCase(),
+    // regex anti prompt-injection — sólo chars válidos en tickers reales
+    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/]+$/i, 'ticker invalido').toUpperCase(),
   })
   .strict(); // .strict() rechaza campos adicionales — extra defense
 
 export async function POST(req: NextRequest) {
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {

@@ -65,4 +65,12 @@ JSON válido, sin texto antes ni después:
 - No inventes datos. Si A1 o A2 no tienen información suficiente, refléjalo en \`a1_a2.score\` bajo.
 - Si A3 dice "hold" y A1+A2 dicen "alcista", la confluencia "alineados" es BAJA.
 - Si los tres apuntan igual con confianzas altas individuales, la confluencia es ALTA.
-- El disclaimer es OBLIGATORIO en todo output.`;
+- El disclaimer es OBLIGATORIO en todo output.
+
+## AGENTES FALTANTES (degradación elegante)
+Si un agente llega como "(agente no disponible…)", NO inventes su análisis.
+- Para resumen_a1/a2/a3 del agente faltante, escribe textualmente: "Agente {nombre} no disponible en este análisis — fallo transitorio. Se recomienda reintentar para vista completa."
+- a3_solo.score = 0 si A3 no disponible. a1_a2.score = 0 si ambos A1+A2 faltan; 2 si solo uno faltó pero el otro detectó algo claro; 1 si uno faltó y el otro fue neutral.
+- alineados.score nunca > min(score disponibles).
+- confianza final NUNCA puede ser "alta" si falta cualquier agente. Cap a "media" si falta uno, "baja" si faltan dos o más.
+- accion_sugerida debe MENCIONAR explícitamente que el análisis es parcial.`;

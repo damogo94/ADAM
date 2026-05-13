@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
 import { SectionLabel, FlowArrow } from '@/components/section-label';
@@ -12,6 +12,8 @@ import { DebateCard } from '@/components/agents/debate-card';
 import { A4Card } from '@/components/agents/a4-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
+import { resolveError, networkError, type UserError } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
 import type { A3Output } from '@/agents/a3/schema';
@@ -31,7 +33,9 @@ interface RunState {
   a3: A3Output | null;
   debate: DebateOutput | null;
   a4: A4Output | null;
-  error: string | null;
+  error: UserError | null;
+  partial: boolean;
+  failures: { agent: string; message: string }[];
 }
 
 const INITIAL: RunState = {
@@ -47,11 +51,14 @@ const INITIAL: RunState = {
   debate: null,
   a4: null,
   error: null,
+  partial: false,
+  failures: [],
 };
 
 export default function AnalysisScreen() {
   const [state, setState] = useState<RunState>(INITIAL);
   const search = useSearchParams();
+  const router = useRouter();
   const autoTicker = search.get('ticker');
   const autoRanRef = useRef<string | null>(null);
 
@@ -82,6 +89,11 @@ export default function AnalysisScreen() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401) {
+          router.push('/login?next=/analysis');
+          return;
+        }
+        const userErr = resolveError(data);
         setState((s) => ({
           ...s,
           a1Status: 'error',
@@ -89,24 +101,28 @@ export default function AnalysisScreen() {
           a3Status: 'error',
           debateStatus: 'idle',
           a4Status: 'error',
-          error: data.detail ?? data.error ?? 'unknown',
+          error: userErr,
+          partial: false,
+          failures: data.failures ?? [],
         }));
         return;
       }
 
-      const { a1, a2, a3, debate, a4 } = data as {
-        a1: A1Output;
-        a2: A2Output;
-        a3: A3Output;
+      const { a1, a2, a3, debate, a4, partial, failures } = data as {
+        a1: A1Output | null;
+        a2: A2Output | null;
+        a3: A3Output | null;
         debate: DebateOutput | null;
         a4: A4Output;
+        partial?: boolean;
+        failures?: { agent: string; message: string }[];
       };
 
       setState({
         ticker,
-        a1Status: a1.anomaly_detected ? 'anomaly' : 'done',
-        a2Status: a2.opportunity_detected ? 'anomaly' : 'done',
-        a3Status: 'done',
+        a1Status: !a1 ? 'error' : a1.anomaly_detected ? 'anomaly' : 'done',
+        a2Status: !a2 ? 'error' : a2.opportunity_detected ? 'anomaly' : 'done',
+        a3Status: !a3 ? 'error' : 'done',
         debateStatus: debate ? 'done' : 'idle',
         a4Status: 'done',
         a1,
@@ -115,6 +131,8 @@ export default function AnalysisScreen() {
         debate,
         a4,
         error: null,
+        partial: !!partial,
+        failures: failures ?? [],
       });
     } catch (e) {
       setState((s) => ({
@@ -123,7 +141,9 @@ export default function AnalysisScreen() {
         a2Status: 'error',
         a3Status: 'error',
         a4Status: 'error',
-        error: e instanceof Error ? e.message : 'network error',
+        error: networkError(e),
+        partial: false,
+        failures: [],
       }));
     }
   }
@@ -148,8 +168,39 @@ export default function AnalysisScreen() {
       <AssetInput onSubmit={handleRun} disabled={isLoading} />
 
       {state.error && (
-        <div className="mx-4 mt-3 rounded-lg border border-rose/30 bg-rose/10 px-3 py-2 font-mono text-[10px] text-rose">
-          ERROR — {state.error}
+        <div
+          className={cn(
+            'mx-4 mt-3 rounded-lg border px-3 py-2.5',
+            state.error.tone === 'rate_limit' && 'border-a3/30 bg-a3/10',
+            state.error.tone === 'transient' && 'border-a2/30 bg-a2/10',
+            state.error.tone === 'auth' && 'border-a1/30 bg-a1/10',
+            state.error.tone === 'partial' && 'border-a3/30 bg-a3/10',
+            state.error.tone === 'fatal' && 'border-rose/30 bg-rose/10'
+          )}
+        >
+          <div
+            className={cn(
+              'font-orbitron text-[10px] font-bold tracking-wider mb-0.5',
+              state.error.tone === 'rate_limit' && 'text-a3',
+              state.error.tone === 'transient' && 'text-a2',
+              state.error.tone === 'auth' && 'text-a1',
+              state.error.tone === 'partial' && 'text-a3',
+              state.error.tone === 'fatal' && 'text-rose'
+            )}
+          >
+            {state.error.title}
+          </div>
+          <div className="font-mono text-[10px] leading-snug text-white">{state.error.message}</div>
+        </div>
+      )}
+
+      {state.partial && state.failures.length > 0 && (
+        <div className="mx-4 mt-3 rounded-lg border border-a3/30 bg-a3/[0.07] px-3 py-2">
+          <div className="font-orbitron text-[10px] font-bold tracking-wider text-a3 mb-0.5">ANÁLISIS PARCIAL</div>
+          <div className="font-mono text-[10px] leading-snug text-slate-l">
+            {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
+            {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
+          </div>
         </div>
       )}
 

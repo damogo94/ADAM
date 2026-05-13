@@ -48,8 +48,20 @@ export async function middleware(req: NextRequest) {
           }
         );
       }
-    } catch {
-      // Upstash no configurado o caído → fail open, no romper el request
+    } catch (err) {
+      // Upstash error inesperado. En prod: fail-CLOSED (seguridad > availability).
+      // En dev: fail-open con warn para no romper el flujo local.
+      // eslint-disable-next-line no-console
+      console.error('[ratelimit] error in middleware:', err instanceof Error ? err.message : err);
+      if (process.env.NODE_ENV === 'production') {
+        return new NextResponse(
+          JSON.stringify({
+            error: 'rate_limit_unavailable',
+            detail: 'Servicio temporalmente no disponible. Reintenta en unos segundos.',
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
   }
 
