@@ -80,12 +80,17 @@ export default function SystemScreen() {
       <div className="px-4 grid grid-cols-2 gap-2">
         <Stat n={stats?.analyses_total ?? 0} l="análisis ejecutados" />
         <Stat n={stats?.signals_total ?? 0} l="señales generadas" />
-        <Stat n={stats?.signals_urgentes ?? 0} l="urgentes" emphasis={(stats?.signals_urgentes ?? 0) > 0} />
+        <Stat
+          n={stats?.signals_urgentes ?? 0}
+          l="urgentes"
+          cls={(stats?.signals_urgentes ?? 0) > 0 ? 'text-rose' : 'text-white/40'}
+          emphasis={(stats?.signals_urgentes ?? 0) > 0}
+        />
         <Stat n={stats?.watchlist_tickers ?? 0} l="activos en watchlist" />
-        <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" />
+        <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" cls="text-amber" />
         <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media A4" />
         <Stat n={fmtTokens(stats?.tokens_total ?? 0)} l="tokens consumidos" />
-        <Stat n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`} l="coste estimado (USD)" />
+        <Stat n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`} l="coste estimado (USD)" cls="text-emerald" />
       </div>
 
       <SectionLabel>agentes</SectionLabel>
@@ -126,10 +131,10 @@ export default function SystemScreen() {
 
       <SectionLabel>seguridad</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2">
-        <KV k="A3 aislado" v="✓ 3 capas · 65 tests" cls="text-white" />
-        <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-white" />
-        <KV k="rate-limit" v="✓ Upstash dual-layer" cls="text-white" />
-        <KV k="disclaimer" v="✓ footer + A4 prompt" cls="text-white" />
+        <KV k="A3 aislado" v="✓ 3 capas · 65 tests" cls="text-emerald" />
+        <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-emerald" />
+        <KV k="rate-limit" v="✓ Upstash dual-layer" cls="text-emerald" />
+        <KV k="disclaimer" v="✓ footer + A4 prompt" cls="text-emerald" />
       </div>
 
       <footer className="px-5 pt-6 text-center font-mono text-[8px] text-slate opacity-60 leading-relaxed">
@@ -152,8 +157,8 @@ function Stat({ n, l, cls, emphasis }: { n: number | string; l: string; cls?: st
   return (
     <div
       className={cn(
-        'rounded-[15px] border bg-surface-2 px-3 py-2.5',
-        emphasis ? 'border-white/30 bg-white/[0.05]' : 'border-white/8'
+        'rounded-[15px] border bg-surface-2 px-3 py-2.5 transition-all',
+        emphasis ? 'border-rose/35 bg-rose/[0.06] animate-urg-pulse' : 'border-white/8'
       )}
     >
       <div className={cn('font-orbitron text-[20px] font-black', cls ?? 'text-white')}>{n}</div>

@@ -120,11 +120,11 @@ function StatusDot({ status }: { status: AgentStatus }) {
       : status === 'scanning'
         ? 'bg-white animate-blink'
         : status === 'done'
-          ? 'bg-white'
+          ? 'bg-emerald'
           : status === 'anomaly'
-            ? 'bg-white animate-blink'
+            ? 'bg-amber animate-blink'
             : status === 'error'
-              ? 'bg-white animate-urg-pulse'
+              ? 'bg-rose animate-urg-pulse'
               : 'bg-white/30';
   return <span className={cn('h-1.5 w-1.5 rounded-full transition-all', cls)} />;
 }

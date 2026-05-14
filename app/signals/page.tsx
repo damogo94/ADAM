@@ -116,7 +116,7 @@ export default function SignalsScreen() {
       </div>
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[10px] text-white animate-urg-pulse">
+        <div className="mx-4 mt-3 rounded-lg border border-rose/40 bg-rose/[0.08] px-3 py-2 font-mono text-[10px] text-rose animate-urg-pulse">
           {error}
         </div>
       )}
@@ -130,15 +130,15 @@ export default function SignalsScreen() {
               onClick={() => setFilterLevel(lv)}
               className={cn(
                 'flex-1 rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
-                // Re-skin B&W: jerarquía por intensidad de blanco según urgencia
+                // Filter activo: color del nivel correspondiente. Inactivo: B&W dim.
                 filterLevel === lv
                   ? lv === 'urgente'
-                    ? 'border-white/55 bg-white/[0.10] text-white'
+                    ? 'border-rose/55 bg-rose/[0.12] text-rose'
                     : lv === 'atencion'
-                      ? 'border-white/35 bg-white/[0.06] text-white/90'
+                      ? 'border-amber/55 bg-amber/[0.10] text-amber'
                       : lv === 'monitorear'
-                        ? 'border-white/22 bg-white/[0.04] text-white/75'
-                        : 'border-white/30 bg-white/[0.05] text-white'
+                        ? 'border-emerald/45 bg-emerald/[0.08] text-emerald'
+                        : 'border-white/35 bg-white/[0.06] text-white'
                   : 'border-white/8 bg-surface-2 text-white/45 hover:border-white/20'
               )}
             >
@@ -210,16 +210,24 @@ export default function SignalsScreen() {
 }
 
 function CountBox({ label, value, tone }: { label: string; value: number; tone: SignalLevel }) {
-  // Re-skin B&W: la jerarquía de urgencia (URGENTE > ATENCIÓN > MONITOREAR)
-  // se preserva por INTENSIDAD del borde/bg + ANIMACIÓN (urgente pulsa).
+  // Sesión 5b: color semántico back. La urgencia se comunica por COLOR
+  // (rose>amber>emerald) + ANIMACIÓN (solo urgente pulsa cuando hay >0).
+  // Cuando count=0, el box queda dim — el ojo no se distrae con ceros.
+  const active = value > 0;
   const cls =
     tone === 'urgente'
-      ? 'text-white border-white/55 bg-white/[0.08] animate-urg-pulse'
+      ? active
+        ? 'text-rose border-rose/45 bg-rose/[0.10] animate-urg-pulse'
+        : 'text-rose/30 border-rose/12 bg-rose/[0.02]'
       : tone === 'atencion'
-        ? 'text-white/90 border-white/30 bg-white/[0.05]'
-        : 'text-white/70 border-white/18 bg-white/[0.03]';
+        ? active
+          ? 'text-amber border-amber/45 bg-amber/[0.08]'
+          : 'text-amber/30 border-amber/12 bg-amber/[0.02]'
+        : active
+          ? 'text-emerald border-emerald/40 bg-emerald/[0.07]'
+          : 'text-emerald/30 border-emerald/12 bg-emerald/[0.02]';
   return (
-    <div className={cn('rounded-[15px] border px-2 py-2.5 text-center', cls)}>
+    <div className={cn('rounded-[15px] border px-2 py-2.5 text-center transition-all', cls)}>
       <div className="font-orbitron text-[20px] font-black">{value}</div>
       <div className="font-mono text-[7px] tracking-wider opacity-80 mt-0.5">{label}</div>
     </div>
@@ -227,16 +235,17 @@ function CountBox({ label, value, tone }: { label: string; value: number; tone: 
 }
 
 /**
- * levelMeta — diferenciación por intensidad de blanco (no por hue).
- *   - band: ancho del trazo lateral izquierdo de la SignalCard
- *   - text: intensidad del texto del nivel
- *   - pulse: solo URGENTE pulsa (animación es load-bearing UX para captar el ojo)
+ * levelMeta — color semántico por nivel de urgencia.
+ *   urgente    → rose pulsing  (acción inmediata)
+ *   atencion   → amber         (1-3 sesiones de seguimiento)
+ *   monitorear → emerald       (en el radar, sin trigger)
+ *   sin_senal  → slate         (ruido, no operar)
  */
 function levelMeta(level: SignalLevel) {
-  if (level === 'urgente') return { band: 'bg-white', text: 'text-white', label: 'URGENTE', pulse: true };
-  if (level === 'atencion') return { band: 'bg-white/65', text: 'text-white/90', label: 'ATENCIÓN', pulse: false };
-  if (level === 'monitorear') return { band: 'bg-white/35', text: 'text-white/70', label: 'MONITOREAR', pulse: false };
-  return { band: 'bg-white/15', text: 'text-white/40', label: 'SIN SEÑAL', pulse: false };
+  if (level === 'urgente') return { band: 'bg-rose', text: 'text-rose', label: 'URGENTE', pulse: true };
+  if (level === 'atencion') return { band: 'bg-amber', text: 'text-amber', label: 'ATENCIÓN', pulse: false };
+  if (level === 'monitorear') return { band: 'bg-emerald', text: 'text-emerald', label: 'MONITOREAR', pulse: false };
+  return { band: 'bg-white/20', text: 'text-white/40', label: 'SIN SEÑAL', pulse: false };
 }
 
 function SignalCard({
@@ -304,10 +313,10 @@ function SignalCard({
         <div className="border-t border-white/5 px-3 pl-4 py-2.5">
           <div className="grid grid-cols-3 gap-2 mb-2">
             <KV label="ENTRADA" value={signal.entry_price?.toString() ?? '—'} />
-            <KV label="▼ STOP" value={signal.stop_loss?.toString() ?? '—'} />
-            <KV label="▲ TARGET" value={signal.target_price?.toString() ?? '—'} />
+            <KV label="▼ STOP" value={signal.stop_loss?.toString() ?? '—'} cls="text-rose" />
+            <KV label="▲ TARGET" value={signal.target_price?.toString() ?? '—'} cls="text-emerald" />
           </div>
-          <KV label="R/B" value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} />
+          <KV label="R/B" value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} cls="text-amber" />
 
           {Object.keys(indicators).length > 0 && (
             <div className="mt-2">
@@ -324,7 +333,7 @@ function SignalCard({
           )}
 
           <div className="mt-2 border-t border-white/5 pt-2">
-            <div className="font-mono text-[8px] uppercase tracking-wider text-white/75 mb-0.5">Invalida si</div>
+            <div className="font-mono text-[8px] uppercase tracking-wider text-rose mb-0.5">Invalida si</div>
             <div className="font-mono text-[10px] text-white/90">{signal.invalidation_factor}</div>
           </div>
 
@@ -338,7 +347,7 @@ function SignalCard({
             {!acknowledged && (
               <button
                 onClick={onAck}
-                className="flex-1 rounded-lg border border-white/15 px-2 py-1.5 font-mono text-[10px] text-white/85 hover:bg-white/[0.06] hover:text-white transition"
+                className="flex-1 rounded-lg border border-emerald/25 bg-emerald/[0.04] px-2 py-1.5 font-mono text-[10px] text-emerald hover:bg-emerald/[0.08] hover:border-emerald/40 transition"
               >
                 marcar leído
               </button>

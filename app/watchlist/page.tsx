@@ -174,7 +174,7 @@ export default function WatchlistScreen() {
       </form>
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[10px] text-white animate-urg-pulse">
+        <div className="mx-4 mt-3 rounded-lg border border-rose/35 bg-rose/[0.07] px-3 py-2 font-mono text-[10px] text-rose animate-urg-pulse">
           {error}
         </div>
       )}
@@ -258,7 +258,7 @@ function WatchlistRow({
               <span className="font-mono text-[13px] font-medium text-white">
                 {quote.current.toFixed(2)}
               </span>
-              <span className={cn('font-mono text-[10px]', pos ? 'text-white' : 'text-white/70')}>
+              <span className={cn('font-mono text-[10px]', pos ? 'text-emerald' : 'text-rose')}>
                 {pos ? '↑ ' : '↓ '}
                 {fmtPct(quote.change_pct_24h)}
               </span>
@@ -276,7 +276,7 @@ function WatchlistRow({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute right-2 top-2 px-1.5 py-0.5 opacity-0 group-hover:opacity-100 rounded font-mono text-[10px] text-white/70 hover:bg-white/[0.06] hover:text-white transition"
+        className="absolute right-2 top-2 px-1.5 py-0.5 opacity-0 group-hover:opacity-100 rounded font-mono text-[10px] text-rose/70 hover:bg-rose/[0.08] hover:text-rose transition"
         aria-label="Eliminar"
       >
         ×

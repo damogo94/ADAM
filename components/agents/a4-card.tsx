@@ -27,7 +27,7 @@ export function A4Card({ status, data, aligned = false }: A4CardProps) {
         <div className="font-mono text-[10px] text-white/55 py-2 text-center">ensamblando...</div>
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-white/65 py-2">error en A4</div>
+        <div className="font-mono text-[10px] text-rose py-2">error en A4</div>
       )}
       {data && status === 'done' && <A4Body data={data} aligned={aligned} />}
     </AgentCardShell>
@@ -38,15 +38,19 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
   const { direccion, confianza, accion_sugerida, riesgo_clave, resumen_a1, resumen_a2, resumen_a3, confluence } = data;
   const dirLabel =
     direccion === 'positivo' ? '↑ ALCISTA' : direccion === 'negativo' ? '↓ BAJISTA' : '→ NEUTRAL';
-  // Re-skin: dirección por intensidad. Positivo/negativo igualmente
-  // prominentes (acción requerida); neutral más dim.
-  const dirCls = direccion === 'neutral' ? 'text-white/60' : 'text-white';
+  // Color semántico (sesión 5b): positivo=emerald, negativo=rose, neutral=blanco.
+  const dirCls =
+    direccion === 'positivo'
+      ? 'text-emerald'
+      : direccion === 'negativo'
+        ? 'text-rose'
+        : 'text-white/65';
   const confCls =
     confianza === 'alta'
-      ? 'bg-white/[0.08] text-white border-white/40'
+      ? 'bg-emerald/[0.08] text-emerald border-emerald/35'
       : confianza === 'media'
-        ? 'bg-white/[0.04] text-white/85 border-white/20'
-        : 'bg-white/[0.02] text-white/55 border-white/10';
+        ? 'bg-amber/[0.07] text-amber border-amber/30'
+        : 'bg-white/[0.02] text-white/55 border-white/12';
 
   return (
     <>
@@ -61,7 +65,7 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
           {confianza} · {confluence.score_total_pct}%
         </span>
         {aligned && (
-          <span className="rounded border border-white/35 bg-white/[0.05] px-1.5 py-0.5 font-mono text-[9px] text-white tracking-wider">
+          <span className="rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[9px] text-emerald tracking-wider">
             A3 alineado
           </span>
         )}
@@ -77,14 +81,14 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
         <div
           className={cn(
             'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
-            confluence.score_total_pct >= 67 ? 'text-white' : 'text-white/55'
+            confluence.score_total_pct >= 67 ? 'text-emerald' : 'text-white/55'
           )}
         >
           recomendación del sistema
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/95 mb-1">{accion_sugerida}</div>
         <div className="font-mono text-[9px] text-white/65 border-t border-white/10 pt-1 mt-1">
-          <span className="text-white font-medium">▲ riesgo clave:</span> {riesgo_clave}
+          <span className="text-rose font-medium">▲ riesgo clave:</span> {riesgo_clave}
         </div>
       </SignalBox>
     </>

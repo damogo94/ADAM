@@ -30,13 +30,22 @@ const config: Config = {
         a2: '#ffffff',
         a3: '#ffffff',
         a4: '#ffffff',
-        // ─── Trading colors — única excepción ─────────────────────────
-        // emerald + rose se mantienen SOLO para mini-candle chart
-        // (convención global de trading: verde alza, rojo baja). Romperla
-        // confunde al user pro. Cualquier OTRO uso de emerald/rose en UI
-        // del producto es legacy a eliminar.
+        // ─── Color semántico (decisión sesión 5b) ─────────────────────
+        // Después del re-skin B&W puro, reintroducimos un palette mínimo de
+        // 3 colores para SIGNIFICADO crítico:
+        //   emerald → alza · positivo · oportunidad · bullish
+        //   rose    → baja · negativo · error · bearish · urgente
+        //   amber   → atención · warning · pendiente confirmación
+        //
+        // Reglas de uso:
+        //   1. NUNCA color decorativo. Solo cuando la falta de color
+        //      degrade comprensión del estado (errores, precios, niveles).
+        //   2. Headers, navegación, badges de identidad → siguen B&W.
+        //   3. Estados neutros → white/X opacity (sin color).
+        //   4. mini-candle-chart mantiene emerald/rose nativos (trading convention).
         emerald: '#10b981',
         rose: '#f43f5e',
+        amber: '#f59e0b',
         // ─── Slate spectrum — secundario / disabled ───────────────────
         slate: {
           DEFAULT: '#525252', // neutral-600 — texto secundario
@@ -62,11 +71,11 @@ const config: Config = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.15' },
         },
-        // urgPulse: era rosa para signals URGENTE. Ahora blanco — el
-        // pulso sigue comunicando urgencia por intensidad, no por color.
+        // urgPulse: ahora rose pulsing para señales URGENTE y errores fatal.
+        // El color amplifica la urgencia que el solo pulso no comunica.
         urgPulse: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(255,255,255,0.35)' },
-          '50%': { boxShadow: '0 0 0 4px rgba(255,255,255,0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(244,63,94,0.45)' },
+          '50%': { boxShadow: '0 0 0 5px rgba(244,63,94,0)' },
         },
       },
       animation: {

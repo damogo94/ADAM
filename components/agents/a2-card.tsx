@@ -23,7 +23,7 @@ export function A2Card({ status, data }: A2CardProps) {
         />
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-white/65 py-2">error en A2 — reintenta</div>
+        <div className="font-mono text-[10px] text-rose py-2">error en A2 — reintenta</div>
       )}
       {(status === 'done' || status === 'anomaly') && data && <A2Body data={data} />}
     </AgentCardShell>
@@ -49,9 +49,8 @@ function A2Body({ data }: { data: A2Output }) {
               <span
                 className={cn(
                   'text-[11px]',
-                  // Re-skin B&W: dirección por símbolo + intensidad, no color.
-                  f.impacto === 'positivo' && 'text-white',
-                  f.impacto === 'negativo' && 'text-white/85',
+                  f.impacto === 'positivo' && 'text-emerald',
+                  f.impacto === 'negativo' && 'text-rose',
                   f.impacto === 'neutral' && 'text-white/45'
                 )}
                 aria-label={f.impacto}
@@ -65,10 +64,10 @@ function A2Body({ data }: { data: A2Output }) {
 
       {opportunity_detected && opportunity_description && (
         <SignalBox tone="bull">
-          <div className="font-mono text-[8px] font-medium text-white mb-0.5 uppercase tracking-wider">
+          <div className="font-mono text-[8px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ oportunidad macro detectada
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/90">{opportunity_description}</div>
+          <div className="font-mono text-[10px] leading-snug text-white/95">{opportunity_description}</div>
         </SignalBox>
       )}
 

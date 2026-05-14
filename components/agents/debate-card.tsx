@@ -19,7 +19,7 @@ export function DebateCard({ status, data }: DebateCardProps) {
         <div className="font-mono text-[10px] text-white/55 py-2 text-center">procesando debate...</div>
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-white/65 py-2">error en debate</div>
+        <div className="font-mono text-[10px] text-rose py-2">error en debate</div>
       )}
       {data && (status === 'done' || status === 'anomaly') && (
         <>

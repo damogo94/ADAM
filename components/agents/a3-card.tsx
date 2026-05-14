@@ -40,7 +40,9 @@ export function A3Card({ status, data, dailyCandles }: A3CardProps) {
           ]}
         />
       )}
-      {status === 'error' && <div className="font-mono text-[10px] text-rose py-2">error en A3 — reintenta</div>}
+      {status === 'error' && (
+        <div className="font-mono text-[10px] text-rose py-2">error en A3 — reintenta</div>
+      )}
       {(status === 'done' || status === 'anomaly' || (status === 'live' && data)) && data && (
         <A3Body data={data} dailyCandles={dailyCandles} />
       )}
@@ -69,16 +71,14 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
       )}
 
       <div className="grid grid-cols-2 gap-1.5 mb-2">
-        {/* Entradas: bg/border subtle, valor en blanco firme — la semántica
-            (entrada/stop/target) viene del LABEL, no del color. Mantenemos
-            iconos ▼ stop / ▲ target para affordance instantáneo. */}
+        {/* Color semántico: stop=rose, target=emerald (convención trading global). */}
         <TechBox label="ENTRADA" value={fmtNum(operativa.entrada)} valueCls="text-white" />
-        <TechBox label="▼ STOP LOSS" value={fmtNum(operativa.stop_loss)} valueCls="text-white" />
-        <TechBox label="▲ OBJETIVO" value={fmtNum(operativa.target)} valueCls="text-white" />
+        <TechBox label="▼ STOP LOSS" value={fmtNum(operativa.stop_loss)} valueCls="text-rose" />
+        <TechBox label="▲ OBJETIVO" value={fmtNum(operativa.target)} valueCls="text-emerald" />
         <TechBox
           label="R/B RATIO"
           value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
-          valueCls="text-white"
+          valueCls="text-amber"
         />
       </div>
 
@@ -96,13 +96,15 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
         <div
           className={cn(
             'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
-            sigCls === 'neut' ? 'text-white/55' : 'text-white'
+            sigCls === 'bull' && 'text-emerald',
+            sigCls === 'bear' && 'text-rose',
+            sigCls === 'neut' && 'text-white/55'
           )}
         >
           señal: {sigLabel} · {tendencia.primaria} {forceFromN(tendencia.fuerza)} · confianza {confidence}/5
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/90">
-          {patron_detectado && <span className="text-white font-medium">{patron_detectado}</span>}
+          {patron_detectado && <span className="text-amber font-medium">{patron_detectado}</span>}
           {patron_detectado && ' — '}
           {volumen.comentario}
         </div>

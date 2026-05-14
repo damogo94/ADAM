@@ -28,7 +28,7 @@ export function A1Card({ status, data }: A1CardProps) {
         />
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-white/65 py-2">error en A1 — reintenta</div>
+        <div className="font-mono text-[10px] text-rose py-2">error en A1 — reintenta</div>
       )}
       {(status === 'done' || status === 'anomaly') && data && <A1Body data={data} />}
     </AgentCardShell>
@@ -42,11 +42,11 @@ function A1Body({ data }: { data: A1Output }) {
     <>
       <DataSection label="Precio" source="Investing.com">
         <KV k="Actual" v={price.current.toFixed(2)} />
-        <KV k="24h" v={fmtPct(price.change_pct_24h)} cls={pos ? 'text-white' : 'text-white/70'} />
+        <KV k="24h" v={fmtPct(price.change_pct_24h)} cls={pos ? 'text-emerald' : 'text-rose'} />
         <KV
           k="7d"
           v={fmtPct(price.change_pct_7d)}
-          cls={price.change_pct_7d >= 0 ? 'text-white' : 'text-white/70'}
+          cls={price.change_pct_7d >= 0 ? 'text-emerald' : 'text-rose'}
         />
         {fundamentals.per !== null && <KV k="P/E" v={fundamentals.per.toFixed(2)} />}
         {fundamentals.ev_ebitda !== null && <KV k="EV/EBITDA" v={fundamentals.ev_ebitda.toFixed(2)} />}
@@ -61,9 +61,9 @@ function A1Body({ data }: { data: A1Output }) {
                 {n.source} ·{' '}
                 <span
                   className={cn(
-                    n.sentiment === 'bullish' && 'text-white',
-                    n.sentiment === 'bearish' && 'text-white/85',
-                    n.sentiment === 'neutral' && 'text-white/50'
+                    n.sentiment === 'bullish' && 'text-emerald',
+                    n.sentiment === 'bearish' && 'text-rose',
+                    n.sentiment === 'neutral' && 'text-white/55'
                   )}
                 >
                   {n.sentiment === 'bullish' ? '↑ alcista' : n.sentiment === 'bearish' ? '↓ bajista' : '→ neutral'}
@@ -76,10 +76,10 @@ function A1Body({ data }: { data: A1Output }) {
 
       {anomaly_detected && (
         <SignalBox tone="bull">
-          <div className="font-mono text-[8px] font-medium text-white mb-0.5">
+          <div className="font-mono text-[8px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ {data.anomaly_type ?? 'anomalía'} detectada
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/90">{anomaly_description}</div>
+          <div className="font-mono text-[10px] leading-snug text-white/95">{anomaly_description}</div>
         </SignalBox>
       )}
 
@@ -124,23 +124,16 @@ export function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
 /**
  * SignalBox — caja decorada que envuelve el texto principal de un agente.
  *
- * Re-skin B&W: los tonos antes diferenciaban por hue (emerald/rose/slate).
- * Ahora se diferencian por INTENSIDAD del borde+bg:
- *
- *   - bull  → border-white/30 + bg blanco 6%   (alta visibilidad)
- *   - bear  → border-white/30 + bg blanco 6%   (alta visibilidad)
- *                                                 [igual visual que bull;
- *                                                  la diferenciación está
- *                                                  en el TEXTO/SÍMBOLO]
- *   - neut  → border-white/12 + bg blanco 2%   (dim, baja prominencia)
- *
- * En convención trading verde=alza/rojo=baja sigue dentro del mini-chart
- * de velas. Fuera de ahí: B&W estricto.
+ * Sesión 5b: re-introducido color semántico. Bull=emerald, bear=rose,
+ * neut=blanco dim. La diferenciación por hue mejora comprensión instantánea
+ * de "alza vs baja" en una UI densa.
  */
 export function SignalBox({ tone, children }: { tone: 'bull' | 'bear' | 'neut'; children: React.ReactNode }) {
   const cls =
-    tone === 'neut'
-      ? 'bg-white/[0.02] border-white/12'
-      : 'bg-white/[0.06] border-white/30';
+    tone === 'bull'
+      ? 'bg-emerald/[0.07] border-emerald/30'
+      : tone === 'bear'
+        ? 'bg-rose/[0.07] border-rose/30'
+        : 'bg-white/[0.02] border-white/12';
   return <div className={cn('mt-1.5 rounded-lg border px-2.5 py-1.5', cls)}>{children}</div>;
 }

@@ -199,22 +199,23 @@ function AnalysisInner() {
         <div
           className={cn(
             'mx-4 mt-3 rounded-lg border px-3 py-2.5',
-            // Re-skin B&W: intensidad de blanco + animation diferencia urgencia
+            // Color semántico por tono (sesión 5b):
+            // auth=blanco dim, transient/rate_limit=amber, partial=amber, fatal=rose pulse
             state.error.tone === 'auth' && 'border-white/15 bg-white/[0.03]',
-            state.error.tone === 'transient' && 'border-white/20 bg-white/[0.04]',
-            state.error.tone === 'rate_limit' && 'border-white/25 bg-white/[0.05]',
-            state.error.tone === 'partial' && 'border-white/25 bg-white/[0.05]',
-            state.error.tone === 'fatal' && 'border-white/45 bg-white/[0.08] animate-urg-pulse'
+            state.error.tone === 'transient' && 'border-amber/30 bg-amber/[0.06]',
+            state.error.tone === 'rate_limit' && 'border-amber/35 bg-amber/[0.07]',
+            state.error.tone === 'partial' && 'border-amber/30 bg-amber/[0.06]',
+            state.error.tone === 'fatal' && 'border-rose/40 bg-rose/[0.08] animate-urg-pulse'
           )}
         >
           <div
             className={cn(
               'font-orbitron text-[10px] font-bold tracking-wider mb-0.5',
-              state.error.tone === 'auth' && 'text-white/70',
-              state.error.tone === 'transient' && 'text-white/80',
-              state.error.tone === 'rate_limit' && 'text-white/85',
-              state.error.tone === 'partial' && 'text-white/85',
-              state.error.tone === 'fatal' && 'text-white'
+              state.error.tone === 'auth' && 'text-white/75',
+              state.error.tone === 'transient' && 'text-amber',
+              state.error.tone === 'rate_limit' && 'text-amber',
+              state.error.tone === 'partial' && 'text-amber',
+              state.error.tone === 'fatal' && 'text-rose'
             )}
           >
             {state.error.title}
@@ -224,11 +225,11 @@ function AnalysisInner() {
       )}
 
       {state.partial && state.failures.length > 0 && (
-        <div className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2">
-          <div className="font-orbitron text-[10px] font-bold tracking-wider text-white/85 mb-0.5">
+        <div className="mx-4 mt-3 rounded-lg border border-amber/30 bg-amber/[0.06] px-3 py-2">
+          <div className="font-orbitron text-[10px] font-bold tracking-wider text-amber mb-0.5">
             ANÁLISIS PARCIAL
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/60">
+          <div className="font-mono text-[10px] leading-snug text-white/70">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
