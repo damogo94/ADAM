@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
 import { Sparkline } from '@/components/sparkline';
-import { cn, fmtPct } from '@/lib/utils';
+import { cn, fmtPct, getCurrencyFromTicker } from '@/lib/utils';
 import type { Watchlist, WatchlistItem, AssetType } from '@/types/db';
 
 interface QuoteState {
@@ -256,7 +256,7 @@ function WatchlistRow({
           ) : quote ? (
             <>
               <span className="font-mono text-[13px] font-medium text-white">
-                {quote.current.toFixed(2)}
+                {quote.current.toFixed(2)} <span className="text-white/45 text-[10px]">{getCurrencyFromTicker(item.ticker)}</span>
               </span>
               <span className={cn('font-mono text-[10px]', pos ? 'text-emerald' : 'text-rose')}>
                 {pos ? '↑ ' : '↓ '}

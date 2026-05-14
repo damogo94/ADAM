@@ -13,7 +13,7 @@ import { A4Card } from '@/components/agents/a4-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
-import { cn } from '@/lib/utils';
+import { cn, getCurrencyFromTicker } from '@/lib/utils';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
 import type { A3Output } from '@/agents/a3/schema';
@@ -257,7 +257,12 @@ function AnalysisInner() {
       {/* A3 always visible */}
       <SectionLabel>motor técnico autónomo</SectionLabel>
       <div className="px-4">
-        <A3Card status={state.a3Status} data={state.a3} dailyCandles={state.dailyCandles} />
+        <A3Card
+          status={state.a3Status}
+          data={state.a3}
+          dailyCandles={state.dailyCandles}
+          currency={state.a1?.price?.currency ?? getCurrencyFromTicker(state.ticker ?? '')}
+        />
       </div>
 
       {/* Confluence */}

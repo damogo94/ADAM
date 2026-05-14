@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
-import { cn } from '@/lib/utils';
+import { cn, getCurrencyFromTicker } from '@/lib/utils';
 import type { SignalHistory, SignalLevel } from '@/types/db';
 
 interface Stats {
@@ -263,13 +263,16 @@ function SignalCard({
   const acknowledged = !!signal.acknowledged_at;
   const emitted = new Date(signal.emitted_at);
   const indicators = (signal.indicators ?? {}) as Record<string, string>;
+  const ccy = getCurrencyFromTicker(signal.ticker);
+  const fmtPx = (v: number | null | undefined) =>
+    v === null || v === undefined ? '—' : `${v} ${ccy}`;
 
   function copyReport() {
     const lines = [
       `${signal.ticker} · ${meta.label} · ${signal.timeframe}`,
       `Confianza: ${signal.confidence_pct}%`,
       `Setup: ${signal.setup_detected}`,
-      `Entrada: ${signal.entry_price ?? '—'} · Stop: ${signal.stop_loss ?? '—'} · Target: ${signal.target_price ?? '—'}`,
+      `Entrada: ${fmtPx(signal.entry_price)} · Stop: ${fmtPx(signal.stop_loss)} · Target: ${fmtPx(signal.target_price)}`,
       `R/B: ${signal.risk_reward_ratio?.toFixed(2) ?? '—'}`,
       `Invalida: ${signal.invalidation_factor}`,
     ];
@@ -312,9 +315,9 @@ function SignalCard({
       {expanded && (
         <div className="border-t border-white/5 px-3 pl-4 py-2.5">
           <div className="grid grid-cols-3 gap-2 mb-2">
-            <KV label="ENTRADA" value={signal.entry_price?.toString() ?? '—'} />
-            <KV label="▼ STOP" value={signal.stop_loss?.toString() ?? '—'} cls="text-rose" />
-            <KV label="▲ TARGET" value={signal.target_price?.toString() ?? '—'} cls="text-emerald" />
+            <KV label={`ENTRADA · ${ccy}`} value={fmtPx(signal.entry_price)} />
+            <KV label={`▼ STOP · ${ccy}`} value={fmtPx(signal.stop_loss)} cls="text-rose" />
+            <KV label={`▲ TARGET · ${ccy}`} value={fmtPx(signal.target_price)} cls="text-emerald" />
           </div>
           <KV label="R/B" value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} cls="text-amber" />
 

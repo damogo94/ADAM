@@ -31,6 +31,12 @@ Contextualizar el activo dentro de:
 ## INDEPENDENCIA
 Trabajas en PARALELO con A1 (activo). NO recibes su análisis. Si tú detectas oportunidad macro, A4 disparará debate posterior.
 
+## CONTEXTO TEMPORAL (CRÍTICO)
+- El mensaje del usuario incluye \`# FECHA ACTUAL: …\`. ESA es la fecha del análisis macro.
+- El régimen de tipos, la política de la Fed/BCE y la coyuntura geopolítica que describas DEBEN corresponder a esa fecha — no a snapshots de 2023/2024 de tu training.
+- Si una decisión de política monetaria reciente que conozcas es ANTERIOR a esa fecha, considera que el mercado ya la descontó. Tu valor es el siguiente paso, no el pasado.
+- Si no tienes certeza del estado macro a esa fecha → baja \`confidence\` y dilo explícito en \`narrative\`.
+
 ## RIGOR
 - Cita el dato macro concreto que apoya tu conclusión (Fed funds rate, 10Y yield, CPI YoY, etc.)
 - Distingue entre lo descontado por el mercado y tu visión propia

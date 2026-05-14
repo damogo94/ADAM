@@ -1,4 +1,5 @@
 import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
+import { todayISO } from '@/lib/utils';
 import { A3_SYSTEM_PROMPT } from './prompt';
 import { A3_OUTPUT_SCHEMA, type A3Output } from './schema';
 
@@ -35,7 +36,17 @@ export async function runA3(input: A3Input, onUsage?: (u: AgentUsage) => void): 
     }
   }
 
+  // Fecha actual — A3 sigue aislado (no recibe news/macro/sentiment), pero
+  // SÍ debe saber qué día es para que entrada/stop/target sean coherentes
+  // con la última vela de OHLCV. Sin fecha, podría tratar candles antiguos
+  // como "actuales" y emitir niveles obsoletos.
   const userMessage = [
+    `# FECHA ACTUAL: ${todayISO()}`,
+    'Analiza el gráfico con referencia a esta fecha. La última vela de los',
+    'datos OHLCV abajo corresponde al cierre más reciente disponible.',
+    'No infieras dirección futura desde patrones de tu training que',
+    'pueden estar invalidados por el precio actual.',
+    '',
     `Ticker: ${input.ticker}`,
     '',
     'OHLCV multi-timeframe (única información disponible):',

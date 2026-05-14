@@ -1,4 +1,5 @@
 import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
+import { todayISO } from '@/lib/utils';
 import { CMT_SYSTEM_PROMPT } from './prompt';
 import { CMT_OUTPUT_SCHEMA, type CMTOutput } from './schema';
 
@@ -25,6 +26,11 @@ export async function runCMT(input: CMTInput, onUsage?: (u: AgentUsage) => void)
   }
 
   const userMessage = [
+    `# FECHA ACTUAL: ${todayISO()}`,
+    'Escaneo de hoy. La última vela del OHLCV es el cierre más reciente.',
+    'Niveles entrada/stop/target deben ser ejecutables HOY o en próximas',
+    'sesiones inmediatas — no patrones genéricos de tu training.',
+    '',
     `Ticker: ${input.ticker}`,
     '',
     'OHLCV multi-timeframe (única información disponible):',

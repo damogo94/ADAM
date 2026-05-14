@@ -10,13 +10,15 @@ interface A3CardProps {
   status: AgentStatus;
   data: A3Output | null;
   dailyCandles?: Candle[];
+  /** Moneda para mostrar junto a entrada/stop/target. Default 'USD'. */
+  currency?: string;
 }
 
 /**
  * A3 card — siempre visible, badge LIVE.
  * Subline recuerda: "usuario único comandante · sin contexto externo".
  */
-export function A3Card({ status, data, dailyCandles }: A3CardProps) {
+export function A3Card({ status, data, dailyCandles, currency }: A3CardProps) {
   // A3 is "siempre activo" — once we have data, the dot stays as 'live'
   const dotStatus = data ? 'live' : status;
   return (
@@ -44,17 +46,28 @@ export function A3Card({ status, data, dailyCandles }: A3CardProps) {
         <div className="font-mono text-[10px] text-rose py-2">error en A3 — reintenta</div>
       )}
       {(status === 'done' || status === 'anomaly' || (status === 'live' && data)) && data && (
-        <A3Body data={data} dailyCandles={dailyCandles} />
+        <A3Body data={data} dailyCandles={dailyCandles} currency={currency} />
       )}
     </AgentCardShell>
   );
 }
 
-function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[] }) {
+function A3Body({
+  data,
+  dailyCandles,
+  currency = 'USD',
+}: {
+  data: A3Output;
+  dailyCandles?: Candle[];
+  currency?: string;
+}) {
   const { tendencia, operativa, medias, volumen, patron_detectado, narrative, confidence } = data;
   const sigCls =
     operativa.signal === 'buy' ? 'bull' : operativa.signal === 'sell' ? 'bear' : 'neut';
   const sigLabel = operativa.signal === 'buy' ? 'COMPRA' : operativa.signal === 'sell' ? 'VENTA' : 'HOLD';
+  // Helper inline para mostrar precio con moneda — null/undef → guion
+  const px = (v: number | null | undefined) =>
+    v === null || v === undefined || Number.isNaN(v) ? '—' : `${v.toFixed(2)} ${currency}`;
 
   return (
     <>
@@ -72,9 +85,9 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
 
       <div className="grid grid-cols-2 gap-1.5 mb-2">
         {/* Color semántico: stop=rose, target=emerald (convención trading global). */}
-        <TechBox label="ENTRADA" value={fmtNum(operativa.entrada)} valueCls="text-white" />
-        <TechBox label="▼ STOP LOSS" value={fmtNum(operativa.stop_loss)} valueCls="text-rose" />
-        <TechBox label="▲ OBJETIVO" value={fmtNum(operativa.target)} valueCls="text-emerald" />
+        <TechBox label={`ENTRADA · ${currency}`} value={px(operativa.entrada)} valueCls="text-white" />
+        <TechBox label={`▼ STOP · ${currency}`} value={px(operativa.stop_loss)} valueCls="text-rose" />
+        <TechBox label={`▲ OBJETIVO · ${currency}`} value={px(operativa.target)} valueCls="text-emerald" />
         <TechBox
           label="R/B RATIO"
           value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
@@ -82,7 +95,7 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
         />
       </div>
 
-      <DataSection label="Medias" source={`TradingView · ${data.timeframes_analizados.join(' · ')}`}>
+      <DataSection label={`Medias · ${currency}`} source={`TradingView · ${data.timeframes_analizados.join(' · ')}`}>
         <KVRow k="MA 20" v={fmtNum(medias.sma20)} />
         <KVRow k="MA 50" v={fmtNum(medias.sma50)} />
         <KVRow

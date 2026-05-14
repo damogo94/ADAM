@@ -38,10 +38,11 @@ export function A1Card({ status, data }: A1CardProps) {
 function A1Body({ data }: { data: A1Output }) {
   const { price, fundamentals, news, anomaly_detected, anomaly_description, confidence, narrative } = data;
   const pos = price.change_pct_24h >= 0;
+  const ccy = price.currency || 'USD';
   return (
     <>
-      <DataSection label="Precio" source="Investing.com">
-        <KV k="Actual" v={price.current.toFixed(2)} />
+      <DataSection label={`Precio · ${ccy}`} source="Investing.com">
+        <KV k="Actual" v={`${price.current.toFixed(2)} ${ccy}`} />
         <KV k="24h" v={fmtPct(price.change_pct_24h)} cls={pos ? 'text-emerald' : 'text-rose'} />
         <KV
           k="7d"

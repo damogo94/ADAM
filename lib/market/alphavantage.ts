@@ -350,13 +350,41 @@ const SENTIMENT_MAP: Record<AVNewsItem['overall_sentiment_label'], 'bullish' | '
   Bearish: 'bearish',
 };
 
+/**
+ * Parsea time_published de AV: formato 'YYYYMMDDTHHMMSS' → epoch ms.
+ * Si falla, devuelve 0 (la noticia se considera vieja y se filtrará).
+ */
+function parseAvNewsTime(raw: string | undefined): number {
+  if (!raw || raw.length < 15) return 0;
+  // 20260514T123456 → 2026-05-14T12:34:56Z
+  const iso = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T${raw.slice(9, 11)}:${raw.slice(11, 13)}:${raw.slice(13, 15)}Z`;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+const NEWS_MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48h — solo noticias frescas para análisis del DÍA
+
 export function normalizeNews(news: AVNewsSentiment, max = 5) {
-  return news.feed.slice(0, max).map((n) => ({
-    headline: n.title,
-    source: n.source,
-    url: n.url,
-    sentiment: SENTIMENT_MAP[n.overall_sentiment_label] ?? 'neutral',
-  }));
+  const now = Date.now();
+  return news.feed
+    .map((n) => {
+      const publishedAt = parseAvNewsTime(n.time_published);
+      return {
+        headline: n.title,
+        source: n.source,
+        url: n.url,
+        sentiment: SENTIMENT_MAP[n.overall_sentiment_label] ?? 'neutral',
+        publishedAt,
+        published_iso: publishedAt > 0 ? new Date(publishedAt).toISOString() : null,
+        age_hours: publishedAt > 0 ? Math.round((now - publishedAt) / 3_600_000) : null,
+      };
+    })
+    // Solo noticias de las últimas 48h — el agente DEBE analizar contexto actual,
+    // no headlines viejos que pueden estar invalidados por movimientos posteriores.
+    .filter((n) => n.publishedAt > 0 && now - n.publishedAt < NEWS_MAX_AGE_MS)
+    // AV devuelve por relevancia, no fecha — re-ordenar por más reciente primero
+    .sort((a, b) => b.publishedAt - a.publishedAt)
+    .slice(0, max);
 }
 
 function parseSeries(

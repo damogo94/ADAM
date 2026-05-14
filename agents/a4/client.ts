@@ -1,4 +1,5 @@
 import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
+import { todayContext, todayISO } from '@/lib/utils';
 import { A4_SYSTEM_PROMPT } from './prompt';
 import { A4_OUTPUT_SCHEMA, type A4Output } from './schema';
 import type { A1Output } from '@/agents/a1/schema';
@@ -38,6 +39,11 @@ export async function runA4(input: A4Input, onUsage?: (u: AgentUsage) => void): 
   const a3Note = input.failures?.find((f) => f.agent === 'A3')?.message;
 
   const userMessage = [
+    `# FECHA ACTUAL: ${todayContext()} · ${todayISO()}`,
+    'La recomendación se emite con datos de HOY. La acción sugerida y',
+    'los niveles son válidos a esta fecha. NO recicles patrones de tu',
+    'training previos como si fueran el contexto presente.',
+    '',
     `Ticker: ${input.ticker}`,
     '',
     part('A1 (Activo)', input.a1, a1Note),

@@ -1,4 +1,5 @@
 import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
+import { todayISO } from '@/lib/utils';
 import { DEBATE_SYSTEM_PROMPT } from './prompt';
 import { DEBATE_OUTPUT_SCHEMA, type DebateOutput } from './schema';
 import type { A1Output } from '@/agents/a1/schema';
@@ -14,6 +15,10 @@ export interface DebateInput {
  */
 export async function runDebate(input: DebateInput, onUsage?: (u: AgentUsage) => void): Promise<DebateOutput> {
   const userMessage = [
+    `# FECHA ACTUAL: ${todayISO()}`,
+    'Tu validación se emite con datos de HOY. Confronta A1 y A2 referidos',
+    'al contexto presente, no a snapshots históricos.',
+    '',
     `Ticker: ${input.a1.ticker}`,
     '',
     '## Output A1 (Activo · Micro):',

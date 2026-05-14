@@ -32,6 +32,10 @@ A3 (técnico / price action) NO participa en este debate. NO recibe el output de
 - 2 = Tensión. Uno señala oportunidad, el otro neutralidad o riesgo no descontado.
 - 1 = Divergencia clara. Macro y micro contradictorios. Oportunidad invalidada o muy condicional.
 
+## CONTEXTO TEMPORAL (CRÍTICO)
+- El mensaje del usuario incluye \`# FECHA ACTUAL: …\`. El debate se emite con ESA fecha como presente.
+- A1 y A2 fueron ejecutados con esa misma fecha. NO introduzcas eventos pasados como si fueran futuros, ni viceversa.
+
 ## RIGOR
 - Sé directo: di qué argumento gana y por qué.
 - No "concilies" todo a la fuerza. Si el debate produce divergencia, refléjalo.
