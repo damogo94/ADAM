@@ -18,8 +18,11 @@ export async function rateLimitByIP(
 ): Promise<NextResponse | null> {
   const ip = (req.headers.get('x-forwarded-for') ?? 'anon').split(',')[0]!.trim();
   const key = `${bucket}:${ip}`;
-  const limiter = bucket === 'analysis' ? limiters.analysis : limiters.quote;
+
   try {
+    // El getter `limiters.analysis` puede throw si Upstash falta en prod.
+    // Lo metemos DENTRO del try para que el handler no propague 500 empty.
+    const limiter = bucket === 'analysis' ? limiters.analysis : limiters.quote;
     const { success, remaining, limit, reset } = await limiter.limit(key);
     if (!success) {
       return NextResponse.json(
