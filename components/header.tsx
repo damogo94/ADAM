@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
 import { UserMenu } from './user-menu';
-import { Monogram } from './symbols';
 
 type Status = 'offline' | 'running' | 'ok' | 'error';
 
@@ -38,15 +37,11 @@ export function Header({
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-void/95 backdrop-blur-xl px-5 py-2.5">
-      <div className="flex items-center gap-2.5">
-        {/* Monogram en sólido blanco — sin gradient, sin tinte */}
-        <Monogram className="h-6 w-6 text-white" title="A.D.A.M." />
-        <div className="flex flex-col">
-          <div className="font-orbitron text-lg font-black tracking-[0.18em] text-white">
-            A.D.A.M.
-          </div>
-          <div className="font-mono text-[8px] tracking-wider text-white/40 mt-px">{tagline}</div>
+      <div className="flex flex-col">
+        <div className="font-orbitron text-lg font-black tracking-[0.18em] text-white">
+          A.D.A.M.
         </div>
+        <div className="font-mono text-[8px] tracking-wider text-white/40 mt-px">{tagline}</div>
       </div>
       <div className="flex items-center gap-2">
         <span

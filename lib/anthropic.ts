@@ -18,9 +18,11 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  // Up from default 2 — covers transient 408/409/429/500/503/529 (Overloaded)
-  // with exponential backoff. Total worst-case latency added: ~30s.
-  maxRetries: 5,
+  // Hobby plan: maxDuration=60s. Con 5 retries × 18s timeout, una sola call
+  // puede comerse 90s y matar el lambda con texto "An error occurred...".
+  // Bajado a 2 retries (estándar) → worst case ~54s. Los 408/429/5xx
+  // transitorios siguen autocurándose en ~half de los casos.
+  maxRetries: 2,
 });
 
 /**
@@ -117,38 +119,22 @@ export async function runAgent<T extends z.ZodTypeAny>(
     agentName,
   } = args;
 
-  // Timeout hard de 25s — un Anthropic colgado NO consume nuestros 60s de maxDuration.
-  // El SDK ya hace maxRetries=5 internamente con backoff (~30s worst case).
-  // Belt-and-suspenders: si el SDK agota retries y el error es transitorio,
-  // dormimos 4s y un último intento manual. Coste: hasta ~60s en pesimista.
-  let response;
-  try {
-    response = await anthropic.messages.create(
-      {
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
-      },
-      { timeout: 25_000 }
-    );
-  } catch (err) {
-    if (!isTransientAnthropicError(err)) throw err;
-    // eslint-disable-next-line no-console
-    console.warn(`[${agentName}] Anthropic transient error after SDK retries, sleeping 4s then 1 last try…`);
-    await sleep(4000);
-    response = await anthropic.messages.create(
-      {
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
-      },
-      { timeout: 25_000 }
-    );
-  }
+  // Timeout hard de 18s — un Anthropic colgado NO consume nuestros 60s de maxDuration.
+  // El SDK ya hace maxRetries=2 con backoff exponencial. Antes había un wrapper
+  // belt-and-suspenders extra (4s sleep + 1 retry final) que sumaba ~22s en
+  // peor caso y mataba lambdas en Hobby. Removido. Si el SDK falla tras 2
+  // retries, Promise.allSettled del orquestador atrapa y A4 ensambla con
+  // partial data — mejor que matar todo el pipeline.
+  const response = await anthropic.messages.create(
+    {
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    },
+    { timeout: 18_000 }
+  );
 
   const text = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')

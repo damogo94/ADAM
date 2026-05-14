@@ -53,25 +53,34 @@ type AgentFailure = { agent: 'A1' | 'A2' | 'A3'; message: string };
  * Coste por llamada (sin cache compartido): 5 calls Alpha Vantage + 3 Sonnet + 1 Opus + opcional 1 Opus debate.
  */
 export async function POST(req: NextRequest) {
-  // CSRF
-  const csrf = checkSameOrigin(req);
-  if (csrf) return csrf;
+  // Top-level try: garantiza que CUALQUIER throw devuelve JSON al cliente
+  // (no texto plano "An error occurred..." de Vercel). Esto evita el
+  // "Unexpected token 'A' is not valid JSON" en el frontend cuando un
+  // lambda crashea fuera del try interior de orquestación.
+  try {
+    // CSRF
+    const csrf = checkSameOrigin(req);
+    if (csrf) return csrf;
 
-  // IP rate-limit (10/min) — antes vivía en middleware Edge, movido aquí
-  // porque Upstash no es Edge-compatible
-  const ipLimit = await rateLimitByIP(req, 'analysis');
-  if (ipLimit) return ipLimit;
+    // IP rate-limit (10/min) — antes vivía en middleware Edge, movido aquí
+    // porque Upstash no es Edge-compatible
+    const ipLimit = await rateLimitByIP(req, 'analysis');
+    if (ipLimit) return ipLimit;
 
-  // Auth
-  const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+    // Auth
+    const supabase = await createSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
 
-  // Per-user rate limit (20/dia) — vector de abuso si user rota IPs
-  const userLimit = await limiters.userRuns.limit(user.id).catch(() => ({ success: true, remaining: 99, limit: 20, reset: 0 }));
-  if (!userLimit.success) {
+    // Per-user rate limit (20/dia) — vector de abuso si user rota IPs
+    // El getter `limiters.userRuns` puede throw si Upstash creds fallan;
+    // queda atrapado por el try-catch top-level y devuelto como 503 JSON.
+    const userLimit = await limiters.userRuns
+      .limit(user.id)
+      .catch(() => ({ success: true, remaining: 99, limit: 20, reset: 0 }));
+    if (!userLimit.success) {
     const resetDate = userLimit.reset ? new Date(userLimit.reset).toISOString() : 'mañana';
     return NextResponse.json(
       {
@@ -251,6 +260,20 @@ export async function POST(req: NextRequest) {
       },
       extra: { user_id: user.id },
     });
-    return NextResponse.json(payload, { status: 500 });
+      return NextResponse.json(payload, { status: 500 });
+    }
+  } catch (outerErr) {
+    // Defense-in-depth: cualquier throw NO atrapado arriba (ej. limiters.userRuns
+    // getter, createSupabaseServer crash, JSON.parse del body con corruption raro)
+    // termina aquí. Sin esto, Vercel devuelve texto plano "An error occurred..."
+    // que el frontend no puede parsear como JSON.
+    const msg = outerErr instanceof Error ? outerErr.message : 'unknown';
+    // eslint-disable-next-line no-console
+    console.error('[a4] top-level uncaught:', msg);
+    Sentry.captureException(outerErr, { tags: { endpoint: 'api/agents/a4', level: 'top-level' } });
+    return NextResponse.json(
+      { error: 'internal_error', detail: 'Error interno del servidor. Reintenta en unos segundos.' },
+      { status: 500 }
+    );
   }
 }
