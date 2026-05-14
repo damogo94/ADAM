@@ -94,35 +94,46 @@ export function AgentCardShell({
   );
 }
 
+/**
+ * StatusDot — re-skin B&W.
+ * Diferenciación por intensidad + animación (no color).
+ *   - live      → dot blanco + texto "LIVE" + blink slow
+ *   - scanning  → dot blanco + animate-blink (más rápido)
+ *   - anomaly   → dot blanco + animate-blink (mismo que scanning visualmente;
+ *                  la palabra "anomalía" en el cuerpo del card lo diferencia)
+ *   - done      → dot blanco firme
+ *   - error     → dot blanco + urg-pulse
+ *   - idle      → dot blanco/30 estático (dim)
+ */
 function StatusDot({ status }: { status: AgentStatus }) {
   if (status === 'live') {
     return (
       <div className="flex items-center gap-0.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-blink-slow" />
-        <span className="font-mono text-[8px] font-medium text-emerald">LIVE</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
+        <span className="font-mono text-[8px] font-medium text-white tracking-wider">LIVE</span>
       </div>
     );
   }
   const cls =
     status === 'idle'
-      ? 'bg-slate/40'
+      ? 'bg-white/30'
       : status === 'scanning'
-        ? 'bg-a3 animate-blink'
+        ? 'bg-white animate-blink'
         : status === 'done'
-          ? 'bg-emerald'
+          ? 'bg-white'
           : status === 'anomaly'
-            ? 'bg-a3 animate-blink'
+            ? 'bg-white animate-blink'
             : status === 'error'
-              ? 'bg-rose'
-              : 'bg-slate/40';
+              ? 'bg-white animate-urg-pulse'
+              : 'bg-white/30';
   return <span className={cn('h-1.5 w-1.5 rounded-full transition-all', cls)} />;
 }
 
 export function IdleState({ label = 'standby' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-4">
-      <div className="text-xl text-slate-l opacity-15">◎</div>
-      <div className="font-mono text-[9px] tracking-wider text-slate">{label}</div>
+      <div className="text-xl text-white/10">◎</div>
+      <div className="font-mono text-[9px] tracking-wider text-white/40">{label}</div>
     </div>
   );
 }
@@ -131,8 +142,16 @@ export function ScanSteps({ steps }: { steps: { label: string; done: boolean }[]
   return (
     <div className="flex flex-col gap-1">
       {steps.map((s, i) => (
-        <div key={i} className={cn('flex items-start gap-1.5 py-px font-mono text-[9px]', s.done ? 'text-slate-l' : 'text-slate')}>
-          <span className={cn('w-2.5 flex-shrink-0 text-[8px]', s.done && 'text-emerald')}>{s.done ? '✓' : '—'}</span>
+        <div
+          key={i}
+          className={cn(
+            'flex items-start gap-1.5 py-px font-mono text-[9px]',
+            s.done ? 'text-white/75' : 'text-white/45'
+          )}
+        >
+          <span className={cn('w-2.5 flex-shrink-0 text-[8px]', s.done && 'text-white')}>
+            {s.done ? '✓' : '—'}
+          </span>
           <span>{s.label}</span>
         </div>
       ))}

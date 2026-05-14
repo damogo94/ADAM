@@ -106,17 +106,17 @@ export default function SignalsScreen() {
         <button
           onClick={onScan}
           disabled={scanning}
-          className="w-full rounded-lg bg-a1 px-3 py-2.5 font-orbitron text-[11px] font-bold tracking-wider text-white transition hover:bg-a1/80 disabled:opacity-50"
+          className="w-full rounded-lg border border-white bg-white px-3 py-2.5 font-orbitron text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {scanning ? 'ESCANEANDO WATCHLIST…' : 'EJECUTAR SCAN CMT ▶'}
         </button>
-        <p className="mt-1.5 font-mono text-[8px] text-slate text-center">
+        <p className="mt-1.5 font-mono text-[8px] text-white/40 text-center">
           escanea tus tickers · usa Haiku (rápido)
         </p>
       </div>
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg border border-rose/30 bg-rose/10 px-3 py-2 font-mono text-[10px] text-rose">
+        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[10px] text-white animate-urg-pulse">
           {error}
         </div>
       )}
@@ -130,15 +130,16 @@ export default function SignalsScreen() {
               onClick={() => setFilterLevel(lv)}
               className={cn(
                 'flex-1 rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
+                // Re-skin B&W: jerarquía por intensidad de blanco según urgencia
                 filterLevel === lv
                   ? lv === 'urgente'
-                    ? 'border-rose/50 bg-rose/10 text-rose'
+                    ? 'border-white/55 bg-white/[0.10] text-white'
                     : lv === 'atencion'
-                      ? 'border-a3/50 bg-a3/10 text-a3'
+                      ? 'border-white/35 bg-white/[0.06] text-white/90'
                       : lv === 'monitorear'
-                        ? 'border-emerald/50 bg-emerald/10 text-emerald'
-                        : 'border-white/20 bg-white/5 text-white'
-                  : 'border-white/5 bg-surface-2 text-slate-l hover:border-white/10'
+                        ? 'border-white/22 bg-white/[0.04] text-white/75'
+                        : 'border-white/30 bg-white/[0.05] text-white'
+                  : 'border-white/8 bg-surface-2 text-white/45 hover:border-white/20'
               )}
             >
               {lv === 'all' ? 'todas' : lv}
@@ -151,7 +152,7 @@ export default function SignalsScreen() {
             value={filterTicker}
             onChange={(e) => setFilterTicker(e.target.value)}
             placeholder="ticker..."
-            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 font-mono text-[10px] uppercase text-white placeholder-slate focus:border-a1/60 focus:outline-none"
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 font-mono text-[10px] uppercase text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
           />
           {(['all', 'unread', 'acknowledged'] as const).map((a) => (
             <button
@@ -160,8 +161,8 @@ export default function SignalsScreen() {
               className={cn(
                 'rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
                 filterAck === a
-                  ? 'border-a1/50 bg-a1/10 text-a1'
-                  : 'border-white/5 bg-surface-2 text-slate-l hover:border-white/10'
+                  ? 'border-white/40 bg-white/[0.06] text-white'
+                  : 'border-white/8 bg-surface-2 text-white/45 hover:border-white/20'
               )}
             >
               {a === 'all' ? 'todas' : a === 'unread' ? 'no leídas' : 'leídas'}
@@ -209,12 +210,14 @@ export default function SignalsScreen() {
 }
 
 function CountBox({ label, value, tone }: { label: string; value: number; tone: SignalLevel }) {
+  // Re-skin B&W: la jerarquía de urgencia (URGENTE > ATENCIÓN > MONITOREAR)
+  // se preserva por INTENSIDAD del borde/bg + ANIMACIÓN (urgente pulsa).
   const cls =
     tone === 'urgente'
-      ? 'text-rose border-rose/30 bg-rose/10'
+      ? 'text-white border-white/55 bg-white/[0.08] animate-urg-pulse'
       : tone === 'atencion'
-        ? 'text-a3 border-a3/30 bg-a3/10'
-        : 'text-emerald border-emerald/30 bg-emerald/10';
+        ? 'text-white/90 border-white/30 bg-white/[0.05]'
+        : 'text-white/70 border-white/18 bg-white/[0.03]';
   return (
     <div className={cn('rounded-[15px] border px-2 py-2.5 text-center', cls)}>
       <div className="font-orbitron text-[20px] font-black">{value}</div>
@@ -223,11 +226,17 @@ function CountBox({ label, value, tone }: { label: string; value: number; tone: 
   );
 }
 
+/**
+ * levelMeta — diferenciación por intensidad de blanco (no por hue).
+ *   - band: ancho del trazo lateral izquierdo de la SignalCard
+ *   - text: intensidad del texto del nivel
+ *   - pulse: solo URGENTE pulsa (animación es load-bearing UX para captar el ojo)
+ */
 function levelMeta(level: SignalLevel) {
-  if (level === 'urgente') return { band: 'bg-rose', text: 'text-rose', label: 'URGENTE', pulse: true };
-  if (level === 'atencion') return { band: 'bg-a3', text: 'text-a3', label: 'ATENCIÓN', pulse: false };
-  if (level === 'monitorear') return { band: 'bg-emerald', text: 'text-emerald', label: 'MONITOREAR', pulse: false };
-  return { band: 'bg-slate', text: 'text-slate', label: 'SIN SEÑAL', pulse: false };
+  if (level === 'urgente') return { band: 'bg-white', text: 'text-white', label: 'URGENTE', pulse: true };
+  if (level === 'atencion') return { band: 'bg-white/65', text: 'text-white/90', label: 'ATENCIÓN', pulse: false };
+  if (level === 'monitorear') return { band: 'bg-white/35', text: 'text-white/70', label: 'MONITOREAR', pulse: false };
+  return { band: 'bg-white/15', text: 'text-white/40', label: 'SIN SEÑAL', pulse: false };
 }
 
 function SignalCard({
@@ -295,18 +304,18 @@ function SignalCard({
         <div className="border-t border-white/5 px-3 pl-4 py-2.5">
           <div className="grid grid-cols-3 gap-2 mb-2">
             <KV label="ENTRADA" value={signal.entry_price?.toString() ?? '—'} />
-            <KV label="STOP" value={signal.stop_loss?.toString() ?? '—'} cls="text-rose" />
-            <KV label="TARGET" value={signal.target_price?.toString() ?? '—'} cls="text-emerald" />
+            <KV label="▼ STOP" value={signal.stop_loss?.toString() ?? '—'} />
+            <KV label="▲ TARGET" value={signal.target_price?.toString() ?? '—'} />
           </div>
-          <KV label="R/B" value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} cls="text-a3" />
+          <KV label="R/B" value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} />
 
           {Object.keys(indicators).length > 0 && (
             <div className="mt-2">
-              <div className="font-mono text-[8px] uppercase tracking-wider text-slate mb-1">Indicadores</div>
+              <div className="font-mono text-[8px] uppercase tracking-wider text-white/45 mb-1">Indicadores</div>
               <div className="space-y-1">
                 {Object.entries(indicators).map(([k, v]) => (
                   <div key={k} className="font-mono text-[10px]">
-                    <span className="text-slate-l">{k}: </span>
+                    <span className="text-white/55">{k}: </span>
                     <span className="text-white">{v}</span>
                   </div>
                 ))}
@@ -315,21 +324,21 @@ function SignalCard({
           )}
 
           <div className="mt-2 border-t border-white/5 pt-2">
-            <div className="font-mono text-[8px] uppercase tracking-wider text-rose mb-0.5">Invalida si</div>
-            <div className="font-mono text-[10px] text-white">{signal.invalidation_factor}</div>
+            <div className="font-mono text-[8px] uppercase tracking-wider text-white/75 mb-0.5">Invalida si</div>
+            <div className="font-mono text-[10px] text-white/90">{signal.invalidation_factor}</div>
           </div>
 
           <div className="mt-3 flex gap-1.5">
             <button
               onClick={copyReport}
-              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-slate-l hover:border-a1/40 hover:text-white transition"
+              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-white/55 hover:border-white/35 hover:text-white transition"
             >
               copiar reporte
             </button>
             {!acknowledged && (
               <button
                 onClick={onAck}
-                className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-emerald hover:bg-emerald/10 transition"
+                className="flex-1 rounded-lg border border-white/15 px-2 py-1.5 font-mono text-[10px] text-white/85 hover:bg-white/[0.06] hover:text-white transition"
               >
                 marcar leído
               </button>

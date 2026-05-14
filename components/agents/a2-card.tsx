@@ -22,7 +22,9 @@ export function A2Card({ status, data }: A2CardProps) {
           ]}
         />
       )}
-      {status === 'error' && <div className="font-mono text-[10px] text-rose py-2">error en A2 — reintenta</div>}
+      {status === 'error' && (
+        <div className="font-mono text-[10px] text-white/65 py-2">error en A2 — reintenta</div>
+      )}
       {(status === 'done' || status === 'anomaly') && data && <A2Body data={data} />}
     </AgentCardShell>
   );
@@ -33,7 +35,7 @@ function A2Body({ data }: { data: A2Output }) {
   return (
     <>
       <DataSection label="Régimen" source="Bloomberg">
-        <div className="font-mono text-[10px] leading-snug text-white py-0.5">
+        <div className="font-mono text-[10px] leading-snug text-white/90 py-0.5">
           {macro_context.ciclo_economico} · tipos {macro_context.regimen_tipos} · inflación {macro_context.inflacion_trend}
         </div>
       </DataSection>
@@ -42,13 +44,17 @@ function A2Body({ data }: { data: A2Output }) {
         <DataSection label="Factores clave" source="IMF · BCs">
           {factores_clave.slice(0, 4).map((f, i) => (
             <div key={i} className="flex items-center gap-1 border-b border-white/5 py-0.5 last:border-b-0">
-              <span className="font-mono text-[10px] flex-1 text-slate-l">{f.factor}</span>
+              <span className="font-mono text-[10px] flex-1 text-white/65">{f.factor}</span>
               <span className="font-mono text-[10px] font-medium text-white">{f.magnitud}/5</span>
               <span
                 className={cn(
                   'text-[11px]',
-                  f.impacto === 'positivo' ? 'text-emerald' : f.impacto === 'negativo' ? 'text-rose' : 'text-slate'
+                  // Re-skin B&W: dirección por símbolo + intensidad, no color.
+                  f.impacto === 'positivo' && 'text-white',
+                  f.impacto === 'negativo' && 'text-white/85',
+                  f.impacto === 'neutral' && 'text-white/45'
                 )}
+                aria-label={f.impacto}
               >
                 {f.impacto === 'positivo' ? '↑' : f.impacto === 'negativo' ? '↓' : '→'}
               </span>
@@ -59,16 +65,23 @@ function A2Body({ data }: { data: A2Output }) {
 
       {opportunity_detected && opportunity_description && (
         <SignalBox tone="bull">
-          <div className="font-mono text-[8px] font-medium text-emerald mb-0.5">⚡ oportunidad macro detectada</div>
-          <div className="font-mono text-[10px] leading-snug text-white">{opportunity_description}</div>
+          <div className="font-mono text-[8px] font-medium text-white mb-0.5 uppercase tracking-wider">
+            ⚡ oportunidad macro detectada
+          </div>
+          <div className="font-mono text-[10px] leading-snug text-white/90">{opportunity_description}</div>
         </SignalBox>
       )}
 
       <SignalBox tone={confidence >= 4 ? 'bull' : 'neut'}>
-        <div className={cn('font-mono text-[8px] font-medium mb-0.5', confidence >= 4 ? 'text-emerald' : 'text-slate-l')}>
+        <div
+          className={cn(
+            'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            confidence >= 4 ? 'text-white' : 'text-white/55'
+          )}
+        >
           A2 · confianza {confidence}/5
         </div>
-        <div className="font-mono text-[10px] leading-snug text-white">{narrative}</div>
+        <div className="font-mono text-[10px] leading-snug text-white/90">{narrative}</div>
       </SignalBox>
     </>
   );

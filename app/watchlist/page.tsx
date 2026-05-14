@@ -149,12 +149,12 @@ export default function WatchlistScreen() {
             value={newTicker}
             onChange={(e) => setNewTicker(e.target.value)}
             placeholder="ticker (AAPL, BTC, EUR/USD…)"
-            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] uppercase text-white placeholder-slate focus:border-a1/60 focus:outline-none"
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] uppercase text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
           />
           <select
             value={newAssetType}
             onChange={(e) => setNewAssetType(e.target.value as AssetType)}
-            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 font-mono text-[10px] text-white focus:border-a1/60 focus:outline-none"
+            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 font-mono text-[10px] text-white focus:border-white/40 focus:outline-none"
           >
             <option value="equity">equity</option>
             <option value="etf">etf</option>
@@ -166,7 +166,7 @@ export default function WatchlistScreen() {
           <button
             type="submit"
             disabled={adding}
-            className="rounded-lg bg-a1 px-3 py-2 font-orbitron text-[10px] font-bold tracking-wider text-white transition hover:bg-a1/80 disabled:opacity-50"
+            className="rounded-lg border border-white bg-white px-3 py-2 font-orbitron text-[10px] font-bold tracking-[0.12em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {adding ? '…' : '+'}
           </button>
@@ -174,7 +174,7 @@ export default function WatchlistScreen() {
       </form>
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg border border-rose/30 bg-rose/10 px-3 py-2 font-mono text-[10px] text-rose">
+        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[10px] text-white animate-urg-pulse">
           {error}
         </div>
       )}
@@ -233,7 +233,7 @@ function WatchlistRow({
 }) {
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   return (
-    <div className="group relative rounded-[15px] border border-white/5 bg-surface-2 hover:border-a1/30 transition-all duration-300">
+    <div className="group relative rounded-[15px] border border-white/8 bg-surface-2 hover:border-white/30 transition-all duration-300">
       <button onClick={onTap} className="w-full px-3 py-2.5 flex items-center gap-3 text-left">
         <div className="flex flex-col flex-1 min-w-0">
           <div className="font-orbitron text-[13px] font-bold tracking-wider text-white truncate">
@@ -258,7 +258,8 @@ function WatchlistRow({
               <span className="font-mono text-[13px] font-medium text-white">
                 {quote.current.toFixed(2)}
               </span>
-              <span className={cn('font-mono text-[10px]', pos ? 'text-emerald' : 'text-rose')}>
+              <span className={cn('font-mono text-[10px]', pos ? 'text-white' : 'text-white/70')}>
+                {pos ? '↑ ' : '↓ '}
                 {fmtPct(quote.change_pct_24h)}
               </span>
             </>
@@ -267,7 +268,7 @@ function WatchlistRow({
           )}
         </div>
 
-        <span className="font-mono text-[16px] text-a1 opacity-30 group-hover:opacity-100 transition">▶</span>
+        <span className="font-mono text-[16px] text-white opacity-30 group-hover:opacity-100 transition">▶</span>
       </button>
 
       <button
@@ -275,7 +276,7 @@ function WatchlistRow({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute right-2 top-2 px-1.5 py-0.5 opacity-0 group-hover:opacity-100 rounded font-mono text-[10px] text-rose hover:bg-rose/10 transition"
+        className="absolute right-2 top-2 px-1.5 py-0.5 opacity-0 group-hover:opacity-100 rounded font-mono text-[10px] text-white/70 hover:bg-white/[0.06] hover:text-white transition"
         aria-label="Eliminar"
       >
         ×

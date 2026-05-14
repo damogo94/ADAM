@@ -69,10 +69,17 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
       )}
 
       <div className="grid grid-cols-2 gap-1.5 mb-2">
+        {/* Entradas: bg/border subtle, valor en blanco firme — la semántica
+            (entrada/stop/target) viene del LABEL, no del color. Mantenemos
+            iconos ▼ stop / ▲ target para affordance instantáneo. */}
         <TechBox label="ENTRADA" value={fmtNum(operativa.entrada)} valueCls="text-white" />
-        <TechBox label="STOP LOSS" value={fmtNum(operativa.stop_loss)} valueCls="text-rose" />
-        <TechBox label="OBJETIVO" value={fmtNum(operativa.target)} valueCls="text-emerald" />
-        <TechBox label="R/B RATIO" value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'} valueCls="text-a3" />
+        <TechBox label="▼ STOP LOSS" value={fmtNum(operativa.stop_loss)} valueCls="text-white" />
+        <TechBox label="▲ OBJETIVO" value={fmtNum(operativa.target)} valueCls="text-white" />
+        <TechBox
+          label="R/B RATIO"
+          value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
+          valueCls="text-white"
+        />
       </div>
 
       <DataSection label="Medias" source={`TradingView · ${data.timeframes_analizados.join(' · ')}`}>
@@ -86,15 +93,20 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
       </DataSection>
 
       <SignalBox tone={sigCls}>
-        <div className={cn('font-mono text-[8px] font-medium mb-0.5', sigCls === 'bull' ? 'text-emerald' : sigCls === 'bear' ? 'text-rose' : 'text-slate-l')}>
+        <div
+          className={cn(
+            'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            sigCls === 'neut' ? 'text-white/55' : 'text-white'
+          )}
+        >
           señal: {sigLabel} · {tendencia.primaria} {forceFromN(tendencia.fuerza)} · confianza {confidence}/5
         </div>
-        <div className="font-mono text-[10px] leading-snug text-white">
-          {patron_detectado && <span className="text-a3">{patron_detectado}</span>}
+        <div className="font-mono text-[10px] leading-snug text-white/90">
+          {patron_detectado && <span className="text-white font-medium">{patron_detectado}</span>}
           {patron_detectado && ' — '}
           {volumen.comentario}
         </div>
-        <div className="font-mono text-[9px] leading-snug text-slate-l mt-1">{narrative}</div>
+        <div className="font-mono text-[9px] leading-snug text-white/55 mt-1">{narrative}</div>
       </SignalBox>
     </>
   );
@@ -102,8 +114,8 @@ function A3Body({ data, dailyCandles }: { data: A3Output; dailyCandles?: Candle[
 
 function TechBox({ label, value, valueCls }: { label: string; value: string; valueCls?: string }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-black/30 px-2.5 py-1.5">
-      <div className="font-mono text-[7px] uppercase tracking-wider text-slate mb-0.5">{label}</div>
+    <div className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5">
+      <div className="font-mono text-[7px] uppercase tracking-wider text-white/50 mb-0.5">{label}</div>
       <div className={cn('font-mono text-[12px] font-medium', valueCls)}>{value}</div>
     </div>
   );
@@ -112,7 +124,7 @@ function TechBox({ label, value, valueCls }: { label: string; value: string; val
 function KVRow({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between border-b border-white/5 py-0.5 last:border-b-0">
-      <span className="font-mono text-[10px] text-slate-l">{k}</span>
+      <span className="font-mono text-[10px] text-white/55">{k}</span>
       <span className="font-mono text-[10px] font-medium text-white">{v}</span>
     </div>
   );
