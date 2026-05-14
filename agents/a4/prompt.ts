@@ -56,13 +56,13 @@ JSON válido, sin texto antes ni después:
     "score_total_pct": 0-100,
     "nivel_final": "baja | media | alta"
   },
-  "resumen_a1": "string — 1-2 frases que destilen A1, citando dato concreto",
-  "resumen_a2": "string — 1-2 frases que destilen A2, citando dato concreto",
-  "resumen_a3": "string — 1-2 frases que destilen A3, citando nivel concreto. Cita textual, no contamines.",
+  "resumen_a1": "string max 600 chars — 1-2 frases que destilen A1, citando dato concreto",
+  "resumen_a2": "string max 600 chars — 1-2 frases que destilen A2, citando dato concreto",
+  "resumen_a3": "string max 600 chars — 1-2 frases que destilen A3, citando nivel concreto. Cita textual, no contamines.",
   "direccion": "positivo | negativo | neutral",
   "confianza": "alta | media | baja",
-  "accion_sugerida": "string — 3-5 frases lenguaje ATLAS CAPITAL: qué, cuándo, con qué gestión de riesgo",
-  "riesgo_clave": "string — el factor que invalida la tesis",
+  "accion_sugerida": "string max 1000 chars — 3-5 frases lenguaje ATLAS CAPITAL: qué, cuándo, con qué gestión de riesgo",
+  "riesgo_clave": "string max 500 chars — el factor que invalida la tesis",
   "disclaimer": "Análisis educativo · no constituye asesoramiento financiero regulado"
 }
 \`\`\`

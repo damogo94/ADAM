@@ -126,12 +126,31 @@ export async function runAgent<T extends z.ZodTypeAny>(
   // peor caso y mataba lambdas en Hobby. Removido. Si el SDK falla tras 2
   // retries, Promise.allSettled del orquestador atrapa y A4 ensambla con
   // partial data — mejor que matar todo el pipeline.
+  //
+  // Prompt caching (sesión 6c):
+  // El system prompt se marca con cache_control: ephemeral (TTL 5min).
+  // Si llega a >=1024 tokens, Anthropic lo cachea y la siguiente invocación
+  // del MISMO agente dentro de 5 min lee desde cache (-90% input tokens).
+  // Casos donde gana mucho:
+  //   - CMT escaneando watchlist (N tickers, mismo system prompt)
+  //   - Usuarios re-ejecutando análisis sobre el mismo ticker
+  //   - Multi-user simultáneo (un user calienta el cache, los demás leen)
+  // Si el system prompt es <1024 tokens (a1/a2 lo son hoy), no se cachea
+  // pero tampoco hay error — graceful no-op.
+  // SDK 0.32 acepta cache_control en runtime pero los types no lo exponen
+  // hasta 0.35+. Cast as-any es estándar para esta feature en SDKs < 0.35.
+  // Migración: bumpear el SDK retira el cast.
+  const systemWithCache = [
+    { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ] as any;
+
   const response = await anthropic.messages.create(
     {
       model,
       max_tokens: maxTokens,
       temperature,
-      system: systemPrompt,
+      system: systemWithCache,
       messages: [{ role: 'user', content: userMessage }],
     },
     { timeout: 18_000 }

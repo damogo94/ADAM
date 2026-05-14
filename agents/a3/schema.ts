@@ -47,9 +47,9 @@ export const A3_OUTPUT_SCHEMA = z.object({
     ratio_riesgo_beneficio: z.number().nullable(),
     horizonte: z.enum(['intradia', 'swing', 'posicional']),
   }),
-  factor_invalidacion: z.string(),
+  factor_invalidacion: z.string().max(400),
   confidence: z.number().int().min(0).max(100),
-  narrative: z.string().min(20),
+  narrative: z.string().min(20).max(1200),
 });
 
 export type A3Output = z.infer<typeof A3_OUTPUT_SCHEMA>;

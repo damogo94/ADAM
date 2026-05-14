@@ -65,9 +65,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido que cumpla este contrato (sin tex
   ],
   "anomaly_detected": boolean,
   "anomaly_type": "anomalia" | "vulnerabilidad" | "oportunidad" | null,
-  "anomaly_description": "string — 2-3 frases en español",
+  "anomaly_description": "string max 600 chars — 2-3 frases en español",
   "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
-  "narrative": "string — 4-6 frases en español, lenguaje ATLAS CAPITAL: directo, sin relleno"
+  "narrative": "string max 1200 chars — 4-6 frases en español, lenguaje ATLAS CAPITAL: directo, sin relleno"
 }
 \`\`\`
 

@@ -35,9 +35,9 @@ export const A1_OUTPUT_SCHEMA = z.object({
   anomaly_type: z
     .enum(['anomalia', 'vulnerabilidad', 'oportunidad'])
     .nullable(),
-  anomaly_description: z.string(),
+  anomaly_description: z.string().max(600),
   confidence: z.number().int().min(0).max(100),
-  narrative: z.string().min(20),
+  narrative: z.string().min(20).max(1200),
 });
 
 export type A1Output = z.infer<typeof A1_OUTPUT_SCHEMA>;

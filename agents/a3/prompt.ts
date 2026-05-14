@@ -108,9 +108,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
     "ratio_riesgo_beneficio": number | null,
     "horizonte": "intradia | swing | posicional"
   },
-  "factor_invalidacion": "string — qué nivel/comportamiento invalida la operativa",
+  "factor_invalidacion": "string max 400 chars — qué nivel/comportamiento invalida la operativa",
   "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
-  "narrative": "string — 4-6 frases en español, lenguaje técnico CMT, sin mencionar nada prohibido"
+  "narrative": "string max 1200 chars — 4-6 frases en español, lenguaje técnico CMT, sin mencionar nada prohibido"
 }
 \`\`\`
 

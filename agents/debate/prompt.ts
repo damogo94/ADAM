@@ -48,16 +48,16 @@ JSON válido, sin texto antes ni después:
 {
   "ticker": "string",
   "convergence_score": 0-100,
-  "argumento_a1": "string — 2-3 frases destilando A1",
-  "argumento_a2": "string — 2-3 frases destilando A2",
-  "puntos_convergencia": ["string"],
-  "puntos_divergencia": ["string"],
-  "punto_critico_de_debate": "string — la pregunta clave que define quién tiene razón",
+  "argumento_a1": "string max 800 chars — 2-3 frases destilando A1",
+  "argumento_a2": "string max 800 chars — 2-3 frases destilando A2",
+  "puntos_convergencia": ["string max 300 chars"],   // máximo 5 elementos
+  "puntos_divergencia": ["string max 300 chars"],    // máximo 5 elementos
+  "punto_critico_de_debate": "string max 500 chars — la pregunta clave que define quién tiene razón",
   "oportunidad_validada": boolean,
   "direccion": "alcista | bajista | neutral",
-  "horizonte_relevante": "string — ej. '3-6 meses'",
-  "recomendacion_consolidada": "string — 3-5 frases, lenguaje ATLAS CAPITAL",
-  "factor_invalidante": "string — qué dato invalidaría la conclusión"
+  "horizonte_relevante": "string max 200 chars — ej. '3-6 meses'",
+  "recomendacion_consolidada": "string max 1000 chars — 3-5 frases, lenguaje ATLAS CAPITAL",
+  "factor_invalidante": "string max 400 chars — qué dato invalidaría la conclusión"
 }
 \`\`\`
 

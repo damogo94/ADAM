@@ -54,7 +54,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
     "inflacion_trend": "subiendo | estable | bajando",
     "fed_funds_rate_pct": number | null,
     "us_10y_yield_pct": number | null,
-    "narrative": "string — 3-4 frases del estado macro actual"
+    "narrative": "string max 1000 chars — 3-4 frases del estado macro actual"
   },
   "factores_clave": [          // máximo 8 elementos — selecciona los más relevantes
     { "factor": "string", "impacto": "positivo | negativo | neutral", "magnitud": 1-5 }
@@ -68,9 +68,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
     "factor_invalidante": "string — qué cambiaría la tesis"
   },
   "opportunity_detected": boolean,
-  "opportunity_description": string | null,
+  "opportunity_description": string max 600 chars | null,
   "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
-  "narrative": "string — 4-6 frases en español, lenguaje ATLAS CAPITAL"
+  "narrative": "string max 1200 chars — 4-6 frases en español, lenguaje ATLAS CAPITAL"
 }
 \`\`\`
 
