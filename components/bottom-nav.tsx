@@ -2,25 +2,33 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { ComponentType } from 'react';
 import { cn } from '@/lib/utils';
+import { AnomalyLoop, SplitA, Observer, Monogram } from './symbols';
 
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  Icon: ComponentType<{ className?: string; title?: string }>;
 }
 
+/**
+ * Iconos del bottom-nav = symbol library del brand system.
+ * Asignación inicial (extensible — añadir items aquí cuando crezcan
+ * las screens). Cada icono hereda currentColor, así la opacidad activa
+ * vs. inactiva se controla con `text-white` / `text-white/40` arriba.
+ */
 const ITEMS: NavItem[] = [
-  { href: '/analysis', label: 'ANÁLISIS', icon: '⬡' },
-  { href: '/watchlist', label: 'WATCHLIST', icon: '◈' },
-  { href: '/signals', label: 'SEÑALES', icon: '⚡' },
-  { href: '/system', label: 'SISTEMA', icon: '◎' },
+  { href: '/analysis', label: 'ANÁLISIS', Icon: AnomalyLoop },
+  { href: '/watchlist', label: 'WATCHLIST', Icon: SplitA },
+  { href: '/signals', label: 'SEÑALES', Icon: Observer },
+  { href: '/system', label: 'SISTEMA', Icon: Monogram },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-surface/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-1 pb-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-void/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-1 pb-2">
       {ITEMS.map((it) => {
         const active = pathname?.startsWith(it.href);
         return (
@@ -28,15 +36,25 @@ export function BottomNav() {
             key={it.href}
             href={it.href}
             className={cn(
-              'flex-1 flex flex-col items-center gap-0.5 pt-2 transition-opacity',
+              'flex-1 flex flex-col items-center gap-1 pt-2 transition-opacity',
               active ? 'opacity-100' : 'opacity-40 hover:opacity-70'
             )}
           >
-            <span className="text-lg leading-none">{it.icon}</span>
-            <span className={cn('font-mono text-[8px] tracking-wider', active ? 'text-a1' : 'text-slate-l')}>
+            <it.Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-white/60')} title={it.label} />
+            <span
+              className={cn(
+                'font-mono text-[8px] tracking-wider',
+                active ? 'text-white' : 'text-white/50'
+              )}
+            >
               {it.label}
             </span>
-            <span className={cn('w-1 h-1 rounded-full bg-a1 transition-opacity', active ? 'opacity-100' : 'opacity-0')} />
+            <span
+              className={cn(
+                'w-3 h-px transition-opacity bg-white',
+                active ? 'opacity-100' : 'opacity-0'
+              )}
+            />
           </Link>
         );
       })}

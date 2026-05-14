@@ -5,6 +5,13 @@ interface ConfluenceIndicatorProps {
   data: ConfluenceResult | null;
 }
 
+/**
+ * Re-skin B&W: la confluencia se comunica por INTENSIDAD de blanco
+ * (40% baja, 70% media, 100% alta) en vez de hue (slate/amber/emerald).
+ *
+ * Los dots de cada fila también escalan en intensidad. La barra de progreso
+ * es un trazo blanco simple — sin gradient ni glow colorado.
+ */
 export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
   const total = data?.total_pct ?? 0;
   const level = data?.level ?? 'baja';
@@ -12,45 +19,35 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
   return (
     <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
       <div className="font-orbitron text-[11px] font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
-      <div className="font-mono text-[8px] text-slate mb-3">alineamiento entre agentes activos</div>
+      <div className="font-mono text-[8px] text-white/40 mb-3">alineamiento entre agentes activos</div>
 
       <div className="flex flex-col gap-2 mb-3">
         <ConfluenceRow
           label="A3 solo"
           score={data?.a3_solo.score ?? 0}
-          accentDot="bg-a1"
-          glow="shadow-[0_0_7px_rgba(59,130,246,0.7)]"
           rightLabel={data ? labelFromScore(data.a3_solo.score) : '—'}
-          rightCls={data ? colorFromScore(data.a3_solo.score) : 'text-slate'}
+          rightCls={data ? intensityFromScore(data.a3_solo.score) : 'text-white/30'}
         />
         <ConfluenceRow
           label="A1 + A2"
           score={data?.a1_a2.score ?? 0}
-          accentDot="bg-a3"
-          glow="shadow-[0_0_7px_rgba(245,158,11,0.7)]"
           rightLabel={data ? labelFromScore(data.a1_a2.score) : '—'}
-          rightCls={data ? colorFromScore(data.a1_a2.score) : 'text-slate'}
+          rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-white/30'}
         />
         <ConfluenceRow
           label="Alineados"
           score={data?.alineados.score ?? 0}
-          accentDot="bg-emerald"
-          glow="shadow-[0_0_7px_rgba(16,185,129,0.7)]"
           rightLabel={data ? labelFromPct(data.total_pct) : '—'}
-          rightCls={data ? colorFromPct(data.total_pct) : 'text-slate'}
+          rightCls={data ? intensityFromPct(data.total_pct) : 'text-white/30'}
         />
       </div>
 
-      {/* Bar */}
-      <div className="mb-3 h-0.5 w-full rounded-sm bg-white/5 overflow-hidden">
+      {/* Bar — trazo blanco con intensidad escalada según nivel */}
+      <div className="mb-3 h-px w-full bg-white/10 overflow-hidden">
         <div
           className={cn(
-            'h-full rounded-sm transition-[width] duration-700 ease-out',
-            level === 'alta'
-              ? 'bg-gradient-to-r from-emerald to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-              : level === 'media'
-                ? 'bg-a3'
-                : 'bg-slate'
+            'h-full transition-[width,opacity] duration-700 ease-out bg-white',
+            level === 'alta' ? 'opacity-100' : level === 'media' ? 'opacity-70' : 'opacity-40'
           )}
           style={{ width: `${total}%` }}
         />
@@ -59,25 +56,29 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
       {/* Score */}
       <div
         className={cn(
-          'rounded-[11px] px-2 py-2.5 text-center transition-all duration-500',
-          level === 'alta' ? 'bg-emerald/[0.07]' : level === 'media' ? 'bg-a3/[0.07]' : 'bg-slate/[0.08]'
+          'rounded-[11px] px-2 py-2.5 text-center transition-all duration-500 border',
+          level === 'alta'
+            ? 'border-white/25 bg-white/[0.06]'
+            : level === 'media'
+              ? 'border-white/15 bg-white/[0.04]'
+              : 'border-white/10 bg-white/[0.02]'
         )}
       >
         <div
           className={cn(
             'font-orbitron text-[30px] font-black tracking-[0.04em]',
-            level === 'alta' ? 'text-emerald' : level === 'media' ? 'text-a3' : 'text-slate-l'
+            level === 'alta' ? 'text-white' : level === 'media' ? 'text-white/75' : 'text-white/40'
           )}
         >
           {total > 0 ? `${total}%` : '—'}
         </div>
         <div
           className={cn(
-            'mt-0.5 font-mono text-[9px]',
-            level === 'alta' ? 'text-emerald' : level === 'media' ? 'text-a3' : 'text-slate'
+            'mt-0.5 font-mono text-[9px] uppercase tracking-wider',
+            level === 'alta' ? 'text-white/80' : level === 'media' ? 'text-white/60' : 'text-white/35'
           )}
         >
-          confianza {level}
+          confianza · {level}
         </div>
       </div>
     </div>
@@ -87,28 +88,26 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
 function ConfluenceRow({
   label,
   score,
-  accentDot,
-  glow,
   rightLabel,
   rightCls,
 }: {
   label: string;
   score: number;
-  accentDot: string;
-  glow: string;
   rightLabel: string;
   rightCls: string;
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-[10px] text-slate-l w-[68px] flex-shrink-0">{label}</span>
+      <span className="font-mono text-[10px] text-white/55 w-[68px] flex-shrink-0">{label}</span>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((i) => (
           <span
             key={i}
             className={cn(
-              'h-2.5 w-2.5 rounded-full border border-white/[0.08] transition-all duration-500',
-              i <= score ? cn(accentDot, glow) : ''
+              'h-2.5 w-2.5 rounded-full border transition-all duration-500',
+              i <= score
+                ? 'bg-white border-white/40 shadow-[0_0_4px_rgba(255,255,255,0.5)]'
+                : 'bg-transparent border-white/15'
             )}
             style={{ transitionDelay: `${i * 80}ms` }}
           />
@@ -129,13 +128,13 @@ function labelFromPct(p: number): string {
   if (p >= 34) return 'media';
   return 'baja';
 }
-function colorFromScore(s: number): string {
-  if (s >= 4) return 'text-emerald';
-  if (s >= 3) return 'text-a3';
-  return 'text-slate';
+function intensityFromScore(s: number): string {
+  if (s >= 4) return 'text-white';
+  if (s >= 3) return 'text-white/70';
+  return 'text-white/40';
 }
-function colorFromPct(p: number): string {
-  if (p >= 67) return 'text-emerald';
-  if (p >= 34) return 'text-a3';
-  return 'text-slate';
+function intensityFromPct(p: number): string {
+  if (p >= 67) return 'text-white';
+  if (p >= 34) return 'text-white/70';
+  return 'text-white/40';
 }

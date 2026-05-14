@@ -10,32 +10,45 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // A.D.A.M. "Deep Space Terminal" palette — must match adam_demo.html
-        void: '#020610',
+        // A.D.A.M. — Monochrome identity (re-skin sesión 4)
+        // Identidad por TIPOGRAFÍA y SÍMBOLO, no por color.
+        // Background absoluto + spectrum de blancos.
+        void: '#000000', // negro absoluto, no #020610
         surface: {
-          DEFAULT: '#07091a',
-          2: '#0b0e21',
-          3: '#10142a',
+          DEFAULT: '#070707',
+          2: '#0a0a0a',
+          3: '#101010',
         },
-        // Per-agent accents
-        a1: '#3b82f6', // blue — assets
-        a2: '#22d3ee', // cyan — macro
-        a3: '#f59e0b', // amber — trading
-        a4: '#a78bfa', // violet — system
-        // Confidence palette
+        // ─── Per-agent tokens — TODOS BLANCOS ─────────────────────────
+        // Mantenidos por compatibilidad con código existente que usa
+        // text-a1, bg-a3/15, border-a4/30, etc. La diferenciación entre
+        // agentes pasa al BADGE TIPOGRÁFICO (A1/A2/A3/A4) y al SUBLINE,
+        // no al color. Esto NO es deuda técnica — es decisión consciente
+        // del re-skin: la identidad monocromática es load-bearing del
+        // brand system.
+        a1: '#ffffff',
+        a2: '#ffffff',
+        a3: '#ffffff',
+        a4: '#ffffff',
+        // ─── Trading colors — única excepción ─────────────────────────
+        // emerald + rose se mantienen SOLO para mini-candle chart
+        // (convención global de trading: verde alza, rojo baja). Romperla
+        // confunde al user pro. Cualquier OTRO uso de emerald/rose en UI
+        // del producto es legacy a eliminar.
         emerald: '#10b981',
         rose: '#f43f5e',
+        // ─── Slate spectrum — secundario / disabled ───────────────────
         slate: {
-          DEFAULT: '#475569',
-          l: '#94a3b8',
+          DEFAULT: '#525252', // neutral-600 — texto secundario
+          l: '#a3a3a3', // neutral-400 — texto terciario / labels
         },
       },
       fontFamily: {
-        // Brand / titles
+        // Brand / títulos / símbolos
         orbitron: ['Orbitron', 'monospace'],
         // Body
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        // Technical data / numbers
+        // Technical data / números / tickers
         mono: ['"IBM Plex Mono"', '"JetBrains Mono"', 'monospace'],
       },
       keyframes: {
@@ -49,9 +62,11 @@ const config: Config = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.15' },
         },
+        // urgPulse: era rosa para signals URGENTE. Ahora blanco — el
+        // pulso sigue comunicando urgencia por intensidad, no por color.
         urgPulse: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(244,63,94,0.3)' },
-          '50%': { boxShadow: '0 0 0 4px rgba(244,63,94,0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(255,255,255,0.35)' },
+          '50%': { boxShadow: '0 0 0 4px rgba(255,255,255,0)' },
         },
       },
       animation: {

@@ -199,33 +199,36 @@ function AnalysisInner() {
         <div
           className={cn(
             'mx-4 mt-3 rounded-lg border px-3 py-2.5',
-            state.error.tone === 'rate_limit' && 'border-a3/30 bg-a3/10',
-            state.error.tone === 'transient' && 'border-a2/30 bg-a2/10',
-            state.error.tone === 'auth' && 'border-a1/30 bg-a1/10',
-            state.error.tone === 'partial' && 'border-a3/30 bg-a3/10',
-            state.error.tone === 'fatal' && 'border-rose/30 bg-rose/10'
+            // Re-skin B&W: intensidad de blanco + animation diferencia urgencia
+            state.error.tone === 'auth' && 'border-white/15 bg-white/[0.03]',
+            state.error.tone === 'transient' && 'border-white/20 bg-white/[0.04]',
+            state.error.tone === 'rate_limit' && 'border-white/25 bg-white/[0.05]',
+            state.error.tone === 'partial' && 'border-white/25 bg-white/[0.05]',
+            state.error.tone === 'fatal' && 'border-white/45 bg-white/[0.08] animate-urg-pulse'
           )}
         >
           <div
             className={cn(
               'font-orbitron text-[10px] font-bold tracking-wider mb-0.5',
-              state.error.tone === 'rate_limit' && 'text-a3',
-              state.error.tone === 'transient' && 'text-a2',
-              state.error.tone === 'auth' && 'text-a1',
-              state.error.tone === 'partial' && 'text-a3',
-              state.error.tone === 'fatal' && 'text-rose'
+              state.error.tone === 'auth' && 'text-white/70',
+              state.error.tone === 'transient' && 'text-white/80',
+              state.error.tone === 'rate_limit' && 'text-white/85',
+              state.error.tone === 'partial' && 'text-white/85',
+              state.error.tone === 'fatal' && 'text-white'
             )}
           >
             {state.error.title}
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white">{state.error.message}</div>
+          <div className="font-mono text-[10px] leading-snug text-white/85">{state.error.message}</div>
         </div>
       )}
 
       {state.partial && state.failures.length > 0 && (
-        <div className="mx-4 mt-3 rounded-lg border border-a3/30 bg-a3/[0.07] px-3 py-2">
-          <div className="font-orbitron text-[10px] font-bold tracking-wider text-a3 mb-0.5">ANÁLISIS PARCIAL</div>
-          <div className="font-mono text-[10px] leading-snug text-slate-l">
+        <div className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2">
+          <div className="font-orbitron text-[10px] font-bold tracking-wider text-white/85 mb-0.5">
+            ANÁLISIS PARCIAL
+          </div>
+          <div className="font-mono text-[10px] leading-snug text-white/60">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>

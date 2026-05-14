@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { UserMenu } from './user-menu';
+import { Monogram } from './symbols';
 
 type Status = 'offline' | 'running' | 'ok' | 'error';
 
@@ -16,11 +17,18 @@ const STATUS_LABEL: Record<Status, string> = {
   error: 'ERROR',
 };
 
+/**
+ * Status como INTENSIDAD de blanco, no color.
+ * - offline   = baja (40%)
+ * - running   = blink animation a 100%
+ * - ok        = blanco firme (90%)
+ * - error     = stroke marcado + slight pulse
+ */
 const STATUS_CLS: Record<Status, string> = {
-  offline: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-  running: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  ok: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  error: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+  offline: 'bg-white/[0.04] text-white/40 border-white/10',
+  running: 'bg-white/[0.06] text-white/80 border-white/20 animate-blink-slow',
+  ok: 'bg-white/[0.06] text-white/90 border-white/25',
+  error: 'bg-white/[0.10] text-white border-white/40 animate-urg-pulse',
 };
 
 export function Header({
@@ -29,12 +37,16 @@ export function Header({
   showUser = true,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-surface/95 backdrop-blur-xl px-5 py-2.5">
-      <div className="flex flex-col">
-        <div className="font-orbitron text-lg font-black tracking-[0.18em] bg-gradient-to-r from-blue-400 via-sky-400 to-indigo-400 bg-clip-text text-transparent">
-          A.D.A.M.
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-void/95 backdrop-blur-xl px-5 py-2.5">
+      <div className="flex items-center gap-2.5">
+        {/* Monogram en sólido blanco — sin gradient, sin tinte */}
+        <Monogram className="h-6 w-6 text-white" title="A.D.A.M." />
+        <div className="flex flex-col">
+          <div className="font-orbitron text-lg font-black tracking-[0.18em] text-white">
+            A.D.A.M.
+          </div>
+          <div className="font-mono text-[8px] tracking-wider text-white/40 mt-px">{tagline}</div>
         </div>
-        <div className="font-mono text-[8px] text-slate tracking-wider mt-px">{tagline}</div>
       </div>
       <div className="flex items-center gap-2">
         <span
