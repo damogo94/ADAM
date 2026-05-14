@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runA2 } from '@/agents/a2/client';
 import { createSupabaseServer } from '@/lib/supabase/server';
-import { checkSameOrigin } from '@/lib/api-helpers';
+import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -16,6 +16,8 @@ const RequestSchema = z
 export async function POST(req: NextRequest) {
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
+  const ipLimit = await rateLimitByIP(req, 'analysis');
+  if (ipLimit) return ipLimit;
 
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();

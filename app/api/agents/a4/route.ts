@@ -21,7 +21,7 @@ import {
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
-import { checkSameOrigin } from '@/lib/api-helpers';
+import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import type { AgentUsage } from '@/lib/anthropic';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
@@ -56,6 +56,11 @@ export async function POST(req: NextRequest) {
   // CSRF
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
+
+  // IP rate-limit (10/min) — antes vivía en middleware Edge, movido aquí
+  // porque Upstash no es Edge-compatible
+  const ipLimit = await rateLimitByIP(req, 'analysis');
+  if (ipLimit) return ipLimit;
 
   // Auth
   const supabase = await createSupabaseServer();

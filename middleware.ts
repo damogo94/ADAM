@@ -1,20 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { limiters } from '@/lib/ratelimit';
 import { updateSupabaseSession } from '@/lib/supabase/middleware';
 
 /**
- * Edge middleware A.D.A.M. — dos responsabilidades:
+ * Edge middleware A.D.A.M.
  *
- * 1. Refresca la sesión de Supabase en cada request (auth.getUser() valida el JWT).
- *    Protege las rutas de app (/analysis, /watchlist, /signals, /system) redirigiendo
- *    a /login si el usuario no está autenticado.
+ * Responsabilidad ÚNICA: refresh de sesión Supabase + redirect protection.
  *
- * 2. Aplica rate-limiting por IP en /api/agents/* y /api/market/* — protege
- *    ANTHROPIC_API_KEY y la quota free-tier de Alpha Vantage.
+ * El rate-limit por IP (que antes vivía aquí) se movió a los route handlers
+ * Node-runtime — `@upstash/redis` no es compatible con Edge Runtime (usa
+ * `process.version`). Mantener el middleware light, solo session + redirect.
  */
 export const config = {
-  // Excluye assets estáticos, _next interno y favicon — pero pasa por TODO lo demás
-  // para que la sesión se refresque también en rutas públicas.
   matcher: ['/((?!_next/static|_next/image|favicon.ico|fonts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };
 
@@ -24,48 +20,6 @@ const AUTH_ROUTES = ['/login', '/signup'];
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // ── Rate limiting (solo en /api/agents/* y /api/market/*) ────────────────
-  if (path.startsWith('/api/agents/') || path.startsWith('/api/market/')) {
-    const ip = (req.headers.get('x-forwarded-for') ?? 'anon').split(',')[0]!.trim();
-    const limiter = path.startsWith('/api/agents/') ? limiters.analysis : limiters.quote;
-    const key = `${path.startsWith('/api/agents/') ? 'analysis' : 'quote'}:${ip}`;
-    try {
-      const { success, remaining, limit, reset } = await limiter.limit(key);
-      if (!success) {
-        return new NextResponse(
-          JSON.stringify({
-            error: 'rate_limit_exceeded',
-            detail: `Has superado ${limit} req/min. Intenta de nuevo en unos segundos.`,
-          }),
-          {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-RateLimit-Limit': String(limit),
-              'X-RateLimit-Remaining': String(remaining),
-              'X-RateLimit-Reset': String(reset),
-            },
-          }
-        );
-      }
-    } catch (err) {
-      // Upstash error inesperado. En prod: fail-CLOSED (seguridad > availability).
-      // En dev: fail-open con warn para no romper el flujo local.
-      // eslint-disable-next-line no-console
-      console.error('[ratelimit] error in middleware:', err instanceof Error ? err.message : err);
-      if (process.env.NODE_ENV === 'production') {
-        return new NextResponse(
-          JSON.stringify({
-            error: 'rate_limit_unavailable',
-            detail: 'Servicio temporalmente no disponible. Reintenta en unos segundos.',
-          }),
-          { status: 503, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-  }
-
-  // ── Refresh de sesión Supabase + protección de rutas ─────────────────────
   const { response, user } = await updateSupabaseSession(req);
 
   const isAppRoute = APP_ROUTES.some((r) => path === r || path.startsWith(r + '/'));
@@ -79,7 +33,6 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isAuthRoute && user) {
-    // Ya autenticado y entra al login → llévalo a /analysis
     const url = req.nextUrl.clone();
     url.pathname = '/analysis';
     url.searchParams.delete('next');

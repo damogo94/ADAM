@@ -1,4 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { limiters } from '@/lib/ratelimit';
+
+/**
+ * Rate-limit por IP — invocar al inicio de los route handlers Node-runtime.
+ *
+ * Movido del middleware (Edge) porque @upstash/redis no es Edge-compatible
+ * (usa process.version). Aquí en Node corre perfectamente.
+ *
+ * Devuelve NextResponse 429/503 si rechaza, null si pasa.
+ *
+ *   const rl = await rateLimitByIP(req, 'analysis');
+ *   if (rl) return rl;
+ */
+export async function rateLimitByIP(
+  req: NextRequest,
+  bucket: 'analysis' | 'quote'
+): Promise<NextResponse | null> {
+  const ip = (req.headers.get('x-forwarded-for') ?? 'anon').split(',')[0]!.trim();
+  const key = `${bucket}:${ip}`;
+  const limiter = bucket === 'analysis' ? limiters.analysis : limiters.quote;
+  try {
+    const { success, remaining, limit, reset } = await limiter.limit(key);
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'rate_limit_exceeded',
+          detail: `Has superado ${limit} req/min. Intenta de nuevo en unos segundos.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': String(limit),
+            'X-RateLimit-Remaining': String(remaining),
+            'X-RateLimit-Reset': String(reset),
+          },
+        }
+      );
+    }
+    return null;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[ratelimit] error in route:', err instanceof Error ? err.message : err);
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        {
+          error: 'rate_limit_unavailable',
+          detail: 'Servicio temporalmente no disponible. Reintenta en unos segundos.',
+        },
+        { status: 503 }
+      );
+    }
+    return null; // dev: fail-open
+  }
+}
 
 /**
  * CSRF defense — verifica que el Origin/Referer del request coincide con el
