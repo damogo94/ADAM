@@ -18,11 +18,12 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  // Hobby plan: maxDuration=60s. Con 5 retries × 18s timeout, una sola call
-  // puede comerse 90s y matar el lambda con texto "An error occurred...".
-  // Bajado a 2 retries (estándar) → worst case ~54s. Los 408/429/5xx
-  // transitorios siguen autocurándose en ~half de los casos.
-  maxRetries: 2,
+  // Hobby plan: maxDuration=60s. Cada retry × 18s timeout suma. Con
+  // 5 calls (A1+A2+A3 paralelos + Debate + A4), aún 2 retries por call
+  // mataba lambdas. Bajado a 1 retry → worst case por call ~36s.
+  // Combinado con downgrade de Opus → Sonnet en Debate+A4, el pipeline
+  // entero cabe en ~40-45s en peor caso.
+  maxRetries: 1,
 });
 
 /**

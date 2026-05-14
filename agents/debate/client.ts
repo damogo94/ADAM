@@ -30,7 +30,12 @@ export async function runDebate(input: DebateInput, onUsage?: (u: AgentUsage) =>
     systemPrompt: DEBATE_SYSTEM_PROMPT,
     userMessage,
     schema: DEBATE_OUTPUT_SCHEMA,
-    model: MODELS.OPUS,
+    // Antes OPUS. Cambiado a SONNET para caber en maxDuration=60s del
+    // plan Hobby de Vercel. Opus en este paso costaba ~25s + retries y
+    // mataba lambdas con timeout. Sonnet ~12s, calidad de "cross-examine
+    // 2 outputs" es indistinguible para este task. Upgrade a OPUS cuando
+    // movamos a Pro plan (maxDuration 300s).
+    model: MODELS.SONNET,
     maxTokens: 2048,
     temperature: 0.4,
     onUsage,

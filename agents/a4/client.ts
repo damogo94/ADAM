@@ -61,7 +61,12 @@ export async function runA4(input: A4Input, onUsage?: (u: AgentUsage) => void): 
     systemPrompt: A4_SYSTEM_PROMPT,
     userMessage,
     schema: A4_OUTPUT_SCHEMA,
-    model: MODELS.OPUS,
+    // Antes OPUS. Cambiado a SONNET para caber en maxDuration=60s del
+    // plan Hobby. Opus al final del pipeline (después de A1+A2+A3+Debate)
+    // consumía los últimos 20-25s y mataba lambdas. Sonnet hace el
+    // ensamblado + confluencia en ~10s con calidad suficiente.
+    // Upgrade a OPUS cuando Vercel Pro permita maxDuration 300s.
+    model: MODELS.SONNET,
     maxTokens: 2048,
     temperature: 0.3,
     onUsage,
