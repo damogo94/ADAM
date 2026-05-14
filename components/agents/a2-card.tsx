@@ -71,14 +71,14 @@ function A2Body({ data }: { data: A2Output }) {
         </SignalBox>
       )}
 
-      <SignalBox tone={confidence >= 4 ? 'bull' : 'neut'}>
+      <SignalBox tone={confidence >= 61 ? 'bull' : 'neut'}>
         <div
           className={cn(
             'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
-            confidence >= 4 ? 'text-white' : 'text-white/55'
+            confidence >= 61 ? 'text-white' : 'text-white/55'
           )}
         >
-          A2 · confianza {confidence}/5
+          A2 · confianza {confidence}%
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/90">{narrative}</div>
       </SignalBox>

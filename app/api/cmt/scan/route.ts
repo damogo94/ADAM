@@ -8,6 +8,7 @@ import {
   normalizeDaily,
   normalizeIntraday,
 } from '@/lib/market/alphavantage';
+import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { checkSameOrigin } from '@/lib/api-helpers';
 import type { CMTOutput } from '@/agents/cmt/schema';
 
@@ -48,10 +49,19 @@ function sleep(ms: number) {
 
 async function scanTickerForUser(userId: string, ticker: string): Promise<ScanResult> {
   try {
-    const [daily, intraday] = await Promise.all([
+    let [daily, intraday] = await Promise.all([
       timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
       timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
     ]);
+    // Fallback Yahoo si AV no devolvió suficientes candles (cuota agotada, soft-error)
+    if (daily.length < 5) {
+      const fb = await fallbackDaily(ticker).catch(() => []);
+      if (fb.length > daily.length) daily = fb;
+    }
+    if (intraday.length < 5) {
+      const fb = await fallbackIntraday(ticker).catch(() => []);
+      if (fb.length > intraday.length) intraday = fb;
+    }
     if (daily.length === 0 && intraday.length === 0) {
       return { ticker, ok: false, error: 'no_market_data' };
     }

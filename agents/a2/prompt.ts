@@ -69,7 +69,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
   },
   "opportunity_detected": boolean,
   "opportunity_description": string | null,
-  "confidence": 1-5,
+  "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
   "narrative": "string — 4-6 frases en español, lenguaje ATLAS CAPITAL"
 }
 \`\`\`

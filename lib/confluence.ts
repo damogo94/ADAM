@@ -1,16 +1,18 @@
 /**
- * Confluence math — portado de adam_demo.html updateConf() pero adaptado a
- * nuestros schemas reales (A1Output, A2Output, A3Output, DebateOutput, A4Output).
+ * Confluence math — escala 0-100.
  *
- * Tres aportes ponderados:
- *   - A3 solo:    max 30% (technical signal confidence)
- *   - A1 + A2:    max 40% (debate convergence × combined confidence)
- *   - Alineados:  max 30% (A3 direction matches debate/A4 direction)
+ * Tres aportes ponderados al score total (max 100%):
+ *   - A3 solo:    max 30%  (technical signal confidence)
+ *   - A1 + A2:    max 40%  (debate convergence × combined confidence)
+ *   - Alineados:  max 30%  (A3 direction matches debate/A4 direction)
  *
- * Nivel:
+ * Niveles (sobre score_total):
  *   ≥ 67% → alta
  *   ≥ 34% → media
  *   <  34% → baja
+ *
+ * NOTA: con sesión 6 todas las confianzas son 0-100 (antes 1-5).
+ * Mantenemos la lógica de ponderación, solo cambia el divisor (100 en vez de 5).
  */
 
 import type { A3Output } from '@/agents/a3/schema';
@@ -43,26 +45,24 @@ export function computeConfluence(
   debate: DebateOutput | null
 ): ConfluenceResult {
   // ─── A3 solo (max 30%) ──────────────────────────────────────────
-  const a3Conf = a3?.confidence ?? 0;
-  const a3Pct = Math.round((a3Conf / 5) * 30);
+  const a3Conf = a3?.confidence ?? 0; // 0-100
+  const a3Pct = Math.round((a3Conf / 100) * 30);
 
   // ─── A1 + A2 (max 40%) ──────────────────────────────────────────
-  // Si hubo debate: usa convergence_score (1-5) directamente.
-  // Si no hubo: usa promedio de a1.confidence y a2.confidence si ambos coinciden
-  // direccionalmente (anomaly_detected || opportunity_detected).
+  // Si hubo debate: usa convergence_score (0-100) × combined confidence.
+  // Si no hubo: usa promedio de a1.confidence y a2.confidence como proxy,
+  // capeado a la mitad (max 20%) porque no hay validación cruzada.
   let a12Pct = 0;
   if (debate) {
-    const conv = debate.convergence_score / 5;
-    const combined = (((a1?.confidence ?? 0) + (a2?.confidence ?? 0)) / 2) / 5;
+    const conv = debate.convergence_score / 100;
+    const combined = ((a1?.confidence ?? 0) + (a2?.confidence ?? 0)) / 2 / 100;
     a12Pct = Math.round(conv * combined * 40);
   } else if (a1 && a2) {
-    const avg = ((a1.confidence + a2.confidence) / 2) / 5;
-    a12Pct = Math.round(avg * 20); // half if no debate confirmed
+    const avg = (a1.confidence + a2.confidence) / 2 / 100;
+    a12Pct = Math.round(avg * 20); // half si no hubo debate confirmado
   }
 
   // ─── Alineados (max 30%) ────────────────────────────────────────
-  // A3 alineado con la dirección del debate o (en su ausencia) con
-  // a1.anomaly_detected + a2.opportunity_detected como proxy direccional.
   const a3Direction = a3?.operativa.signal === 'buy'
     ? 'alcista'
     : a3?.operativa.signal === 'sell'
@@ -82,7 +82,7 @@ export function computeConfluence(
       score: debate ? debate.convergence_score : Math.round(((a1?.confidence ?? 0) + (a2?.confidence ?? 0)) / 2),
       pct: a12Pct,
     },
-    alineados: { score: aligned ? 5 : 0, pct: aPct },
+    alineados: { score: aligned ? 100 : 0, pct: aPct },
     total_pct: total,
     level,
     direction: debateDirection ?? a3Direction,

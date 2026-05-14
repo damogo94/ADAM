@@ -100,12 +100,13 @@ function ConfluenceRow({
     <div className="flex items-center gap-2">
       <span className="font-mono text-[10px] text-white/55 w-[68px] flex-shrink-0">{label}</span>
       <div className="flex gap-1">
+        {/* 5 dots = quintiles del score 0-100. Cada dot representa 20%. */}
         {[1, 2, 3, 4, 5].map((i) => (
           <span
             key={i}
             className={cn(
               'h-2.5 w-2.5 rounded-full border transition-all duration-500',
-              i <= score
+              i <= Math.ceil(score / 20)
                 ? 'bg-white border-white/40 shadow-[0_0_4px_rgba(255,255,255,0.5)]'
                 : 'bg-transparent border-white/15'
             )}
@@ -113,14 +114,16 @@ function ConfluenceRow({
           />
         ))}
       </div>
-      <span className={cn('ml-auto font-mono text-[10px] text-right min-w-[32px]', rightCls)}>{rightLabel}</span>
+      <span className={cn('ml-auto font-mono text-[10px] text-right min-w-[48px] tabular-nums', rightCls)}>
+        {score > 0 ? `${score}%` : '—'} <span className="opacity-50">· {rightLabel}</span>
+      </span>
     </div>
   );
 }
 
 function labelFromScore(s: number): string {
-  if (s >= 4) return 'alta';
-  if (s >= 3) return 'media';
+  if (s >= 67) return 'alta';
+  if (s >= 34) return 'media';
   return 'baja';
 }
 function labelFromPct(p: number): string {
@@ -129,8 +132,8 @@ function labelFromPct(p: number): string {
   return 'baja';
 }
 function intensityFromScore(s: number): string {
-  if (s >= 4) return 'text-white';
-  if (s >= 3) return 'text-white/70';
+  if (s >= 67) return 'text-white';
+  if (s >= 34) return 'text-white/70';
   return 'text-white/40';
 }
 function intensityFromPct(p: number): string {

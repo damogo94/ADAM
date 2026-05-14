@@ -18,6 +18,7 @@ import {
   normalizeDaily,
   normalizeIntraday,
 } from '@/lib/market/alphavantage';
+import { fallbackQuote, fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
@@ -102,7 +103,9 @@ export async function POST(req: NextRequest) {
   const startedAt = Date.now();
   try {
     // Step 1: market data fan-out — todas resilientes
-    const [q, ov, news, daily, intraday] = await Promise.all([
+    // AV primary (free tier 25 req/día). Si AV falla (cuota, soft-error, timeout)
+    // → Finnhub+Yahoo fallback automático en quote y candles.
+    const [qAV, ov, news, dailyAV, intradayAV] = await Promise.all([
       quote(ticker).then(normalizeQuote).catch(() => null),
       overview(ticker).then(normalizeOverview).catch(() => null),
       newsSentiment(ticker, 5).then((n) => normalizeNews(n, 5)).catch(() => []),
@@ -110,7 +113,22 @@ export async function POST(req: NextRequest) {
       timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
     ]);
 
-    // Recovery de precio desde daily si quote falla
+    // Fallback en paralelo — solo si AV no devolvió quote o candles
+    const needsQuoteFb = !qAV;
+    const needsDailyFb = dailyAV.length < 5;
+    const needsIntradayFb = intradayAV.length < 5;
+
+    const [qFb, dailyFb, intradayFb] = await Promise.all([
+      needsQuoteFb ? fallbackQuote(ticker).catch(() => null) : Promise.resolve(null),
+      needsDailyFb ? fallbackDaily(ticker).catch(() => []) : Promise.resolve([] as typeof dailyAV),
+      needsIntradayFb ? fallbackIntraday(ticker).catch(() => []) : Promise.resolve([] as typeof intradayAV),
+    ]);
+
+    const q = qAV ?? qFb;
+    const daily = needsDailyFb ? dailyFb : dailyAV;
+    const intraday = needsIntradayFb ? intradayFb : intradayAV;
+
+    // Recovery de precio desde daily si todos los quotes fallan
     let currentPrice = q?.current ?? null;
     let changePct24h = q?.change_pct_24h ?? 0;
     if (currentPrice === null && daily.length >= 2) {
@@ -121,6 +139,15 @@ export async function POST(req: NextRequest) {
         changePct24h = ((last.c - prev.c) / prev.c) * 100;
       }
     }
+
+    // Log de qué proveedor sirvió cada pieza — útil para diagnosticar
+    // por qué un análisis es lento o sirve precios viejos.
+    // eslint-disable-next-line no-console
+    console.log(
+      `[a4] market data ${ticker}: quote=${qAV ? 'AV' : qFb ? 'fallback' : 'none'} ` +
+      `daily=${needsDailyFb ? `fallback(${dailyFb.length})` : `AV(${dailyAV.length})`} ` +
+      `intraday=${needsIntradayFb ? `fallback(${intradayFb.length})` : `AV(${intradayAV.length})`}`
+    );
 
     // Sin precio Y sin candles diarias → no podemos analizar nada
     if (currentPrice === null && daily.length === 0) {
@@ -139,7 +166,8 @@ export async function POST(req: NextRequest) {
         current: currentPrice ?? 0,
         change_pct_24h: changePct24h,
         change_pct_7d: 0,
-        currency: ov?.currency ?? 'USD',
+        // Cascada de currency: AV overview > fallback quote (Yahoo) > USD default
+        currency: ov?.currency ?? (qFb && 'currency' in qFb ? qFb.currency : undefined) ?? 'USD',
       },
       fundamentals: {
         per: ov?.per ?? null,

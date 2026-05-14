@@ -114,7 +114,7 @@ function A3Body({
             sigCls === 'neut' && 'text-white/55'
           )}
         >
-          señal: {sigLabel} · {tendencia.primaria} {forceFromN(tendencia.fuerza)} · confianza {confidence}/5
+          señal: {sigLabel} · {tendencia.primaria} {forceFromN(tendencia.fuerza)} · confianza {confidence}%
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/90">
           {patron_detectado && <span className="text-amber font-medium">{patron_detectado}</span>}

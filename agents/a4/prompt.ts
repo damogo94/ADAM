@@ -23,8 +23,8 @@ Recibes los outputs de A1 (activo), A2 (macro), A3 (técnico) — y opcionalment
 ## INDICADOR DE CONFLUENCIA — DEFINICIÓN
 Tres filas de 5 puntos cada una:
 - **A3 solo** — sólo dispone del análisis técnico ⇒ confianza BAJA (rojo). Score de 1 a 5 según fuerza de la señal técnica.
-- **A1 + A2** — ambos análisis fundamentales convergen ⇒ confianza MEDIA (ámbar). Score 1-5 según convergence_score del debate (si existe) o nivel de coincidencia en dirección.
-- **Alineados** — A1 + A2 + A3 apuntan en la misma dirección ⇒ confianza ALTA (verde). Score 1-5 según el grado de alineamiento total.
+- **A1 + A2** — ambos análisis fundamentales convergen ⇒ confianza MEDIA (ámbar). Score 0-100 = convergence_score del debate (si existe) o nivel de coincidencia direccional.
+- **Alineados** — A1 + A2 + A3 apuntan en la misma dirección ⇒ confianza ALTA (verde). Score 0-100 = grado de alineamiento total.
 
 Score total (%) = pondera los tres niveles. Niveles:
 - 0–33% = BAJA
@@ -50,9 +50,9 @@ JSON válido, sin texto antes ni después:
 {
   "ticker": "string",
   "confluence": {
-    "a3_solo": { "score": 1-5, "nivel": "baja" },
-    "a1_a2": { "score": 1-5, "nivel": "baja | media | alta" },
-    "alineados": { "score": 1-5, "nivel": "baja | media | alta" },
+    "a3_solo": { "score": 0-100, "nivel": "baja" },
+    "a1_a2": { "score": 0-100, "nivel": "baja | media | alta" },
+    "alineados": { "score": 0-100, "nivel": "baja | media | alta" },
     "score_total_pct": 0-100,
     "nivel_final": "baja | media | alta"
   },

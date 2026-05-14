@@ -6,15 +6,15 @@ export const A4_OUTPUT_SCHEMA = z.object({
   ticker: z.string().min(1).max(20),
   confluence: z.object({
     a3_solo: z.object({
-      score: z.number().int().min(0).max(5),
+      score: z.number().int().min(0).max(100),
       nivel: z.literal('baja'), // A3 solo NEVER produces "alta" — by definition
     }),
     a1_a2: z.object({
-      score: z.number().int().min(0).max(5),
+      score: z.number().int().min(0).max(100),
       nivel: ConfluenceLevel,
     }),
     alineados: z.object({
-      score: z.number().int().min(0).max(5),
+      score: z.number().int().min(0).max(100),
       nivel: ConfluenceLevel,
     }),
     score_total_pct: z.number().int().min(0).max(100),

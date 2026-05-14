@@ -25,12 +25,12 @@ A3 (técnico / price action) NO participa en este debate. NO recibe el output de
 4. Evalúa el momento relativo de cada información. La micro suele anticipar a la macro en sectores concretos; la macro a veces tiene más persistencia.
 5. Decide: la oportunidad ¿queda VALIDADA, MATIZADA o INVALIDADA por el contraste?
 
-## CONVERGENCE SCORE (1-5)
-- 5 = Convergencia plena. Ambos análisis apuntan en la misma dirección con factores complementarios.
-- 4 = Convergencia alta. Ambos apuntan igual, con un matiz menor.
-- 3 = Convergencia parcial. Coinciden en dirección pero por razones distintas o en horizontes distintos.
-- 2 = Tensión. Uno señala oportunidad, el otro neutralidad o riesgo no descontado.
-- 1 = Divergencia clara. Macro y micro contradictorios. Oportunidad invalidada o muy condicional.
+## CONVERGENCE SCORE (0-100)
+- 81-100 = Convergencia plena. Ambos análisis apuntan en la misma dirección con factores complementarios.
+- 61-80  = Convergencia alta. Ambos apuntan igual, con un matiz menor.
+- 41-60  = Convergencia parcial. Coinciden en dirección pero por razones distintas o en horizontes distintos.
+- 21-40  = Tensión. Uno señala oportunidad, el otro neutralidad o riesgo no descontado.
+- 0-20   = Divergencia clara. Macro y micro contradictorios. Oportunidad invalidada o muy condicional.
 
 ## CONTEXTO TEMPORAL (CRÍTICO)
 - El mensaje del usuario incluye \`# FECHA ACTUAL: …\`. El debate se emite con ESA fecha como presente.
@@ -47,7 +47,7 @@ JSON válido, sin texto antes ni después:
 \`\`\`json
 {
   "ticker": "string",
-  "convergence_score": 1-5,
+  "convergence_score": 0-100,
   "argumento_a1": "string — 2-3 frases destilando A1",
   "argumento_a2": "string — 2-3 frases destilando A2",
   "puntos_convergencia": ["string"],

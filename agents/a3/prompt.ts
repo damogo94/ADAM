@@ -109,7 +109,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
     "horizonte": "intradia | swing | posicional"
   },
   "factor_invalidacion": "string — qué nivel/comportamiento invalida la operativa",
-  "confidence": 1-5,
+  "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
   "narrative": "string — 4-6 frases en español, lenguaje técnico CMT, sin mencionar nada prohibido"
 }
 \`\`\`

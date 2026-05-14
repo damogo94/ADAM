@@ -36,7 +36,7 @@ export const A1_OUTPUT_SCHEMA = z.object({
     .enum(['anomalia', 'vulnerabilidad', 'oportunidad'])
     .nullable(),
   anomaly_description: z.string(),
-  confidence: z.number().int().min(1).max(5),
+  confidence: z.number().int().min(0).max(100),
   narrative: z.string().min(20),
 });
 

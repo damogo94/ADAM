@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { quote, normalizeQuote, timeSeriesDaily, normalizeDaily } from '@/lib/market/alphavantage';
+import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
 
 export const runtime = 'edge';
 export const maxDuration = 60;
@@ -54,12 +55,21 @@ export async function GET(req: NextRequest) {
     list.map(async (sym): Promise<QuoteRow> => {
       try {
         const [rawQuote, dailyCandles] = await Promise.all([
-          quote(sym),
+          quote(sym).catch(() => null),
           sparkFlag ? timeSeriesDaily(sym).then(normalizeDaily).catch(() => []) : Promise.resolve([]),
         ]);
-        const q = normalizeQuote(rawQuote);
+        let q = rawQuote ? normalizeQuote(rawQuote) : null;
+        if (!q) {
+          // AV failed/quota-out → Finnhub+Yahoo fallback
+          const fb = await fallbackQuote(sym).catch(() => null);
+          if (fb) q = fb;
+        }
         if (!q) return { symbol: sym, error: 'no_quote' };
-        const spark7d = sparkFlag ? dailyCandles.slice(-7).map((c) => c.c) : undefined;
+        let spark = dailyCandles;
+        if (sparkFlag && spark.length < 5) {
+          spark = await fallbackDaily(sym).catch(() => []);
+        }
+        const spark7d = sparkFlag ? spark.slice(-7).map((c) => c.c) : undefined;
         return {
           symbol: sym,
           current: q.current,

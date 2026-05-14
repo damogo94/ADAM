@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { quote, normalizeQuote, timeSeriesDaily, normalizeDaily } from '@/lib/market/alphavantage';
+import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
 
 export const runtime = 'edge';
 
@@ -25,17 +26,28 @@ export async function GET(req: NextRequest) {
   const sym = parsed.data.symbol.toUpperCase();
 
   try {
+    // AV primary — si falla, fallback Finnhub/Yahoo. Misma cascada que A4.
     const [rawQuote, dailyCandles] = await Promise.all([
-      quote(sym),
+      quote(sym).catch(() => null),
       wantSpark ? timeSeriesDaily(sym).then(normalizeDaily).catch(() => []) : Promise.resolve([]),
     ]);
 
-    const q = normalizeQuote(rawQuote);
+    let q = rawQuote ? normalizeQuote(rawQuote) : null;
+    if (!q) {
+      const fb = await fallbackQuote(sym).catch(() => null);
+      if (fb) q = fb;
+    }
+
+    let spark = dailyCandles;
+    if (wantSpark && spark.length < 5) {
+      spark = await fallbackDaily(sym).catch(() => []);
+    }
+
     if (!q) {
       return NextResponse.json({ error: 'no_quote' }, { status: 404 });
     }
 
-    const spark7d = wantSpark ? dailyCandles.slice(-7).map((c) => c.c) : undefined;
+    const spark7d = wantSpark ? spark.slice(-7).map((c) => c.c) : undefined;
 
     return NextResponse.json(
       { ...q, ...(spark7d && spark7d.length >= 2 ? { spark7d } : {}) },

@@ -48,7 +48,7 @@ export const A3_OUTPUT_SCHEMA = z.object({
     horizonte: z.enum(['intradia', 'swing', 'posicional']),
   }),
   factor_invalidacion: z.string(),
-  confidence: z.number().int().min(1).max(5),
+  confidence: z.number().int().min(0).max(100),
   narrative: z.string().min(20),
 });
 

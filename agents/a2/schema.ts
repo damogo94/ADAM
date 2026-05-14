@@ -35,7 +35,7 @@ export const A2_OUTPUT_SCHEMA = z.object({
   }),
   opportunity_detected: z.boolean(),
   opportunity_description: z.string().nullable(),
-  confidence: z.number().int().min(1).max(5),
+  confidence: z.number().int().min(0).max(100),
   narrative: z.string().min(20),
 });
 
