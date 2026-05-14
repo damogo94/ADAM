@@ -49,18 +49,19 @@ function sleep(ms: number) {
 
 async function scanTickerForUser(userId: string, ticker: string): Promise<ScanResult> {
   try {
+    // Yahoo PRIMARY para OHLCV (gratis, sin cuota, candles más frescas).
+    // AV solo si Yahoo falla.
     let [daily, intraday] = await Promise.all([
-      timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
-      timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
+      fallbackDaily(ticker).catch(() => []),
+      fallbackIntraday(ticker).catch(() => []),
     ]);
-    // Fallback Yahoo si AV no devolvió suficientes candles (cuota agotada, soft-error)
     if (daily.length < 5) {
-      const fb = await fallbackDaily(ticker).catch(() => []);
-      if (fb.length > daily.length) daily = fb;
+      const av = await timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []);
+      if (av.length > daily.length) daily = av;
     }
     if (intraday.length < 5) {
-      const fb = await fallbackIntraday(ticker).catch(() => []);
-      if (fb.length > intraday.length) intraday = fb;
+      const av = await timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []);
+      if (av.length > intraday.length) intraday = av;
     }
     if (daily.length === 0 && intraday.length === 0) {
       return { ticker, ok: false, error: 'no_market_data' };

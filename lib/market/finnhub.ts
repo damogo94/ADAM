@@ -124,8 +124,13 @@ async function yahooChart(
 }
 
 /**
- * Quote vía Yahoo — fallback del fallback. Usa el meta del chart endpoint
- * (más confiable que el endpoint /v7/finance/quote que cambia de forma).
+ * Quote vía Yahoo — usado como PRIMARY para que el precio coincida con
+ * Investing/TradingView (ambos sirven realtime de proveedores similares).
+ *
+ * Estrategia: pedimos 1d/1m → la última vela tiene el precio realtime
+ * exacto (no el delayed 15min de AV). Si no hay velas intradía hoy
+ * (mercado cerrado, ticker no listado), caemos a meta.regularMarketPrice
+ * que sigue siendo más fresco que AV.
  */
 export async function yahooQuote(symbol: string): Promise<{
   current: number;
@@ -135,19 +140,57 @@ export async function yahooQuote(symbol: string): Promise<{
   latest_day: string;
   currency: string;
 } | null> {
-  const data = await yahooChart(symbol, '5d', '1d');
+  const sym = normalizeYahooSymbol(symbol);
+  // 1d/1m da el LAST trade tick → matches TradingView/Investing realtime
+  const data = await yahooChart(sym, '1d', '1m');
   const result = data?.chart.result?.[0];
-  if (!result) return null;
+  if (!result || !result.meta) return null;
   const m = result.meta;
-  const change = m.previousClose ? ((m.regularMarketPrice - m.previousClose) / m.previousClose) * 100 : 0;
+  const prev = m.previousClose ?? m.chartPreviousClose;
+
+  // Última vela 1m con close válido = precio más reciente
+  const candles = parseYahooCandles(data);
+  const lastTick = candles.length > 0 ? candles[candles.length - 1]!.c : m.regularMarketPrice;
+  const current = lastTick ?? m.regularMarketPrice;
+  if (!current) return null;
+
+  const change = prev ? ((current - prev) / prev) * 100 : 0;
   return {
-    current: m.regularMarketPrice,
-    previous_close: m.previousClose,
+    current,
+    previous_close: prev,
     change_pct_24h: change,
     volume: 0,
     latest_day: new Date().toISOString().slice(0, 10),
     currency: m.currency || 'USD',
   };
+}
+
+/**
+ * Normalizar símbolos para Yahoo:
+ *   BTC      → BTC-USD     (cripto)
+ *   ETH      → ETH-USD
+ *   EUR/USD  → EURUSD=X    (forex)
+ *   EUR-USD  → EURUSD=X
+ *   AAPL     → AAPL        (no cambia)
+ *   IBE.MC   → IBE.MC      (no cambia — Yahoo usa el mismo formato MIC)
+ */
+function normalizeYahooSymbol(symbol: string): string {
+  const s = symbol.toUpperCase().trim();
+  // Cripto symbol-only (sin sufijo) — añade -USD
+  const CRYPTO = new Set(['BTC', 'ETH', 'SOL', 'ADA', 'XRP', 'BNB', 'DOGE', 'DOT', 'AVAX', 'MATIC', 'LINK', 'UNI', 'LTC', 'ATOM', 'XLM']);
+  if (CRYPTO.has(s)) return `${s}-USD`;
+  // Forex EUR/USD → EURUSD=X
+  if (s.includes('/')) {
+    const [base, quote] = s.split('/');
+    if (base && quote && /^[A-Z]{3}$/.test(base) && /^[A-Z]{3}$/.test(quote)) {
+      return `${base}${quote}=X`;
+    }
+  }
+  // Forex EUR-USD también (no cripto): si es par de 3 letras-3 letras y no en CRYPTO
+  if (/^[A-Z]{3}-[A-Z]{3}$/.test(s) && !CRYPTO.has(s.split('-')[0]!)) {
+    return s.replace('-', '') + '=X';
+  }
+  return s;
 }
 
 function parseYahooCandles(data: YahooChartResponse): NormalizedCandle[] {
@@ -178,14 +221,14 @@ function parseYahooCandles(data: YahooChartResponse): NormalizedCandle[] {
 
 /** OHLCV diario — últimos N días. Range '3mo' ≈ 60 candles. */
 export async function yahooDaily(symbol: string, range = '3mo'): Promise<NormalizedCandle[]> {
-  const data = await yahooChart(symbol, range, '1d');
+  const data = await yahooChart(normalizeYahooSymbol(symbol), range, '1d');
   if (!data) return [];
   return parseYahooCandles(data);
 }
 
 /** OHLCV intradía — interval 60m, range 5 días. */
 export async function yahooIntraday(symbol: string): Promise<NormalizedCandle[]> {
-  const data = await yahooChart(symbol, '5d', '60m');
+  const data = await yahooChart(normalizeYahooSymbol(symbol), '5d', '60m');
   if (!data) return [];
   return parseYahooCandles(data);
 }
@@ -193,9 +236,14 @@ export async function yahooIntraday(symbol: string): Promise<NormalizedCandle[]>
 // ─── Orchestration helpers ──────────────────────────────────────────────────
 
 /**
- * Quote con cascada: Finnhub → Yahoo → null.
- * Devuelve null si ambos fallan. Caller decide qué hacer (probablemente
- * caer al último daily close del candle response, como hace alphavantage).
+ * Quote PRIMARY: Yahoo first (matches Investing/TradingView realtime),
+ * Finnhub second (US equities sólo). AV se usa después como fallback en
+ * los routes que consumen este helper.
+ *
+ * Por qué Yahoo first: AV free tier sirve precios con delay 15-20min y
+ * gasta cuota (25/día total). Yahoo `/v8/finance/chart` es realtime, sin
+ * key, sin cuota práctica. El precio resultante coincide con Investing
+ * y TradingView (mismos feeds consolidados).
  */
 export async function fallbackQuote(symbol: string): Promise<{
   current: number;
@@ -205,10 +253,10 @@ export async function fallbackQuote(symbol: string): Promise<{
   latest_day: string;
   currency?: string;
 } | null> {
-  const fh = await finnhubQuote(symbol);
-  if (fh) return fh;
   const yh = await yahooQuote(symbol);
   if (yh) return yh;
+  const fh = await finnhubQuote(symbol);
+  if (fh) return fh;
   return null;
 }
 

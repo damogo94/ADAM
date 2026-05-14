@@ -102,33 +102,42 @@ export async function POST(req: NextRequest) {
 
   const startedAt = Date.now();
   try {
-    // Step 1: market data fan-out — todas resilientes
-    // AV primary (free tier 25 req/día). Si AV falla (cuota, soft-error, timeout)
-    // → Finnhub+Yahoo fallback automático en quote y candles.
-    const [qAV, ov, news, dailyAV, intradayAV] = await Promise.all([
-      quote(ticker).then(normalizeQuote).catch(() => null),
+    // Step 1: market data fan-out — todas resilientes.
+    //
+    // Estrategia post-sesión 6: Yahoo PRIMARY para quote+candles (realtime,
+    // coincide con Investing/TradingView). AV se mantiene para fundamentals
+    // (OVERVIEW) y noticias (NEWS_SENTIMENT) — Yahoo no expone esos campos
+    // de forma estable en free tier.
+    //
+    // Beneficio: 5 endpoints AV → 2 endpoints AV (OVERVIEW + NEWS_SENTIMENT)
+    // = 12 análisis/día en lugar de 5 con la cuota free de 25.
+    const [qPrimary, dailyPrimary, intradayPrimary, ov, news] = await Promise.all([
+      fallbackQuote(ticker).catch(() => null),
+      fallbackDaily(ticker).catch(() => []),
+      fallbackIntraday(ticker).catch(() => []),
       overview(ticker).then(normalizeOverview).catch(() => null),
       newsSentiment(ticker, 5).then((n) => normalizeNews(n, 5)).catch(() => []),
-      timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
-      timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
     ]);
 
-    // Fallback en paralelo — solo si AV no devolvió quote o candles
-    const needsQuoteFb = !qAV;
-    const needsDailyFb = dailyAV.length < 5;
-    const needsIntradayFb = intradayAV.length < 5;
+    // AV fallback si Yahoo/Finnhub fallaron (raro, pero p.ej. ticker exótico)
+    let q = qPrimary;
+    let daily = dailyPrimary;
+    let intraday = intradayPrimary;
 
-    const [qFb, dailyFb, intradayFb] = await Promise.all([
-      needsQuoteFb ? fallbackQuote(ticker).catch(() => null) : Promise.resolve(null),
-      needsDailyFb ? fallbackDaily(ticker).catch(() => []) : Promise.resolve([] as typeof dailyAV),
-      needsIntradayFb ? fallbackIntraday(ticker).catch(() => []) : Promise.resolve([] as typeof intradayAV),
-    ]);
+    if (!q) {
+      const qAV = await quote(ticker).then(normalizeQuote).catch(() => null);
+      if (qAV) q = qAV;
+    }
+    if (daily.length < 5) {
+      const dAV = await timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []);
+      if (dAV.length > daily.length) daily = dAV;
+    }
+    if (intraday.length < 5) {
+      const iAV = await timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []);
+      if (iAV.length > intraday.length) intraday = iAV;
+    }
 
-    const q = qAV ?? qFb;
-    const daily = needsDailyFb ? dailyFb : dailyAV;
-    const intraday = needsIntradayFb ? intradayFb : intradayAV;
-
-    // Recovery de precio desde daily si todos los quotes fallan
+    // Recovery último recurso: precio desde la última vela diaria
     let currentPrice = q?.current ?? null;
     let changePct24h = q?.change_pct_24h ?? 0;
     if (currentPrice === null && daily.length >= 2) {
@@ -140,13 +149,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Log de qué proveedor sirvió cada pieza — útil para diagnosticar
-    // por qué un análisis es lento o sirve precios viejos.
+    // Log de qué proveedor sirvió cada pieza
     // eslint-disable-next-line no-console
     console.log(
-      `[a4] market data ${ticker}: quote=${qAV ? 'AV' : qFb ? 'fallback' : 'none'} ` +
-      `daily=${needsDailyFb ? `fallback(${dailyFb.length})` : `AV(${dailyAV.length})`} ` +
-      `intraday=${needsIntradayFb ? `fallback(${intradayFb.length})` : `AV(${intradayAV.length})`}`
+      `[a4] market data ${ticker}: quote=${qPrimary ? 'yahoo' : q ? 'AV-fallback' : 'none'} ` +
+      `daily=${dailyPrimary.length}+AVfb=${daily.length - dailyPrimary.length} ` +
+      `intraday=${intradayPrimary.length}+AVfb=${intraday.length - intradayPrimary.length}`
     );
 
     // Sin precio Y sin candles diarias → no podemos analizar nada
@@ -166,8 +174,8 @@ export async function POST(req: NextRequest) {
         current: currentPrice ?? 0,
         change_pct_24h: changePct24h,
         change_pct_7d: 0,
-        // Cascada de currency: AV overview > fallback quote (Yahoo) > USD default
-        currency: ov?.currency ?? (qFb && 'currency' in qFb ? qFb.currency : undefined) ?? 'USD',
+        // Currency: AV overview (más fiable para US equities) > Yahoo quote > USD
+        currency: ov?.currency ?? (q && 'currency' in q ? q.currency : undefined) ?? 'USD',
       },
       fundamentals: {
         per: ov?.per ?? null,

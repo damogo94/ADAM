@@ -54,20 +54,20 @@ export async function GET(req: NextRequest) {
   const results = await Promise.all(
     list.map(async (sym): Promise<QuoteRow> => {
       try {
-        const [rawQuote, dailyCandles] = await Promise.all([
-          quote(sym).catch(() => null),
-          sparkFlag ? timeSeriesDaily(sym).then(normalizeDaily).catch(() => []) : Promise.resolve([]),
+        // Yahoo PRIMARY (realtime, matches Investing/TradingView), AV fallback.
+        const [yhQuote, yhSpark] = await Promise.all([
+          fallbackQuote(sym).catch(() => null),
+          sparkFlag ? fallbackDaily(sym).catch(() => []) : Promise.resolve([]),
         ]);
-        let q = rawQuote ? normalizeQuote(rawQuote) : null;
+        let q = yhQuote;
         if (!q) {
-          // AV failed/quota-out → Finnhub+Yahoo fallback
-          const fb = await fallbackQuote(sym).catch(() => null);
-          if (fb) q = fb;
+          const raw = await quote(sym).catch(() => null);
+          if (raw) q = normalizeQuote(raw);
         }
         if (!q) return { symbol: sym, error: 'no_quote' };
-        let spark = dailyCandles;
+        let spark = yhSpark;
         if (sparkFlag && spark.length < 5) {
-          spark = await fallbackDaily(sym).catch(() => []);
+          spark = await timeSeriesDaily(sym).then(normalizeDaily).catch(() => []);
         }
         const spark7d = sparkFlag ? spark.slice(-7).map((c) => c.c) : undefined;
         return {

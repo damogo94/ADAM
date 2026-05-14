@@ -26,21 +26,21 @@ export async function GET(req: NextRequest) {
   const sym = parsed.data.symbol.toUpperCase();
 
   try {
-    // AV primary — si falla, fallback Finnhub/Yahoo. Misma cascada que A4.
-    const [rawQuote, dailyCandles] = await Promise.all([
-      quote(sym).catch(() => null),
-      wantSpark ? timeSeriesDaily(sym).then(normalizeDaily).catch(() => []) : Promise.resolve([]),
+    // Yahoo PRIMARY (realtime, matches Investing/TradingView), AV fallback.
+    const [yhQuote, yhSpark] = await Promise.all([
+      fallbackQuote(sym).catch(() => null),
+      wantSpark ? fallbackDaily(sym).catch(() => []) : Promise.resolve([]),
     ]);
 
-    let q = rawQuote ? normalizeQuote(rawQuote) : null;
+    let q = yhQuote;
     if (!q) {
-      const fb = await fallbackQuote(sym).catch(() => null);
-      if (fb) q = fb;
+      const raw = await quote(sym).catch(() => null);
+      if (raw) q = normalizeQuote(raw);
     }
 
-    let spark = dailyCandles;
+    let spark = yhSpark;
     if (wantSpark && spark.length < 5) {
-      spark = await fallbackDaily(sym).catch(() => []);
+      spark = await timeSeriesDaily(sym).then(normalizeDaily).catch(() => []);
     }
 
     if (!q) {
