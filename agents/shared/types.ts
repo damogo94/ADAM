@@ -85,6 +85,31 @@ export const TradingHorizon = z.enum(['intradia', 'swing', 'posicional']);
 export type TradingHorizon_t = z.infer<typeof TradingHorizon>;
 
 // ───────────────────────────────────────────────────────────────────────────
+// 1.5. Inputs crudos — OHLCV
+//
+// Tipo compartido para velas. Antes vivía duplicado en /a3/client.ts,
+// /lib/market/finnhub.ts (como `NormalizedCandle`) y los handlers de route.
+// Esta es la fuente de verdad para todo el compute layer (Tarea 1.3).
+// ───────────────────────────────────────────────────────────────────────────
+
+export const OHLCVCandle = z
+  .object({
+    /** Epoch en segundos (NO ms). Convención heredada de TradingView LWC. */
+    t: z.number().int(),
+    o: z.number(),
+    h: z.number(),
+    l: z.number(),
+    c: z.number(),
+    v: z.number().nonnegative(),
+  })
+  .strict();
+export type OHLCVCandle_t = z.infer<typeof OHLCVCandle>;
+
+/** Identificadores de timeframe canónicos del sistema. */
+export const Timeframe = z.enum(['1H', '4H', '1D', '1W']);
+export type Timeframe_t = z.infer<typeof Timeframe>;
+
+// ───────────────────────────────────────────────────────────────────────────
 // 2. A1 Output — Activo · Micro
 // ───────────────────────────────────────────────────────────────────────────
 
