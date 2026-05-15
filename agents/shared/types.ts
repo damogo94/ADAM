@@ -110,6 +110,88 @@ export const Timeframe = z.enum(['1H', '4H', '1D', '1W']);
 export type Timeframe_t = z.infer<typeof Timeframe>;
 
 // ───────────────────────────────────────────────────────────────────────────
+// 1.6. MarketSnapshot — input al pipeline
+//
+// Wrapper unificado que agrupa todo lo que necesitan los agentes. El data
+// layer construye este objeto una vez y el pipeline lo distribuye:
+//   - A1 (narrate) consume quote + fundamentals + news
+//   - A2 (narrate) consume macro_snapshot
+//   - A3 (compute + narrate) consume ohlcv_daily + ohlcv_intraday
+//
+// Diseñado como NEW interface (no schema strict) porque el data layer ya
+// valida lo suyo; aquí lo recibimos confiando en los providers (Finnhub +
+// Yahoo). Si añadiéramos validación strict, romperíamos cuando un provider
+// devolviera un campo extra inocuo.
+// ───────────────────────────────────────────────────────────────────────────
+
+export interface MarketNewsItem {
+  headline: string;
+  source: string;
+  url?: string;
+  publishedAt?: number;
+  published_iso?: string | null;
+  age_hours?: number | null;
+}
+
+export interface MarketSnapshot {
+  ticker: string;
+  quote: {
+    current: number;
+    change_pct_24h: number;
+    change_pct_7d: number;
+    currency: string;
+  };
+  fundamentals: {
+    per: number | null;
+    peg: number | null;
+    ev_ebitda: number | null;
+    fcf_yield_pct: number | null;
+    dividend_yield_pct: number | null;
+    market_cap_usd: number | null;
+  };
+  news: MarketNewsItem[];
+  ohlcv_daily: OHLCVCandle_t[];
+  ohlcv_intraday: OHLCVCandle_t[];
+  /** Snapshot macro disponible. Puede estar parcial o vacío (degradación elegante en A2). */
+  macro_snapshot: Record<string, number | null | undefined>;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// 1.7. Narrative-only schemas
+//
+// Para A3 y A4 el LLM produce SOLO la prosa, no los datos. Validamos que
+// el output del modelo tenga exactamente la forma esperada (sólo
+// `narrative` u otros campos prosáicos), y el resto se merge desde código.
+// Esto evita que el LLM "recalcule" números que ya hicimos determinísticos.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Solo narrative — utilizado por narrateA3 tras computeTechnical. */
+export const A3NarrativeOnly = z
+  .object({
+    narrative: z.string().min(20).max(2500),
+  })
+  .strict();
+export type A3NarrativeOnly_t = z.infer<typeof A3NarrativeOnly>;
+
+/**
+ * Output narrativo de A4 — lo que el LLM produce. El pipeline luego mergea
+ * con la confluence ya calculada, el ticker, y el disclaimer literal para
+ * formar el A4Output completo.
+ */
+export const A4NarrativeOnly = z
+  .object({
+    resumen_a1: z.string().max(1500),
+    resumen_a2: z.string().max(1500),
+    resumen_a3: z.string().max(1500),
+    direccion: Direction,
+    confianza: Confidence,
+    accion_sugerida: z.string().max(2500),
+    riesgo_clave: z.string().max(1200),
+  })
+  .strict();
+export type A4NarrativeOnly_t = z.infer<typeof A4NarrativeOnly>;
+
+// ───────────────────────────────────────────────────────────────────────────
 // 2. A1 Output — Activo · Micro
 // ───────────────────────────────────────────────────────────────────────────
 
