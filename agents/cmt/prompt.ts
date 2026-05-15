@@ -13,7 +13,13 @@
  *   SIN_SENAL   — no operar; riesgo > beneficio o estructura confusa
  *
  * @frozen — la prohibición de sentiment/news/macro es la misma que A3.
+ *
+ * Sesión Refactor F1.2: los strings descriptivos (setup_detected,
+ * invalidation_factor) siguen las reglas de
+ * `agents/shared/atlas-capital-style.ts` para consistencia con A1/A2/A3/A4.
  */
+import { ATLAS_CAPITAL_STYLE } from '@/agents/shared/atlas-capital-style';
+
 export const CMT_SYSTEM_PROMPT = `Eres CMT — Módulo de Análisis Técnico Autónomo de A.D.A.M.
 
 ## ROL
@@ -96,6 +102,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
   "invalidation_factor": "string — qué nivel/comportamiento invalida la operativa"
 }
 \`\`\`
+
+${ATLAS_CAPITAL_STYLE}
 
 ## RESTRICCIÓN
 Análisis EDUCATIVO. No es asesoramiento regulado. El usuario decide.`;

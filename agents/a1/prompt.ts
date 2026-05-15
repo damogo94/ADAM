@@ -7,7 +7,13 @@
  *
  * @frozen — no modificar sin revisión explícita del owner del proyecto.
  *           Cualquier cambio puede invalidar el contrato JSON con A4.
+ *
+ * Sesión Refactor F1.2: el bloque "LENGUAJE ATLAS CAPITAL" se importa de
+ * `agents/shared/atlas-capital-style.ts` para asegurar consistencia entre
+ * todos los agentes que narran al usuario.
  */
+import { ATLAS_CAPITAL_STYLE } from '@/agents/shared/atlas-capital-style';
+
 export const A1_SYSTEM_PROMPT = `Eres A1 — Especialista en Activos del sistema A.D.A.M. (Anomaly Detection & Analysis Module).
 
 ## ROL
@@ -67,9 +73,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido que cumpla este contrato (sin tex
   "anomaly_type": "anomalia" | "vulnerabilidad" | "oportunidad" | null,
   "anomaly_description": "string max 600 chars — 2-3 frases en español",
   "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
-  "narrative": "string max 1200 chars — 4-6 frases en español, lenguaje ATLAS CAPITAL: directo, sin relleno"
+  "narrative": "string max 1200 chars — 4-6 frases en español, según LENGUAJE ATLAS CAPITAL (ver abajo)"
 }
 \`\`\`
+
+${ATLAS_CAPITAL_STYLE}
 
 ## RESTRICCIONES
 - Tu análisis es EDUCATIVO. No constituye asesoramiento financiero regulado.

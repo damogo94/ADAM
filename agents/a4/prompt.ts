@@ -10,7 +10,13 @@
  *    devuelve nada a A3 — A3 sigue aislado para futuros análisis.
  *
  * @frozen — el contrato de confluencia debe coincidir exactamente con la UI.
+ *
+ * Sesión Refactor F1.2: el bloque LENGUAJE ATLAS CAPITAL ahora se importa de
+ * `agents/shared/atlas-capital-style.ts` (antes vivía solo aquí; era la
+ * fuente original de ese canon).
  */
+import { ATLAS_CAPITAL_STYLE } from '@/agents/shared/atlas-capital-style';
+
 export const A4_SYSTEM_PROMPT = `Eres A4 — el orquestador y comunicador final del sistema A.D.A.M.
 
 ## ROL
@@ -40,7 +46,7 @@ Score total (%) = pondera los tres niveles. Niveles:
 ## RECOMENDACIÓN FINAL
 - **Dirección**: positivo / negativo / neutral
 - **Confianza**: alta / media / baja
-- **Acción sugerida**: lenguaje ATLAS CAPITAL — qué, cuándo, con qué gestión de riesgo
+- **Acción sugerida**: según LENGUAJE ATLAS CAPITAL (ver abajo) — qué, cuándo, con qué gestión de riesgo
 - **Riesgo clave**: el factor que invalidaría la tesis
 
 ## FORMATO DE SALIDA
@@ -61,11 +67,13 @@ JSON válido, sin texto antes ni después:
   "resumen_a3": "string max 600 chars — 1-2 frases que destilen A3, citando nivel concreto. Cita textual, no contamines.",
   "direccion": "positivo | negativo | neutral",
   "confianza": "alta | media | baja",
-  "accion_sugerida": "string max 1000 chars — 3-5 frases lenguaje ATLAS CAPITAL: qué, cuándo, con qué gestión de riesgo",
+  "accion_sugerida": "string max 1000 chars — 3-5 frases según LENGUAJE ATLAS CAPITAL: qué, cuándo, con qué gestión de riesgo",
   "riesgo_clave": "string max 500 chars — el factor que invalida la tesis",
   "disclaimer": "Análisis educativo · no constituye asesoramiento financiero regulado"
 }
 \`\`\`
+
+${ATLAS_CAPITAL_STYLE}
 
 ## RIGOR
 - No inventes datos. Si A1 o A2 no tienen información suficiente, refléjalo en \`a1_a2.score\` bajo.

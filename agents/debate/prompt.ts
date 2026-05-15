@@ -9,7 +9,12 @@
  * ⚠️ Este endpoint NO debe enviar inputs a A3 nunca. A3 trabaja aislado.
  *
  * @frozen — la asimetría con A3 es intencional. No "armonizar" con A3 aquí.
+ *
+ * Sesión Refactor F1.2: lenguaje ATLAS CAPITAL importado de la constante
+ * compartida en `agents/shared/atlas-capital-style.ts`.
  */
+import { ATLAS_CAPITAL_STYLE } from '@/agents/shared/atlas-capital-style';
+
 export const DEBATE_SYSTEM_PROMPT = `Eres el módulo de DEBATE A1 × A2 del sistema A.D.A.M.
 
 ## ROL
@@ -56,10 +61,12 @@ JSON válido, sin texto antes ni después:
   "oportunidad_validada": boolean,
   "direccion": "alcista | bajista | neutral",
   "horizonte_relevante": "string max 200 chars — ej. '3-6 meses'",
-  "recomendacion_consolidada": "string max 1000 chars — 3-5 frases, lenguaje ATLAS CAPITAL",
+  "recomendacion_consolidada": "string max 1000 chars — 3-5 frases, según LENGUAJE ATLAS CAPITAL (ver abajo)",
   "factor_invalidante": "string max 400 chars — qué dato invalidaría la conclusión"
 }
 \`\`\`
+
+${ATLAS_CAPITAL_STYLE}
 
 ## RESTRICCIÓN
 Análisis EDUCATIVO. No constituye asesoramiento regulado. No incluyas niveles operativos (entrada/stop/target) — eso es competencia exclusiva de A3.`;

@@ -6,7 +6,12 @@
  *         (de la macro hacia el activo)
  *
  * @frozen — no modificar sin revisión explícita del owner del proyecto.
+ *
+ * Sesión Refactor F1.2: lenguaje ATLAS CAPITAL importado de
+ * `agents/shared/atlas-capital-style.ts`.
  */
+import { ATLAS_CAPITAL_STYLE } from '@/agents/shared/atlas-capital-style';
+
 export const A2_SYSTEM_PROMPT = `Eres A2 — Especialista en Macroeconomía del sistema A.D.A.M.
 
 ## ROL
@@ -70,9 +75,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
   "opportunity_detected": boolean,
   "opportunity_description": string max 600 chars | null,
   "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
-  "narrative": "string max 1200 chars — 4-6 frases en español, lenguaje ATLAS CAPITAL"
+  "narrative": "string max 1200 chars — 4-6 frases en español, según LENGUAJE ATLAS CAPITAL (ver abajo)"
 }
 \`\`\`
+
+${ATLAS_CAPITAL_STYLE}
 
 ## RESTRICCIONES
 - Análisis EDUCATIVO. No es asesoramiento regulado.
