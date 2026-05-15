@@ -11,9 +11,9 @@
 ```mermaid
 flowchart TB
     U[Usuario] -->|ticker| API[/api/agents/a4]
-    API --> MD[Alpha Vantage · market data]
+    API --> MD[Finnhub + Yahoo · market data]
     MD -->|fan-out paralelo| A1[A1 · Activos<br/>sonnet-4-6]
-    MD["Alpha Vantage<br/>quote · overview · news · candles"]
+    MD["Finnhub /quote /profile2 /metric /company-news<br/>Yahoo /v8/chart (OHLCV + quote fallback)"]
     MD --> A2[A2 · Macro<br/>sonnet-4-6]
     MD --> A3["A3 · Price Action<br/>sonnet-4-6<br/><b>AISLADO</b>"]
     A1 -.anomalia.-> DEB[Debate A1×A2<br/>opus-4-6]
@@ -43,7 +43,7 @@ flowchart TB
 | UI base | shadcn/ui + componentes custom | Demo HTML como referencia visual |
 | Charts | TradingView Lightweight Charts + Recharts | Lightweight para precio, Recharts para sparklines |
 | LLM | `@anthropic-ai/sdk` | Modelos por agente — ver tabla abajo |
-| Datos | Alpha Vantage free tier | quotes + fundamentals + news+sentiment + candles · **25 req/día / 5 req/min** |
+| Datos | Finnhub free + Yahoo (no auth) | Finnhub: quote, profile2, metric, company-news · **60 req/min**. Yahoo `/v8/finance/chart`: OHLCV + quote fallback (sin cuota práctica) |
 | DB | Supabase (PostgreSQL + RLS) | Sprint 2 |
 | Auth | Supabase Auth | Sprint 2 |
 | Cache + ratelimit | Upstash Redis | TTL 30s para quotes |
@@ -57,9 +57,9 @@ flowchart TB
 | A1 (activos) | `claude-sonnet-4-6` | Paralelo, latencia importa |
 | A2 (macro) | `claude-sonnet-4-6` | Paralelo, latencia importa |
 | A3 (técnico) | `claude-sonnet-4-6` | Rigor + aislamiento |
-| Debate | `claude-opus-4-6` | Síntesis crítica |
-| A4 (sistema) | `claude-opus-4-6` | Consolidación final |
-| CMT scanner | `claude-haiku-4-5` | Batch sobre watchlist, 5min cron |
+| Debate | `claude-sonnet-4-6` | Antes Opus; bajado por timeout Hobby (60s) |
+| A4 (sistema) | `claude-sonnet-4-6` | Antes Opus; bajado por timeout Hobby (60s) |
+| CMT scanner | `claude-haiku-4-5` | Batch sobre watchlist |
 
 ---
 
@@ -96,15 +96,15 @@ Copia `.env.example` a `.env.local`. Ver [.env.example](./.env.example) para la 
 
 | Variable | Obligatoria | Notas |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | ✅ | Server-only. Nunca exponer en cliente. |
-| `ALPHA_VANTAGE_API_KEY` | ✅ | Free tier **25/día, 5/min** — caché Upstash crítico |
-| `NEXT_PUBLIC_SUPABASE_URL` | Sprint 2 | Auth + DB |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sprint 2 | |
-| `SUPABASE_SERVICE_ROLE_KEY` | Sprint 2 | Server-only |
-| `UPSTASH_REDIS_REST_URL` | Sprint 1 (cache) | |
-| `UPSTASH_REDIS_REST_TOKEN` | Sprint 1 | |
-| `CRON_SECRET` | Sprint 2 | Protege `/api/cmt/scan` |
-| `SENTRY_DSN` | Sprint 3 | |
+| `ANTHROPIC_API_KEY` | ✅ | Server-only. Nunca exponer en cliente. Fail-loud al arranque si falta. |
+| `FINNHUB_API_KEY` | Recomendada | Free tier **60/min**. Sin esto, Yahoo cubre quote+candles pero pierdes fundamentals + news. [Signup](https://finnhub.io/register) |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Auth + DB |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Server-only |
+| `UPSTASH_REDIS_REST_URL` | ✅ prod | Sin Upstash en prod, los limiters lanzan 503 (fail-closed) |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ prod | |
+| `CRON_SECRET` | Cuando re-actives cron CMT | Protege `/api/cmt/scan` |
+| `SENTRY_DSN` | Recomendada | Sin DSN, Sentry queda no-op silencioso |
 
 ---
 
@@ -112,7 +112,7 @@ Copia `.env.example` a `.env.local`. Ver [.env.example](./.env.example) para la 
 
 ```bash
 pnpm install
-cp .env.example .env.local   # rellena ANTHROPIC_API_KEY y ALPHA_VANTAGE_API_KEY mínimo
+cp .env.example .env.local   # mínimo: ANTHROPIC_API_KEY. Recomendado: FINNHUB_API_KEY
 pnpm dev                     # http://localhost:3000
 ```
 
@@ -147,7 +147,7 @@ curl -s -X POST http://localhost:3000/api/agents/a4 \
   -H "Content-Type: application/json" \
   -d '{"ticker":"AAPL"}' --max-time 180 | head -c 500
 ```
-Respuesta esperada: JSON con keys `a1`, `a2`, `a3`, `debate` (null si no hubo anomalía), `a4`. Coste aprox por run: 3 calls Sonnet + 1-2 Opus + 5 requests Alpha Vantage (cuidado, free tier = 25/día — caché Upstash es crítico).
+Respuesta esperada: JSON con keys `a1`, `a2`, `a3`, `debate` (null si no hubo anomalía), `a4`. Coste aprox por run: 3 Sonnet + 0-1 Sonnet (Debate) + 1 Sonnet (A4) + ~5 requests a Finnhub/Yahoo (sin cuota práctica).
 
 ---
 
@@ -203,7 +203,7 @@ Y re-exporta desde `types/db/index.ts`. Hasta entonces, los tipos hand-written e
 
 ## Checklist de seguridad
 
-- [x] `ANTHROPIC_API_KEY` y `ALPHA_VANTAGE_API_KEY` sólo en server (nunca `NEXT_PUBLIC_*`)
+- [x] `ANTHROPIC_API_KEY` y `FINNHUB_API_KEY` sólo en server (nunca `NEXT_PUBLIC_*`)
 - [x] Validación Zod en todos los endpoints antes de invocar SDK
 - [x] `Z.strict()` en `/api/agents/a3` para rechazar campos extra (refuerza aislamiento)
 - [x] Headers `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` en `next.config.mjs`

@@ -15,10 +15,11 @@ import { Redis } from '@upstash/redis';
  *      • dev (NODE_ENV !== 'production') → NOOP_LIMITER con warn
  *      • prod → throw al primer .limit() (fail-closed, seguridad sobre availability)
  *
- * Quotas:
- *  - analysis: 10 / minuto / IP   (POST /api/agents/a4 — caro)
- *  - quote:    60 / minuto / IP   (GET /api/market/* — barato)
- *  - userRuns: 20 / día / user.id (POST /api/agents/a4 — anti-abuse)
+ * Quotas (sesión 6d — tightened):
+ *  - analysis:      5 / minuto / IP    (POST /api/agents/a4 — caro)
+ *  - analysisDaily: 30 / día / IP      (POST /api/agents/a4 — cap diario sin auth)
+ *  - quote:         60 / minuto / IP   (GET /api/market/* — barato)
+ *  - userRuns:      30 / día / user.id (POST /api/agents/a4 — defensa adicional con auth)
  */
 
 type RatelimitLike = {
@@ -86,13 +87,16 @@ function getOrBuildLimiter(
  */
 export const limiters = {
   get analysis() {
-    return getOrBuildLimiter('1 m', 10, 'adam:analysis');
+    return getOrBuildLimiter('1 m', 5, 'adam:analysis');
+  },
+  get analysisDaily() {
+    return getOrBuildLimiter('1 d', 30, 'adam:analysis-daily');
   },
   get quote() {
     return getOrBuildLimiter('1 m', 60, 'adam:quote');
   },
   get userRuns() {
-    return getOrBuildLimiter('1 d', 20, 'adam:user-runs');
+    return getOrBuildLimiter('1 d', 30, 'adam:user-runs');
   },
 };
 

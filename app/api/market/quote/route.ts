@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { quote, normalizeQuote, timeSeriesDaily, normalizeDaily } from '@/lib/market/alphavantage';
 import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
 
 export const runtime = 'edge';
@@ -26,22 +25,10 @@ export async function GET(req: NextRequest) {
   const sym = parsed.data.symbol.toUpperCase();
 
   try {
-    // Yahoo PRIMARY (realtime, matches Investing/TradingView), AV fallback.
-    const [yhQuote, yhSpark] = await Promise.all([
+    const [q, spark] = await Promise.all([
       fallbackQuote(sym).catch(() => null),
       wantSpark ? fallbackDaily(sym).catch(() => []) : Promise.resolve([]),
     ]);
-
-    let q = yhQuote;
-    if (!q) {
-      const raw = await quote(sym).catch(() => null);
-      if (raw) q = normalizeQuote(raw);
-    }
-
-    let spark = yhSpark;
-    if (wantSpark && spark.length < 5) {
-      spark = await timeSeriesDaily(sym).then(normalizeDaily).catch(() => []);
-    }
 
     if (!q) {
       return NextResponse.json({ error: 'no_quote' }, { status: 404 });

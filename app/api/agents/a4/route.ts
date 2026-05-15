@@ -7,18 +7,12 @@ import { runA3 } from '@/agents/a3/client';
 import { runDebate } from '@/agents/debate/client';
 import { runA4 } from '@/agents/a4/client';
 import {
-  quote,
-  overview,
-  newsSentiment,
-  timeSeriesDaily,
-  timeSeriesIntraday,
-  normalizeQuote,
-  normalizeOverview,
-  normalizeNews,
-  normalizeDaily,
-  normalizeIntraday,
-} from '@/lib/market/alphavantage';
-import { fallbackQuote, fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
+  fallbackQuote,
+  fallbackDaily,
+  fallbackIntraday,
+  fallbackOverview,
+  fallbackNewsSentiment,
+} from '@/lib/market/finnhub';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
@@ -51,7 +45,7 @@ type AgentFailure = { agent: 'A1' | 'A2' | 'A3'; message: string };
  *   4. A4 ensambla con lo que haya. Si los 3 agentes cayeron → 503.
  *   5. Log a analyses_log (best-effort).
  *
- * Coste por llamada (sin cache compartido): 5 calls Alpha Vantage + 3 Sonnet + 1 Opus + opcional 1 Opus debate.
+ * Coste por llamada: ~5 calls Finnhub/Yahoo + 3 Sonnet + 1 Sonnet (A4) + opcional 1 Sonnet (debate).
  */
 export async function POST(req: NextRequest) {
   // Top-level try: garantiza que CUALQUIER throw devuelve JSON al cliente
@@ -104,40 +98,19 @@ export async function POST(req: NextRequest) {
   try {
     // Step 1: market data fan-out — todas resilientes.
     //
-    // Estrategia post-sesión 6: Yahoo PRIMARY para quote+candles (realtime,
-    // coincide con Investing/TradingView). AV se mantiene para fundamentals
-    // (OVERVIEW) y noticias (NEWS_SENTIMENT) — Yahoo no expone esos campos
-    // de forma estable en free tier.
-    //
-    // Beneficio: 5 endpoints AV → 2 endpoints AV (OVERVIEW + NEWS_SENTIMENT)
-    // = 12 análisis/día en lugar de 5 con la cuota free de 25.
-    const [qPrimary, dailyPrimary, intradayPrimary, ov, news] = await Promise.all([
+    // Fuentes (sesión 6d, AV eliminado):
+    //   - quote/daily/intraday → Yahoo (sin auth, realtime, sin cuota práctica)
+    //   - overview (fundamentals) → Finnhub /stock/profile2 + /stock/metric
+    //   - news → Finnhub /company-news (últimas 48h)
+    const [q, daily, intraday, ov, news] = await Promise.all([
       fallbackQuote(ticker).catch(() => null),
       fallbackDaily(ticker).catch(() => []),
       fallbackIntraday(ticker).catch(() => []),
-      overview(ticker).then(normalizeOverview).catch(() => null),
-      newsSentiment(ticker, 5).then((n) => normalizeNews(n, 5)).catch(() => []),
+      fallbackOverview(ticker).catch(() => null),
+      fallbackNewsSentiment(ticker, 5).catch(() => []),
     ]);
 
-    // AV fallback si Yahoo/Finnhub fallaron (raro, pero p.ej. ticker exótico)
-    let q = qPrimary;
-    let daily = dailyPrimary;
-    let intraday = intradayPrimary;
-
-    if (!q) {
-      const qAV = await quote(ticker).then(normalizeQuote).catch(() => null);
-      if (qAV) q = qAV;
-    }
-    if (daily.length < 5) {
-      const dAV = await timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []);
-      if (dAV.length > daily.length) daily = dAV;
-    }
-    if (intraday.length < 5) {
-      const iAV = await timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []);
-      if (iAV.length > intraday.length) intraday = iAV;
-    }
-
-    // Recovery último recurso: precio desde la última vela diaria
+    // Recovery último recurso: precio desde la última vela diaria si quote falla
     let currentPrice = q?.current ?? null;
     let changePct24h = q?.change_pct_24h ?? 0;
     if (currentPrice === null && daily.length >= 2) {
@@ -149,12 +122,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Log de qué proveedor sirvió cada pieza
     // eslint-disable-next-line no-console
     console.log(
-      `[a4] market data ${ticker}: quote=${qPrimary ? 'yahoo' : q ? 'AV-fallback' : 'none'} ` +
-      `daily=${dailyPrimary.length}+AVfb=${daily.length - dailyPrimary.length} ` +
-      `intraday=${intradayPrimary.length}+AVfb=${intraday.length - intradayPrimary.length}`
+      `[a4] market data ${ticker}: quote=${q ? 'ok' : 'none'} ` +
+      `daily=${daily.length} intraday=${intraday.length} ` +
+      `overview=${ov ? 'ok' : 'none'} news=${news.length}`
     );
 
     // Sin precio Y sin candles diarias → no podemos analizar nada
@@ -163,7 +135,7 @@ export async function POST(req: NextRequest) {
         {
           error: 'market_data_unavailable',
           detail:
-            `Sin datos de mercado para ${ticker}. Alpha Vantage free-tier puede estar al límite (25/día, 5/min). Espera ~1 minuto y reintenta.`,
+            `Sin datos de mercado para ${ticker}. Comprueba la grafía del ticker (cripto: BTC, BTC-USD; forex: EUR/USD; equities: AAPL, IBE.MC).`,
         },
         { status: 503 }
       );

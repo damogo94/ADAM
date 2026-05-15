@@ -123,10 +123,9 @@ export default function SystemScreen() {
       <SectionLabel>actividad reciente</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/5 bg-surface-2 px-3 py-2">
         <KV k="último análisis" v={lastAnalysis} />
-        <KV k="modelo principal" v="claude-opus-4-6 (A4 + debate)" />
-        <KV k="data provider" v="Alpha Vantage · free tier 25/día" />
-        {/* Cache status viene del backend ahora; el frontend no tiene visibilidad real */}
-        <KV k="cache" v="Upstash L1+L2 · TTL 30s quotes, 5min news, 24h daily" />
+        <KV k="modelo principal" v="claude-sonnet-4-6 (todos los agentes)" />
+        <KV k="data provider" v="Finnhub 60/min + Yahoo /v8/chart" />
+        <KV k="cache" v="Upstash L1+L2" />
       </div>
 
       <SectionLabel>seguridad</SectionLabel>

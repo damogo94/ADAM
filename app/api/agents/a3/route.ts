@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runA3 } from '@/agents/a3/client';
-import {
-  timeSeriesDaily,
-  timeSeriesIntraday,
-  normalizeDaily,
-  normalizeIntraday,
-} from '@/lib/market/alphavantage';
+import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 
@@ -44,8 +39,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const [daily, intraday] = await Promise.all([
-      timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []),
-      timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []),
+      fallbackDaily(ticker).catch(() => []),
+      fallbackIntraday(ticker).catch(() => []),
     ]);
 
     const ohlcv = [

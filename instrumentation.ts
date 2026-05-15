@@ -16,12 +16,11 @@ export async function register() {
       beforeSend(event, hint) {
         const error = hint.originalException;
         const msg = error instanceof Error ? error.message : '';
-        // Filtra ruido conocido — son fallos transitorios manejados con retry/breaker.
+        // Filtra ruido conocido — son fallos transitorios manejados con retry/fallback.
         // Sin esto, un blip de Anthropic con 5 users quema 200+ eventos en minutos.
-        if (msg.includes('AlphaVantage soft error') || msg.includes('rate-limited')) return null;
+        if (msg.includes('rate-limited') || msg.includes('rate_limit_exceeded')) return null;
         if (msg.includes('Overloaded') || msg.includes('overloaded_error')) return null;
         if (msg.includes('APIConnectionError') || msg.includes('APIConnectionTimeoutError')) return null;
-        if (msg.includes('circuit breaker open')) return null;
         return event;
       },
     });

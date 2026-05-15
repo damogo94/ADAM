@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { newsSentiment, normalizeNews } from '@/lib/market/alphavantage';
+import { fallbackNewsSentiment } from '@/lib/market/finnhub';
 
 export const runtime = 'edge';
 
@@ -18,8 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const raw = await newsSentiment(parsed.data.symbol.toUpperCase(), parsed.data.limit);
-    const items = normalizeNews(raw, parsed.data.limit);
+    const items = await fallbackNewsSentiment(parsed.data.symbol.toUpperCase(), parsed.data.limit);
     return NextResponse.json(items, {
       headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=600' },
     });

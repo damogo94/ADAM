@@ -10,10 +10,23 @@ import { z } from 'zod';
  *  - CMT scanner:   haiku   (batch throughput dominates)
  */
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  // In dev this throws on first import; in prod Vercel build will fail loudly.
-  // eslint-disable-next-line no-console
-  console.warn('[A.D.A.M.] ANTHROPIC_API_KEY not set — agent calls will fail.');
+/**
+ * Fail-loud cuando una request realmente intenta llamar a Anthropic.
+ *
+ * Antes era console.warn al import: arrancábamos "OK" y la primera request
+ * cascaba con "401 Unauthorized" enterrado en error genérico. Throw al
+ * import también es problemático: `next build` instancia los módulos para
+ * collect page data y eso aborta el build aunque el key esté bien en runtime.
+ *
+ * Solución: chequeo en el primer .messages.create() (en runAgent). En tests
+ * NODE_ENV='test', los tests mockean runAgent y nunca llegamos aquí.
+ */
+function assertApiKey(): void {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error(
+      '[A.D.A.M.] ANTHROPIC_API_KEY missing. Set it in .env.local (dev) or Vercel env (prod).'
+    );
+  }
 }
 
 export const anthropic = new Anthropic({
@@ -110,6 +123,10 @@ export class AgentParseError extends Error {
 export async function runAgent<T extends z.ZodTypeAny>(
   args: RunAgentArgs<T>
 ): Promise<z.infer<T>> {
+  // Fail-loud al primer uso si la key falta. Mejor 1 error claro que N errores
+  // crípticos 401 enterrados en stack traces.
+  assertApiKey();
+
   const {
     systemPrompt,
     userMessage,

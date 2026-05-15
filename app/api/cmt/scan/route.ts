@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { runCMT } from '@/agents/cmt/client';
-import {
-  timeSeriesDaily,
-  timeSeriesIntraday,
-  normalizeDaily,
-  normalizeIntraday,
-} from '@/lib/market/alphavantage';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { checkSameOrigin } from '@/lib/api-helpers';
 import type { CMTOutput } from '@/agents/cmt/schema';
@@ -25,16 +19,17 @@ export const maxDuration = 60;
  *    itera TODAS las watchlists de TODOS los users, escanea, persiste por user_id.
  *    Vercel cron manda el header automaticamente cuando CRON_SECRET esta en env.
  *
- * Estrategia anti-rate-limit AV (free tier 25/dia, 5/min):
- *   - 13s entre tickers (5/min limit con margen)
- *   - circuit breaker: 3 soft-errors consecutivos AV → break del loop
- *   - cache L1+L2 cubre re-scans frecuentes
+ * Estrategia anti-spam Yahoo (sin cuota oficial pero no abusar):
+ *   - 1s entre tickers (politeness, no rate-limit hard)
+ *   - circuit breaker: 3 fallos consecutivos → break del loop
  *
  * Persiste solo signals NO `sin_senal` para no ruido en /signals.
  */
 
-const SLEEP_MS_BETWEEN_TICKERS = 13_000;
-const MAX_CONSECUTIVE_AV_FAILS = 3;
+// Antes 13s para no quemar AV (5/min). Yahoo no tiene cuota free oficial
+// pero 1s entre llamadas es buena ciudadanía y respeta el lambda timeout.
+const SLEEP_MS_BETWEEN_TICKERS = 1_000;
+const MAX_CONSECUTIVE_FAILS = 3;
 
 interface ScanResult {
   ticker: string;
@@ -49,20 +44,11 @@ function sleep(ms: number) {
 
 async function scanTickerForUser(userId: string, ticker: string): Promise<ScanResult> {
   try {
-    // Yahoo PRIMARY para OHLCV (gratis, sin cuota, candles más frescas).
-    // AV solo si Yahoo falla.
-    let [daily, intraday] = await Promise.all([
+    // Yahoo /v8/chart sirve daily + intraday sin auth ni cuota práctica.
+    const [daily, intraday] = await Promise.all([
       fallbackDaily(ticker).catch(() => []),
       fallbackIntraday(ticker).catch(() => []),
     ]);
-    if (daily.length < 5) {
-      const av = await timeSeriesDaily(ticker).then(normalizeDaily).catch(() => []);
-      if (av.length > daily.length) daily = av;
-    }
-    if (intraday.length < 5) {
-      const av = await timeSeriesIntraday(ticker, '60min').then((d) => normalizeIntraday(d, '60min')).catch(() => []);
-      if (av.length > intraday.length) intraday = av;
-    }
     if (daily.length === 0 && intraday.length === 0) {
       return { ticker, ok: false, error: 'no_market_data' };
     }
@@ -224,7 +210,7 @@ async function runScanLoop(userId: string, tickers: string[]): Promise<{ results
 
     if (!r.ok && (r.error?.includes('soft error') || r.error?.includes('rate-limited'))) {
       avFailStreak++;
-      if (avFailStreak >= MAX_CONSECUTIVE_AV_FAILS) {
+      if (avFailStreak >= MAX_CONSECUTIVE_FAILS) {
         // eslint-disable-next-line no-console
         console.warn(`[cmt-scan] AV throttling streak (${avFailStreak}), breaking scan at ticker ${i + 1}/${tickers.length}`);
         break;

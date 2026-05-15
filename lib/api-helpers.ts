@@ -17,13 +17,35 @@ export async function rateLimitByIP(
   bucket: 'analysis' | 'quote'
 ): Promise<NextResponse | null> {
   const ip = (req.headers.get('x-forwarded-for') ?? 'anon').split(',')[0]!.trim();
-  const key = `${bucket}:${ip}`;
 
   try {
-    // El getter `limiters.analysis` puede throw si Upstash falta en prod.
-    // Lo metemos DENTRO del try para que el handler no propague 500 empty.
+    // Para 'analysis' enforce DOS limits en orden de severidad:
+    //   1) 30/día/IP — protege contra abuse sostenido sin auth
+    //   2) 5/min/IP  — protege contra burst
+    // Para 'quote' solo 60/min — endpoint barato, no merece cap diario.
+    if (bucket === 'analysis') {
+      const daily = await limiters.analysisDaily.limit(`analysis-daily:${ip}`);
+      if (!daily.success) {
+        return NextResponse.json(
+          {
+            error: 'daily_quota_exceeded',
+            detail: `Has alcanzado el límite de ${daily.limit} análisis/día desde esta IP. Se renueva en ~24h.`,
+          },
+          {
+            status: 429,
+            headers: {
+              'X-RateLimit-Limit': String(daily.limit),
+              'X-RateLimit-Remaining': String(daily.remaining),
+              'X-RateLimit-Reset': String(daily.reset),
+              'X-RateLimit-Window': '1d',
+            },
+          }
+        );
+      }
+    }
+
     const limiter = bucket === 'analysis' ? limiters.analysis : limiters.quote;
-    const { success, remaining, limit, reset } = await limiter.limit(key);
+    const { success, remaining, limit, reset } = await limiter.limit(`${bucket}:${ip}`);
     if (!success) {
       return NextResponse.json(
         {
@@ -36,6 +58,7 @@ export async function rateLimitByIP(
             'X-RateLimit-Limit': String(limit),
             'X-RateLimit-Remaining': String(remaining),
             'X-RateLimit-Reset': String(reset),
+            'X-RateLimit-Window': '1m',
           },
         }
       );

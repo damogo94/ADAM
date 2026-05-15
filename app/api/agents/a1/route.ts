@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runA1 } from '@/agents/a1/client';
-import {
-  quote,
-  overview,
-  newsSentiment,
-  normalizeQuote,
-  normalizeOverview,
-  normalizeNews,
-} from '@/lib/market/alphavantage';
+import { fallbackQuote, fallbackOverview, fallbackNewsSentiment } from '@/lib/market/finnhub';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 
@@ -39,12 +32,11 @@ export async function POST(req: NextRequest) {
   const { ticker } = parsed.data;
 
   try {
-    // Fan-out — Alpha Vantage rate limit es estricto, pero los 3 endpoints
-    // tienen TTLs distintos en el caché, así que la mayoría de calls son cache hits.
+    // Fan-out de market data — Finnhub (overview+news) + Yahoo (quote).
     const [q, ov, news] = await Promise.all([
-      quote(ticker).then(normalizeQuote),
-      overview(ticker).then(normalizeOverview).catch(() => null),
-      newsSentiment(ticker, 5).then((n) => normalizeNews(n, 5)).catch(() => []),
+      fallbackQuote(ticker).catch(() => null),
+      fallbackOverview(ticker).catch(() => null),
+      fallbackNewsSentiment(ticker, 5).catch(() => []),
     ]);
 
     if (!q) {
@@ -55,8 +47,8 @@ export async function POST(req: NextRequest) {
       quote: {
         current: q.current,
         change_pct_24h: q.change_pct_24h,
-        change_pct_7d: 0, // TODO: derivar de TIME_SERIES_DAILY en Sprint 2
-        currency: ov?.currency ?? 'USD',
+        change_pct_7d: 0, // TODO: derivar de daily candles si lo necesita A1
+        currency: ov?.currency ?? ('currency' in q ? q.currency : undefined) ?? 'USD',
       },
       fundamentals: {
         per: ov?.per ?? null,

@@ -51,7 +51,7 @@ const DICT: Record<string, (p: ErrorPayload) => UserError> = {
   market_data_unavailable: () => ({
     title: 'Sin datos de mercado',
     message:
-      'Alpha Vantage no responde para este ticker (free-tier 25/día). Espera 1 min y reintenta, o prueba con otro activo.',
+      'Los proveedores (Finnhub/Yahoo) no devuelven datos para este ticker. Comprueba la grafía o prueba con otro activo.',
     tone: 'transient',
   }),
   all_agents_failed: (p) => ({
@@ -151,7 +151,7 @@ const DICT: Record<string, (p: ErrorPayload) => UserError> = {
   }),
   'Quote failed': () => ({
     title: 'Cotización no disponible',
-    message: 'Alpha Vantage no respondió. Espera 1 min y reintenta.',
+    message: 'Los proveedores de mercado no respondieron. Espera unos segundos y reintenta.',
     tone: 'transient',
   }),
 };
@@ -169,7 +169,7 @@ function humanizeZodIssues(p: ErrorPayload): string {
 function humanizeAgentError(p: ErrorPayload): string {
   const detail = p.detail ?? '';
   if (detail.includes('rate-limit') || detail.includes('soft error')) {
-    return 'Alpha Vantage te tiene rate-limited. Espera 1 minuto y reintenta.';
+    return 'Proveedor de mercado rate-limited. Espera unos segundos y reintenta.';
   }
   if (detail.includes('Overloaded') || detail.includes('529')) {
     return 'Anthropic en pico de carga. Reintenta en unos segundos.';

@@ -118,7 +118,7 @@ Lee también:
 - Auth en `/api/agents/{a1,a2,a3,debate}` + CSRF helper `checkSameOrigin`
 - `Promise.allSettled` en /a4: un agente caído NO tira el pipeline
 - `runA4` acepta `a1/a2/a3` nullable
-- AlphaVantage: timeout 8s + circuit breaker DUAL (L1 local + L2 Upstash key `adam:av:breaker` 60s) + L2 cache write-through
+- ~~AlphaVantage~~ → Eliminado sesión 6d. Sustituido por Finnhub (quote/profile/metric/news) + Yahoo /v8/chart (OHLCV+quote fallback). Sin cuota práctica.
 - Anthropic: `timeout: 18_000` por call + `maxRetries: 1` (sesión 5 — antes 25_000/5/2, mataba lambdas)
 - Per-user rate-limit `userRuns: 20/día/user.id` via Upstash
 - Ticker regex `/^[A-Z0-9.\-/]+$/i` anti prompt-injection
@@ -214,7 +214,8 @@ postgres 3.4 (devDep, para scripts/apply-migration.mjs)
 - (Opus no se usa en Hobby plan. Revertir cuando movamos a Vercel Pro.)
 
 **Data providers:**
-- **Alpha Vantage free tier** — 25 req/día, 5/min. L2 cache Upstash cubre re-uses.
+- **Finnhub** — primary, 60 req/min free. Endpoints: quote, profile2, metric, company-news.
+- **Yahoo /v8/finance/chart** — sin auth. OHLCV diario + intraday + quote fallback. Sin cuota práctica.
 - **Supabase** — live, project ref `qaakauberbibfgxthlro`, región Frankfurt.
 
 **Infra activa:**
@@ -266,7 +267,7 @@ postgres 3.4 (devDep, para scripts/apply-migration.mjs)
 
 /lib
   anthropic.ts                          ← SDK client + runAgent + retry+timeout config
-  /market/alphavantage.ts               ← AV client con L1+L2 cache + breaker dual
+  /market/finnhub.ts                    ← Finnhub (quote/profile/metric/news) + Yahoo (OHLCV) — fuente única
   /supabase/{server,browser,admin,middleware}.ts
   ratelimit.ts                          ← Lazy Upstash limiters
   api-helpers.ts                        ← checkSameOrigin + sanitizeDbError + rateLimitByIP
@@ -294,8 +295,8 @@ public/.gitkeep                         ← defensive (Vercel output dir overrid
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-api03-...
 
-# Alpha Vantage
-ALPHA_VANTAGE_API_KEY=...
+# Finnhub (https://finnhub.io/register — free 60/min)
+FINNHUB_API_KEY=...
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://qaakauberbibfgxthlro.supabase.co
@@ -336,8 +337,8 @@ Añadir `// máximo N elementos` en el JSON example del prompt para que el LLM r
 ### ⚠️ Campos `nullable` en quotes confunden al modelo
 `"field": "string | null"` (todo en comillas) hace que LLM emita el string `"null"`. Patrón correcto: `field: string | null` fuera de comillas.
 
-### ⚠️ Alpha Vantage free tier 25/día, 5/min
-L1+L2 cache cubre re-uses pero primera vez por ticker quema 5 calls AV. Con 5 users haciendo análisis distintos, el quota se va rápido. Para Pro, considerar AV paid o cambiar provider.
+### ✅ Market data: Finnhub + Yahoo (sesión 6d)
+Eliminado AlphaVantage. Finnhub 60/min para quote/profile/metric/news. Yahoo /v8/chart sin auth para OHLCV+quote fallback. Sin cuota práctica. Para escalar a tier de pago, ver Polygon.io $29/mo (sweet spot retail).
 
 ### ⚠️ pnpm no está en PATH del harness
 Use `node node_modules/<binary>` directo, o `cmd.exe //c "npx -y pnpm@9.12.0 ..."`.
@@ -407,7 +408,7 @@ curl -s -X POST "https://adam-green.vercel.app/api/agents/a4" \
 2. `lib/errors.ts resolveError` — cada código mapeado
 3. `app/api/agents/a4/route.ts` orquestador — partial / all-fail / debate-skip
 4. `app/api/cmt/scan/route.ts runScanLoop` — circuit breaker
-5. `lib/market/alphavantage.ts fetchJson` — cache hierarchy + breaker
+5. `lib/market/finnhub.ts` — normalizers para profile/metric/news (cobertura cripto/forex no-US)
 
 ### Bloque D — Upgrade Vercel Pro (cuando crezca user base o demanda quality)
 
@@ -471,7 +472,7 @@ Todos en `origin/main`. Identidad commits: `damogo94 <damogo94@users.noreply.git
 - Si análisis completo cabe en 60s tras downgrade Opus→Sonnet (alta probabilidad)
 - Si los tonos de error UI rinden bien con visitas reales (parecen OK pero falta ojo no-mío)
 
-**Riesgo conocido**: Alpha Vantage free-tier 25/día se quema con 4-5 análisis distintos. Cache Upstash absorbe re-uses pero no soluciona el techo total. Para multi-user real, requerirá AV paid o cambio de provider.
+**Riesgo resuelto sesión 6d**: AlphaVantage eliminado. Finnhub free 60/min cubre quote/profile/metric/news para US equities. Yahoo /v8/chart cubre OHLCV+quote universal (incluido cripto y forex). Para escalar más allá del free: Polygon.io $29/mo es el siguiente sweet spot retail.
 
 **Trade-off aceptado en sesión 5**: bajamos Debate + A4 de Opus a Sonnet para caber en Vercel Hobby. Pérdida pequeña de calidad de síntesis para que el flujo funcione. Reversible cuando upgradeas a Pro.
 
