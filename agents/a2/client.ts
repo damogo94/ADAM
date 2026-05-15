@@ -35,6 +35,7 @@ export async function runA2(input: A2Input, onUsage?: (u: AgentUsage) => void): 
     userMessage,
     schema: A2_OUTPUT_SCHEMA,
     model: MODELS.SONNET,
+    maxTokens: 3000, // ver razón en a1/client.ts — evita timeouts por output enorme
     onUsage,
   });
 }

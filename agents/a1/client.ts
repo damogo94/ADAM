@@ -38,6 +38,10 @@ export async function runA1(input: A1Input, onUsage?: (u: AgentUsage) => void): 
     userMessage,
     schema: A1_OUTPUT_SCHEMA,
     model: MODELS.SONNET,
+    // Antes default 8192 -> Sonnet tardaba 25-40s generando. Con
+    // schema caps actuales (narrative max 2500, etc) el output real
+    // cabe en ~1500-2000 tokens. 3000 da margen sin riesgo de timeout.
+    maxTokens: 3000,
     onUsage,
   });
 }

@@ -60,6 +60,7 @@ export async function runA3(input: A3Input, onUsage?: (u: AgentUsage) => void): 
     schema: A3_OUTPUT_SCHEMA,
     model: MODELS.SONNET,
     temperature: 0.2, // technical analysis: lower variance
+    maxTokens: 3000, // ver a1/client.ts — A3 con 8192 sumaba ~30s y timeoutaba
     onUsage,
   });
 }
