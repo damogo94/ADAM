@@ -177,79 +177,150 @@ export async function runAgent<T extends z.ZodTypeAny>(
   // primera token latency variable.
   // Hobby maxDuration=60s: 3 calls paralelas × 25s = 25s peak (Promise.all),
   // + Sonnet Debate ~12s + Sonnet A4 ~12s = ~50s worst case. Encaja.
-  const response = await anthropic.messages.create(
-    {
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      system: systemWithCache,
-      messages: [{ role: 'user', content: userMessage }],
-    },
-    { timeout: 25_000 }
-  );
+  //
+  // RETRY POLICY (Refactor F2.2):
+  //   Si el LLM devuelve JSON malformado o output que no cumple schema,
+  //   reintentamos UNA vez más (total 2 intentos). El SDK ya maneja errores
+  //   de red (429/5xx) con sus propios retries; lo que añadimos aquí es
+  //   resistencia a fallos de PARSING/SCHEMA — outputs sintácticamente
+  //   inválidos del modelo o respuestas que no encajan el contrato Zod.
+  //   Worst case: 2 × 25s = 50s. Sigue cabiendo en maxDuration=60s.
+  return runWithParseRetry({
+    agentName,
+    schema,
+    onUsage: args.onUsage,
+    callOnce: () =>
+      anthropic.messages.create(
+        {
+          model,
+          max_tokens: maxTokens,
+          temperature,
+          system: systemWithCache,
+          messages: [{ role: 'user', content: userMessage }],
+        },
+        { timeout: 25_000 }
+      ),
+  });
+}
 
-  const text = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n');
+/**
+ * Retry loop interno — separado de runAgent para que sea testeable sin
+ * tocar imports mágicos. Hace hasta `MAX_ATTEMPTS` llamadas al LLM:
+ *
+ *   - JSON.parse OK + schema OK → devuelve data + tracking de uso
+ *   - JSON.parse error → log warn + retry (si quedan attempts)
+ *   - schema mismatch → log warn + retry (si quedan attempts)
+ *   - Último intento que falla → AgentParseError + log error
+ *
+ * Errores de red/timeout del SDK NO se reintentan aquí (el SDK ya los
+ * maneja con sus propios retries). Si la llamada throws, propagamos hacia
+ * fuera para que el caller (orchestrador / Promise.allSettled) decida.
+ */
+const MAX_ATTEMPTS = 2;
 
-  const jsonString = extractJson(text);
+interface RunWithRetryArgs<T extends z.ZodTypeAny> {
+  agentName: string;
+  schema: T;
+  callOnce: () => Promise<Anthropic.Message>;
+  onUsage?: (u: AgentUsage) => void;
+}
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonString);
-  } catch (parseErr) {
-    // Loguear SIEMPRE (incluso en prod) — sin visibility es imposible
-    // diagnosticar por qué un agente devuelve JSON inválido. Trimmamos
-    // raw a 500 chars para no spammear Vercel logs.
-    // eslint-disable-next-line no-console
-    console.error(
-      `[${agentName}] JSON.parse failed:`,
-      parseErr instanceof Error ? parseErr.message : 'unknown',
-      '· first 500 chars of raw:',
-      text.slice(0, 500).replace(/\n/g, ' ')
-    );
-    throw new AgentParseError(text, [], agentName);
-  }
+export async function runWithParseRetry<T extends z.ZodTypeAny>(
+  args: RunWithRetryArgs<T>
+): Promise<z.infer<T>> {
+  const { agentName, schema, callOnce, onUsage } = args;
+  let lastError: AgentParseError | null = null;
 
-  const result = schema.safeParse(parsed);
-  if (!result.success) {
-    // Schema mismatch — loguear SIEMPRE (issues son críticos para diagnosis).
-    // Trimmamos issues a 5 y raw a 1500 chars.
-    // eslint-disable-next-line no-console
-    console.error(
-      `[${agentName}] schema validation failed. Issues:`,
-      result.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join(' | '),
-      process.env.NODE_ENV !== 'production'
-        ? '\nRaw output (first 1500 chars):\n' + text.slice(0, 1500)
-        : ''
-    );
-    throw new AgentParseError(text, result.error.issues, agentName);
-  }
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const response = await callOnce();
 
-  // Tracking de uso (no-op si caller no pasa callback)
-  if (args.onUsage && response.usage) {
+    const text = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
+
+    const jsonString = extractJson(text);
+    const isFinalAttempt = attempt === MAX_ATTEMPTS;
+
+    // Step 1: JSON.parse
+    let parsed: unknown;
     try {
-      // Las versiones recientes del SDK exponen cache_* — el tipo todavía no las
-      // declara, así que las leemos en runtime.
-      const usage = response.usage as {
-        input_tokens: number;
-        output_tokens: number;
-        cache_read_input_tokens?: number;
-        cache_creation_input_tokens?: number;
-      };
-      args.onUsage({
-        agent: agentName,
-        model,
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
-        cache_read_input_tokens: usage.cache_read_input_tokens,
-        cache_creation_input_tokens: usage.cache_creation_input_tokens,
-      });
-    } catch {
-      /* tracking callback no debe romper el flujo */
+      parsed = JSON.parse(jsonString);
+    } catch (parseErr) {
+      lastError = new AgentParseError(text, [], agentName);
+      const msg = parseErr instanceof Error ? parseErr.message : 'unknown';
+      if (isFinalAttempt) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[${agentName}] JSON.parse failed (attempt ${attempt}/${MAX_ATTEMPTS} · final):`,
+          msg,
+          '· first 500 chars of raw:',
+          text.slice(0, 500).replace(/\n/g, ' ')
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[${agentName}] JSON.parse failed (attempt ${attempt}/${MAX_ATTEMPTS}), retrying:`,
+          msg
+        );
+      }
+      continue;
     }
+
+    // Step 2: schema.safeParse
+    const result = schema.safeParse(parsed);
+    if (!result.success) {
+      lastError = new AgentParseError(text, result.error.issues, agentName);
+      const issueSummary = result.error.issues
+        .slice(0, 5)
+        .map((i) => `${i.path.join('.') || 'root'}: ${i.message}`)
+        .join(' | ');
+      if (isFinalAttempt) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[${agentName}] schema validation failed (attempt ${attempt}/${MAX_ATTEMPTS} · final). Issues:`,
+          issueSummary,
+          process.env.NODE_ENV !== 'production'
+            ? '\nRaw output (first 1500 chars):\n' + text.slice(0, 1500)
+            : ''
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[${agentName}] schema mismatch (attempt ${attempt}/${MAX_ATTEMPTS}), retrying. Issues:`,
+          issueSummary
+        );
+      }
+      continue;
+    }
+
+    // Step 3: success → tracking + return
+    if (onUsage && response.usage) {
+      try {
+        // Las versiones recientes del SDK exponen cache_* — el tipo todavía no
+        // las declara, así que las leemos en runtime.
+        const usage = response.usage as {
+          input_tokens: number;
+          output_tokens: number;
+          cache_read_input_tokens?: number;
+          cache_creation_input_tokens?: number;
+        };
+        onUsage({
+          agent: agentName,
+          model: (response as { model?: string }).model ?? 'unknown',
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          cache_read_input_tokens: usage.cache_read_input_tokens,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens,
+        });
+      } catch {
+        /* tracking no debe romper el flujo */
+      }
+    }
+    return result.data;
   }
 
-  return result.data;
+  // Imposible llegar aquí porque cada iteración o devuelve o setea lastError.
+  // Pero TS necesita el throw final.
+  throw lastError ?? new AgentParseError('', [], agentName);
 }
