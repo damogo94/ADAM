@@ -239,8 +239,16 @@ function AnalysisInner() {
       {/* A1 + A2 parallel grid */}
       <SectionLabel>agentes paralelos</SectionLabel>
       <div className="grid grid-cols-2 gap-2 px-4">
-        <A1Card status={state.a1Status} data={state.a1} />
-        <A2Card status={state.a2Status} data={state.a2} />
+        <A1Card
+          status={state.a1Status}
+          data={state.a1}
+          failureMessage={state.failures.find((f) => f.agent === 'A1')?.message}
+        />
+        <A2Card
+          status={state.a2Status}
+          data={state.a2}
+          failureMessage={state.failures.find((f) => f.agent === 'A2')?.message}
+        />
       </div>
 
       {/* Debate (conditional) */}
@@ -262,6 +270,7 @@ function AnalysisInner() {
           data={state.a3}
           dailyCandles={state.dailyCandles}
           currency={state.a1?.price?.currency ?? getCurrencyFromTicker(state.ticker ?? '')}
+          failureMessage={state.failures.find((f) => f.agent === 'A3')?.message}
         />
       </div>
 

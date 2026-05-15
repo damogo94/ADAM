@@ -8,7 +8,7 @@ export const A2_OUTPUT_SCHEMA = z.object({
     inflacion_trend: z.enum(['subiendo', 'estable', 'bajando']),
     fed_funds_rate_pct: z.number().nullable(),
     us_10y_yield_pct: z.number().nullable(),
-    narrative: z.string().min(20).max(1000),
+    narrative: z.string().min(20).max(2500),
   }),
   factores_clave: z
     .array(
@@ -34,9 +34,9 @@ export const A2_OUTPUT_SCHEMA = z.object({
     factor_invalidante: z.string(),
   }),
   opportunity_detected: z.boolean(),
-  opportunity_description: z.string().max(600).nullable(),
+  opportunity_description: z.string().max(1500).nullable(),
   confidence: z.number().int().min(0).max(100),
-  narrative: z.string().min(20).max(1200),
+  narrative: z.string().min(20).max(2500),
 });
 
 export type A2Output = z.infer<typeof A2_OUTPUT_SCHEMA>;

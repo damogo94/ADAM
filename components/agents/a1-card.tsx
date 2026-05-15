@@ -5,9 +5,11 @@ import { cn, fmtPct } from '@/lib/utils';
 interface A1CardProps {
   status: AgentStatus;
   data: A1Output | null;
+  /** Mensaje de error específico de este agente — surface al UI para diagnóstico. */
+  failureMessage?: string;
 }
 
-export function A1Card({ status, data }: A1CardProps) {
+export function A1Card({ status, data, failureMessage }: A1CardProps) {
   return (
     <AgentCardShell
       accent="blue"
@@ -28,7 +30,12 @@ export function A1Card({ status, data }: A1CardProps) {
         />
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-rose py-2">error en A1 — reintenta</div>
+        <div className="py-2 space-y-1">
+          <div className="font-mono text-[10px] text-rose">error en A1 — reintenta</div>
+          {failureMessage && (
+            <div className="font-mono text-[9px] text-white/45 leading-snug break-words">{failureMessage}</div>
+          )}
+        </div>
       )}
       {(status === 'done' || status === 'anomaly') && data && <A1Body data={data} />}
     </AgentCardShell>

@@ -20,13 +20,13 @@ export const A4_OUTPUT_SCHEMA = z.object({
     score_total_pct: z.number().int().min(0).max(100),
     nivel_final: ConfluenceLevel,
   }),
-  resumen_a1: z.string().min(20).max(600),
-  resumen_a2: z.string().min(20).max(600),
-  resumen_a3: z.string().min(20).max(600),
+  resumen_a1: z.string().min(20).max(1500),
+  resumen_a2: z.string().min(20).max(1500),
+  resumen_a3: z.string().min(20).max(1500),
   direccion: z.enum(['positivo', 'negativo', 'neutral']),
   confianza: ConfluenceLevel,
-  accion_sugerida: z.string().min(40).max(1000),
-  riesgo_clave: z.string().min(10).max(500),
+  accion_sugerida: z.string().min(40).max(2500),
+  riesgo_clave: z.string().min(10).max(1200),
   disclaimer: z.literal(
     'Análisis educativo · no constituye asesoramiento financiero regulado'
   ),

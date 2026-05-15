@@ -112,7 +112,16 @@ export class AgentParseError extends Error {
     public readonly zodIssues: z.ZodIssue[],
     public readonly agent: string
   ) {
-    super(`[${agent}] LLM output failed schema validation`);
+    // Mensaje user-facing — incluye el primer issue de Zod si existe.
+    // Esto se propaga al frontend en `failures[].message` y permite
+    // diagnosticar sin necesidad de revisar logs de Vercel.
+    const summary = zodIssues.length > 0
+      ? zodIssues
+          .slice(0, 3)
+          .map((i) => `${i.path.join('.') || 'root'}: ${i.message}`)
+          .join(' · ')
+      : 'JSON inválido (parse error)';
+    super(`[${agent}] schema mismatch — ${summary}`);
     this.name = 'AgentParseError';
   }
 }
@@ -184,29 +193,31 @@ export async function runAgent<T extends z.ZodTypeAny>(
   try {
     parsed = JSON.parse(jsonString);
   } catch (parseErr) {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error(
-        `[${agentName}] JSON.parse failed:`,
-        parseErr instanceof Error ? parseErr.message : 'unknown',
-        '\nRaw output (first 2000 chars):\n',
-        text.slice(0, 2000)
-      );
-    }
+    // Loguear SIEMPRE (incluso en prod) — sin visibility es imposible
+    // diagnosticar por qué un agente devuelve JSON inválido. Trimmamos
+    // raw a 500 chars para no spammear Vercel logs.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[${agentName}] JSON.parse failed:`,
+      parseErr instanceof Error ? parseErr.message : 'unknown',
+      '· first 500 chars of raw:',
+      text.slice(0, 500).replace(/\n/g, ' ')
+    );
     throw new AgentParseError(text, [], agentName);
   }
 
   const result = schema.safeParse(parsed);
   if (!result.success) {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error(
-        `[${agentName}] schema validation failed. Issues:`,
-        JSON.stringify(result.error.issues, null, 2),
-        '\nRaw output (first 1500 chars):\n',
-        text.slice(0, 1500)
-      );
-    }
+    // Schema mismatch — loguear SIEMPRE (issues son críticos para diagnosis).
+    // Trimmamos issues a 5 y raw a 1500 chars.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[${agentName}] schema validation failed. Issues:`,
+      result.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join(' | '),
+      process.env.NODE_ENV !== 'production'
+        ? '\nRaw output (first 1500 chars):\n' + text.slice(0, 1500)
+        : ''
+    );
     throw new AgentParseError(text, result.error.issues, agentName);
   }
 

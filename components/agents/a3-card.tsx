@@ -12,13 +12,14 @@ interface A3CardProps {
   dailyCandles?: Candle[];
   /** Moneda para mostrar junto a entrada/stop/target. Default 'USD'. */
   currency?: string;
+  failureMessage?: string;
 }
 
 /**
  * A3 card — siempre visible, badge LIVE.
  * Subline recuerda: "usuario único comandante · sin contexto externo".
  */
-export function A3Card({ status, data, dailyCandles, currency }: A3CardProps) {
+export function A3Card({ status, data, dailyCandles, currency, failureMessage }: A3CardProps) {
   // A3 is "siempre activo" — once we have data, the dot stays as 'live'
   const dotStatus = data ? 'live' : status;
   return (
@@ -43,7 +44,12 @@ export function A3Card({ status, data, dailyCandles, currency }: A3CardProps) {
         />
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-rose py-2">error en A3 — reintenta</div>
+        <div className="py-2 space-y-1">
+          <div className="font-mono text-[10px] text-rose">error en A3 — reintenta</div>
+          {failureMessage && (
+            <div className="font-mono text-[9px] text-white/45 leading-snug break-words">{failureMessage}</div>
+          )}
+        </div>
       )}
       {(status === 'done' || status === 'anomaly' || (status === 'live' && data)) && data && (
         <A3Body data={data} dailyCandles={dailyCandles} currency={currency} />

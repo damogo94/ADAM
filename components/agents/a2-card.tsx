@@ -6,9 +6,10 @@ import { DataSection, SignalBox } from './a1-card';
 interface A2CardProps {
   status: AgentStatus;
   data: A2Output | null;
+  failureMessage?: string;
 }
 
-export function A2Card({ status, data }: A2CardProps) {
+export function A2Card({ status, data, failureMessage }: A2CardProps) {
   return (
     <AgentCardShell accent="cyan" badge="A2" title="Macro" status={status} source="Bloomberg · Fed">
       {status === 'idle' && <IdleState label="standby" />}
@@ -23,7 +24,12 @@ export function A2Card({ status, data }: A2CardProps) {
         />
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-rose py-2">error en A2 — reintenta</div>
+        <div className="py-2 space-y-1">
+          <div className="font-mono text-[10px] text-rose">error en A2 — reintenta</div>
+          {failureMessage && (
+            <div className="font-mono text-[9px] text-white/45 leading-snug break-words">{failureMessage}</div>
+          )}
+        </div>
       )}
       {(status === 'done' || status === 'anomaly') && data && <A2Body data={data} />}
     </AgentCardShell>
