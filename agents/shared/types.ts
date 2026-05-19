@@ -178,17 +178,20 @@ export type A3NarrativeOnly_t = z.infer<typeof A3NarrativeOnly>;
  * con la confluence ya calculada, el ticker, y el disclaimer literal para
  * formar el A4Output completo.
  */
-export const A4NarrativeOnly = z
-  .object({
-    resumen_a1: z.string().max(1500),
-    resumen_a2: z.string().max(1500),
-    resumen_a3: z.string().max(1500),
-    direccion: Direction,
-    confianza: Confidence,
-    accion_sugerida: z.string().max(2500),
-    riesgo_clave: z.string().max(1200),
-  })
-  .strict();
+// NOTA: NO usar .strict() aquí. El A4 system prompt instruye al LLM a
+// emitir el A4Output completo (con ticker/confluence/disclaimer); el
+// userMessage le pide NO emitir esos extras pero modelos menos obedientes
+// (p.ej. Haiku) los incluyen igualmente. Con strip (default zod) los
+// descartamos silenciosamente y el merge final pone los campos canónicos.
+export const A4NarrativeOnly = z.object({
+  resumen_a1: z.string().max(1500),
+  resumen_a2: z.string().max(1500),
+  resumen_a3: z.string().max(1500),
+  direccion: Direction,
+  confianza: Confidence,
+  accion_sugerida: z.string().max(2500),
+  riesgo_clave: z.string().max(1200),
+});
 export type A4NarrativeOnly_t = z.infer<typeof A4NarrativeOnly>;
 
 // ───────────────────────────────────────────────────────────────────────────
