@@ -39,6 +39,7 @@ import { narrateA3 } from '@/agents/a3/narrate';
 import { narrateA4 } from '@/agents/a4/narrate';
 import { runDebate } from '@/agents/debate/client';
 import { computeConfluence, type DebateForConfluence } from '@/agents/a4/compute';
+import type { DebateOutput } from '@/agents/debate/schema';
 import type {
   A1Output_t,
   A2Output_t,
@@ -85,7 +86,8 @@ export interface RunADAMResult {
     a1: A1Output_t | null;
     a2: A2Output_t | null;
     a3: A3Output_t | null;
-    debate: DebateForConfluence | null;
+    /** Debate completo (no la versión trimmed que usa computeConfluence). */
+    debate: DebateOutput | null;
   };
   /** Para diagnostics: qué agentes vivieron, cuál fue el trace, etc. */
   meta: {
@@ -199,15 +201,11 @@ export async function runADAM(
   }
 
   // ── Step 3: Debate condicional
-  let debate: DebateForConfluence | null = null;
+  let debate: DebateOutput | null = null;
   let debateRan = false;
   if (needsDebate(a1, a2)) {
     try {
-      const debateFull = await A.runDebate({ a1: a1!, a2: a2! }, onUsage);
-      debate = {
-        convergence_score: debateFull.convergence_score,
-        direccion: debateFull.direccion,
-      };
+      debate = await A.runDebate({ a1: a1!, a2: a2! }, onUsage);
       debateRan = true;
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -219,7 +217,10 @@ export async function runADAM(
   }
 
   // ── Step 4: Confluence determinístico (no LLM, no falla)
-  const confluence = computeConfluence({ a1, a2, a3, debate });
+  const debateForCompute: DebateForConfluence | null = debate
+    ? { convergence_score: debate.convergence_score, direccion: debate.direccion }
+    : null;
+  const confluence = computeConfluence({ a1, a2, a3, debate: debateForCompute });
 
   // ── Step 5: A4 narrate
   const output = await A.narrateA4(
@@ -228,7 +229,7 @@ export async function runADAM(
       a1,
       a2,
       a3,
-      debate,
+      debate: debateForCompute,
       confluence,
       failures,
     },

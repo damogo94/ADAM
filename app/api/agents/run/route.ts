@@ -186,6 +186,10 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({
+        a1: result.intermediates.a1,
+        a2: result.intermediates.a2,
+        a3: result.intermediates.a3,
+        debate: result.intermediates.debate,
         a4: result.output,
         meta: result.meta,
         partial: result.meta.failures.length > 0,

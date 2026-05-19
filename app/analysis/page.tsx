@@ -102,7 +102,7 @@ function AnalysisInner() {
     });
 
     try {
-      const res = await fetch('/api/agents/a4', {
+      const res = await fetch('/api/agents/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker }),
