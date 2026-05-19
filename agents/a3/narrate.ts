@@ -76,7 +76,7 @@ export async function narrateA3(
       systemPrompt: A3_NARRATE_SYSTEM_PROMPT,
       userMessage,
       schema: A3NarrativeOnly,
-      model: MODELS.SONNET, // futuro: bajar a Haiku cuando confirmemos calidad
+      model: MODELS.HAIKU, // ADR-001: Haiku para narración pura sobre compute determinista
       temperature: 0.3,
       maxTokens: 1500, // narrative ≤2500 chars cabe sobrado en 1500 tokens
       onUsage,

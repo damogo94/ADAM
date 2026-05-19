@@ -65,9 +65,9 @@ export interface AnalysisLog {
   confluence_pct: number;
   direction: Direction;
   confidence: ConfidenceLevel;
-  a1_output: Record<string, unknown>;
-  a2_output: Record<string, unknown>;
-  a3_output: Record<string, unknown>;
+  a1_output: Record<string, unknown> | null;
+  a2_output: Record<string, unknown> | null;
+  a3_output: Record<string, unknown> | null;
   debate_output: Record<string, unknown> | null;
   a4_output: Record<string, unknown>;
   latency_ms: number | null;

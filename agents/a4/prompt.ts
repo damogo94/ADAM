@@ -1,6 +1,6 @@
 /**
  * A4 — Sistema · Ensamblado final al usuario
- * Modelo: claude-opus-4-6
+ * Modelo: claude-sonnet-4-6 (ensamblado estructurado en a4/client.ts)
  *
  * Recibe los outputs de A1, A2, A3 (y opcionalmente debate). Calcula el indicador
  * de confluencia y produce la recomendación final consolidada para el usuario.

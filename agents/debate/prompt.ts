@@ -1,6 +1,6 @@
 /**
  * Debate A1 × A2
- * Modelo: claude-opus-4-6 (síntesis de calidad crítica)
+ * Modelo: claude-sonnet-4-6 (síntesis de calidad crítica — ADR-001)
  *
  * Se invoca CONDICIONAL: solo si A1.anomaly_detected === true OR A2.opportunity_detected === true.
  * Inputs: el JSON completo de A1 y A2.

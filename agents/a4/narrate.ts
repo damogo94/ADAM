@@ -134,7 +134,7 @@ export async function narrateA4(
     systemPrompt: A4_SYSTEM_PROMPT,
     userMessage,
     schema: A4NarrativeOnly,
-    model: MODELS.SONNET,
+    model: MODELS.HAIKU,
     maxTokens: 3000,
     temperature: 0.3,
     onUsage,

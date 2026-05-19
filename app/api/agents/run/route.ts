@@ -169,10 +169,10 @@ export async function POST(req: NextRequest) {
           confluence_pct: result.output.confluence.score_total_pct,
           direction: result.output.direccion,
           confidence: result.output.confianza,
-          a1_output: null, // El pipeline no expone los outputs intermedios aquí
-          a2_output: null, // — pueden recuperarse desde la response si hace falta
-          a3_output: null,
-          debate_output: null,
+          a1_output: result.intermediates.a1,
+          a2_output: result.intermediates.a2,
+          a3_output: result.intermediates.a3,
+          debate_output: result.intermediates.debate,
           a4_output: result.output,
           latency_ms: result.meta.durationMs,
           tokens_used: tokensUsed,

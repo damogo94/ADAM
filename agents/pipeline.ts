@@ -76,6 +76,17 @@ export interface AgentImplementations {
 export interface RunADAMResult {
   /** Output final consolidado al usuario. */
   output: A4Output_t;
+  /**
+   * Outputs intermedios crudos para persistencia/auditoría.
+   * Cualquiera puede ser null si ese agente falló (pipeline es resiliente).
+   * `debate` es null cuando no se disparó O cuando falló transitoriamente.
+   */
+  intermediates: {
+    a1: A1Output_t | null;
+    a2: A2Output_t | null;
+    a3: A3Output_t | null;
+    debate: DebateForConfluence | null;
+  };
   /** Para diagnostics: qué agentes vivieron, cuál fue el trace, etc. */
   meta: {
     traceId: string;
@@ -232,6 +243,7 @@ export async function runADAM(
 
   return {
     output,
+    intermediates: { a1, a2, a3, debate },
     meta: {
       traceId,
       failures,

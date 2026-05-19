@@ -64,7 +64,7 @@ export async function narrateA1(
     systemPrompt: A1_SYSTEM_PROMPT,
     userMessage,
     schema: A1Output,
-    model: MODELS.SONNET,
+    model: MODELS.HAIKU,
     maxTokens: 3000,
     onUsage,
   });
