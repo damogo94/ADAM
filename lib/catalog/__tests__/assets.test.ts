@@ -20,8 +20,8 @@ describe('resolveTicker', () => {
   });
 
   it('resuelve aliases comunes', () => {
-    expect(resolveTicker('GOLD')).toBe('XAU/USD');
-    expect(resolveTicker('ORO')).toBe('XAU/USD');
+    expect(resolveTicker('GOLD')).toBe('GC=F');
+    expect(resolveTicker('ORO')).toBe('GC=F');
     expect(resolveTicker('OIL')).toBe('USO');
     expect(resolveTicker('PETROLEO')).toBe('USO');
     expect(resolveTicker('SP500')).toBe('SPY');
@@ -31,7 +31,7 @@ describe('resolveTicker', () => {
   });
 
   it('aliases case-insensitive', () => {
-    expect(resolveTicker('gold')).toBe('XAU/USD');
+    expect(resolveTicker('gold')).toBe('GC=F');
     expect(resolveTicker('Bitcoin')).toBe('BTC');
   });
 

@@ -42,8 +42,8 @@ describe('classOf — hits del catálogo', () => {
     expect(classOf('XLF')).toBe('equity');
   });
 
-  it('XAU/USD → commodity (en catálogo)', () => {
-    expect(classOf('XAU/USD')).toBe('commodity');
+  it('GC=F → commodity (oro futuros, en catálogo)', () => {
+    expect(classOf('GC=F')).toBe('commodity');
   });
 
   it('case-insensitive: aapl → equity', () => {
@@ -56,10 +56,11 @@ describe('classOf — heurísticas (ticker no en catálogo)', () => {
     expect(classOf('EURUSD=X')).toBe('forex');
   });
 
-  it('XAU/USD aunque NO estuviera en catálogo → commodity por METAL_BASES', () => {
-    // Test indirecto: la regex de pares 3+3 distingue metales spot.
-    // El catálogo intercepta XAU/USD primero, pero la heurística también lo cubre.
-    // Verificamos con un par de metal hipotético no en catálogo:
+  it('XAU/USD por heurística (ya no está en catálogo) → commodity por METAL_BASES', () => {
+    // Tras el fix v1.1, los metales spot salieron del catálogo (Yahoo no
+    // sirve XAUUSD=X). La heurística por METAL_BASES cubre el caso si
+    // un caller pasa todavía XAU/USD o XAU/EUR.
+    expect(classOf('XAU/USD')).toBe('commodity');
     expect(classOf('XAU/EUR')).toBe('commodity');
   });
 

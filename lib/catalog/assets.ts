@@ -25,12 +25,21 @@ export interface CatalogAsset {
 
 export const CATALOG: CatalogAsset[] = [
   // ─── Metales ─────────────────────────────────────────────────────────────
-  { ticker: 'XAU/USD', label: 'Oro',        category: 'metals', asset_type: 'commodity', aliases: ['GOLD', 'ORO'] },
-  { ticker: 'XAG/USD', label: 'Plata',      category: 'metals', asset_type: 'commodity', aliases: ['SILVER', 'PLATA'] },
-  { ticker: 'XPT/USD', label: 'Platino',    category: 'metals', asset_type: 'commodity', aliases: ['PLATINUM'] },
-  { ticker: 'XPD/USD', label: 'Paladio',    category: 'metals', asset_type: 'commodity', aliases: ['PALLADIUM'] },
-  { ticker: 'GLD',     label: 'SPDR Gold Shares',    category: 'metals', asset_type: 'etf' },
-  { ticker: 'SLV',     label: 'iShares Silver Trust', category: 'metals', asset_type: 'etf' },
+  // Spot metals (XAU/XAG/XPT/XPD vs USD) NO los sirve Yahoo de forma fiable
+  // — el normalizador de finnhub.ts los convierte a XAUUSD=X y vuelven null.
+  // Usamos contratos de futuros (Yahoo =F) que SÍ devuelven OHLCV:
+  //   GC=F → Gold Continuous Futures (proxy spot oro)
+  //   SI=F → Silver Continuous Futures
+  //   PL=F → Platinum Continuous Futures
+  //   PA=F → Palladium Continuous Futures
+  // Los ETFs (GLD/SLV) siguen como entrada separada — distinto vehículo
+  // (NAV vs contrato), distinto perfil de riesgo.
+  { ticker: 'GC=F', label: 'Oro (futuros)',     category: 'metals', asset_type: 'commodity', aliases: ['GOLD', 'ORO'] },
+  { ticker: 'SI=F', label: 'Plata (futuros)',   category: 'metals', asset_type: 'commodity', aliases: ['SILVER', 'PLATA'] },
+  { ticker: 'PL=F', label: 'Platino (futuros)', category: 'metals', asset_type: 'commodity', aliases: ['PLATINUM'] },
+  { ticker: 'PA=F', label: 'Paladio (futuros)', category: 'metals', asset_type: 'commodity', aliases: ['PALLADIUM'] },
+  { ticker: 'GLD',  label: 'SPDR Gold Shares',    category: 'metals', asset_type: 'etf' },
+  { ticker: 'SLV',  label: 'iShares Silver Trust', category: 'metals', asset_type: 'etf' },
 
   // ─── Índices (vía ETF) ───────────────────────────────────────────────────
   { ticker: 'SPY', label: 'S&P 500',          category: 'indices', asset_type: 'etf', aliases: ['SP500', 'SPX'] },
@@ -62,7 +71,8 @@ export const CATALOG: CatalogAsset[] = [
   { ticker: 'NVDA',  label: 'Nvidia',        category: 'equities', asset_type: 'equity' },
   { ticker: 'META',  label: 'Meta',          category: 'equities', asset_type: 'equity', aliases: ['FACEBOOK', 'FB'] },
   { ticker: 'TSLA',  label: 'Tesla',         category: 'equities', asset_type: 'equity' },
-  { ticker: 'BRK.B', label: 'Berkshire Hathaway', category: 'equities', asset_type: 'equity', aliases: ['BERKSHIRE'] },
+  // Yahoo usa guion en lugar de punto para clases de acciones (BRK-B no BRK.B).
+  { ticker: 'BRK-B', label: 'Berkshire Hathaway', category: 'equities', asset_type: 'equity', aliases: ['BERKSHIRE'] },
   { ticker: 'JPM',   label: 'JPMorgan',      category: 'equities', asset_type: 'equity' },
   { ticker: 'V',     label: 'Visa',          category: 'equities', asset_type: 'equity' },
   { ticker: 'MA',    label: 'Mastercard',    category: 'equities', asset_type: 'equity' },
@@ -126,7 +136,8 @@ export const CATALOG: CatalogAsset[] = [
   { ticker: 'EUR/JPY', label: 'Euro · Yen',       category: 'forex', asset_type: 'forex' },
   { ticker: 'GBP/JPY', label: 'Libra · Yen',      category: 'forex', asset_type: 'forex' },
   { ticker: 'USD/MXN', label: 'Dólar · Peso MXN', category: 'forex', asset_type: 'forex' },
-  { ticker: 'USD/CNH', label: 'Dólar · Yuan',     category: 'forex', asset_type: 'forex' },
+  // Yahoo sirve CNY (onshore yuan) de forma estable; CNH (offshore) es flaky.
+  { ticker: 'USD/CNY', label: 'Dólar · Yuan',     category: 'forex', asset_type: 'forex' },
 ];
 
 // Búsqueda O(1) por ticker canónico (upper).
