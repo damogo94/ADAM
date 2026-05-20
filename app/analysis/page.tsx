@@ -13,6 +13,7 @@ import { A4Card } from '@/components/agents/a4-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
+import { resolveTicker } from '@/lib/catalog/assets';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
@@ -87,11 +88,15 @@ function AnalysisInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoTicker]);
 
-  async function handleRun(ticker: string) {
+  async function handleRun(rawTicker: string) {
     // Cancela cualquier request anterior en vuelo
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+
+    // Defense in depth: resuelve aliases ("GOLD" → "XAU/USD") en todos los
+    // entry-points (input libre, ?ticker=X desde watchlist, deep-link).
+    const ticker = resolveTicker(rawTicker);
 
     setState({
       ...INITIAL,
