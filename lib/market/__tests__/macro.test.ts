@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { computeCpiYoy, computeCpiTrend } from '../macro';
+import { computeCpiYoy, computeCpiTrend, isEffectivelyEmpty } from '../macro';
 import type { FredObservation } from '../fred';
+import type { MacroSnapshotPayload } from '../macro';
 
 /**
  * Helper para fabricar observaciones FRED en orden descendente
@@ -63,5 +64,50 @@ describe('computeCpiTrend', () => {
     // Todos los meses crecen casi exactamente igual.
     const series = obs([303, 303, 303, 302.5, 302.5, 302.5, 302, 302, 302, 301.5, 301.5, 301.5, 300, 300, 300]);
     expect(computeCpiTrend(series)).toBe('estable');
+  });
+});
+
+describe('isEffectivelyEmpty', () => {
+  function snap(overrides: Partial<MacroSnapshotPayload> = {}): MacroSnapshotPayload {
+    return {
+      fed_funds_rate_pct: null,
+      us_10y_yield_pct: null,
+      us_2y_yield_pct: null,
+      cpi_yoy_pct: null,
+      cpi_trend: null,
+      unemployment_pct: null,
+      vix: null,
+      curva_invertida: null,
+      as_of: '2026-05-20',
+      ...overrides,
+    };
+  }
+
+  it('todos los indicadores principales null → vacío', () => {
+    expect(isEffectivelyEmpty(snap())).toBe(true);
+  });
+
+  it('un solo indicador con valor → no vacío', () => {
+    expect(isEffectivelyEmpty(snap({ vix: 18.5 }))).toBe(false);
+    expect(isEffectivelyEmpty(snap({ fed_funds_rate_pct: 4.5 }))).toBe(false);
+    expect(isEffectivelyEmpty(snap({ cpi_yoy_pct: 2.8 }))).toBe(false);
+  });
+
+  it('snapshot completo → no vacío', () => {
+    const full = snap({
+      fed_funds_rate_pct: 4.5,
+      us_10y_yield_pct: 4.2,
+      us_2y_yield_pct: 4.6,
+      cpi_yoy_pct: 2.8,
+      unemployment_pct: 3.9,
+      vix: 18.5,
+      curva_invertida: true,
+    });
+    expect(isEffectivelyEmpty(full)).toBe(false);
+  });
+
+  it('solo curva_invertida y as_of (campos derivados) → vacío', () => {
+    // Los derivados no cuentan: pueden existir sin indicadores reales.
+    expect(isEffectivelyEmpty(snap({ curva_invertida: false }))).toBe(true);
   });
 });
