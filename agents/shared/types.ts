@@ -153,7 +153,7 @@ export interface MarketSnapshot {
   ohlcv_daily: OHLCVCandle_t[];
   ohlcv_intraday: OHLCVCandle_t[];
   /** Snapshot macro disponible. Puede estar parcial o vacío (degradación elegante en A2). */
-  macro_snapshot: Record<string, number | null | undefined>;
+  macro_snapshot: Record<string, number | string | boolean | null | undefined>;
 }
 
 // ───────────────────────────────────────────────────────────────────────────

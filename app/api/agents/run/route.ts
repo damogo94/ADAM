@@ -25,6 +25,7 @@ import {
   fallbackOverview,
   fallbackNewsSentiment,
 } from '@/lib/market/finnhub';
+import { getMacroSnapshot } from '@/lib/market/macro';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
@@ -95,12 +96,15 @@ export async function POST(req: NextRequest) {
 
     try {
       // ─── Data fetch ─────────────────────────────────────────────
-      const [q, daily, intraday, ov, news] = await Promise.all([
+      // Macro snapshot va en paralelo con los datos de Finnhub; lleva su
+      // propia cache diaria así que no penaliza latencia tras el primer hit.
+      const [q, daily, intraday, ov, news, macro] = await Promise.all([
         fallbackQuote(ticker).catch(() => null),
         fallbackDaily(ticker).catch(() => []),
         fallbackIntraday(ticker).catch(() => []),
         fallbackOverview(ticker).catch(() => null),
         fallbackNewsSentiment(ticker, 5).catch(() => []),
+        getMacroSnapshot().catch(() => null),
       ]);
 
       // Recovery: precio desde última vela si quote falla
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
         news,
         ohlcv_daily: daily.slice(-100),
         ohlcv_intraday: intraday.slice(-100),
-        macro_snapshot: {},
+        macro_snapshot: macro ? { ...macro } : {},
       };
 
       // ─── Ejecuta pipeline ──────────────────────────────────────
