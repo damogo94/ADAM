@@ -72,7 +72,19 @@ export interface AnalysisLog {
   a4_output: Record<string, unknown>;
   latency_ms: number | null;
   tokens_used: number | null;
+  /** Precio del activo al ejecutar el run. Necesario para evaluar outcomes. */
+  initial_price: number | null;
+  initial_price_at: string | null;
   created_at: string;
+}
+
+export interface SignalOutcome {
+  analysis_id: string;
+  horizon_days: 7 | 30;
+  eval_price: number;
+  return_pct: number;
+  hit: boolean;
+  evaluated_at: string;
 }
 
 /**
@@ -117,6 +129,12 @@ export interface Database {
         Row: AnalysisLog;
         Insert: Omit<AnalysisLog, 'id' | 'created_at'>;
         Update: Partial<Omit<AnalysisLog, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [];
+      };
+      signal_outcomes: {
+        Row: SignalOutcome;
+        Insert: Omit<SignalOutcome, 'evaluated_at'> & { evaluated_at?: string };
+        Update: Partial<Omit<SignalOutcome, 'analysis_id' | 'horizon_days'>>;
         Relationships: [];
       };
     };

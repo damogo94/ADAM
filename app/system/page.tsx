@@ -19,6 +19,19 @@ interface SystemStats {
   cost_usd_estimated: number;
 }
 
+interface CalibrationBucket {
+  n: number;
+  hits: number;
+  hit_rate_pct: number | null;
+}
+interface Calibration {
+  total: CalibrationBucket;
+  by_horizon: Record<string, CalibrationBucket>;
+  by_direction: Record<string, CalibrationBucket>;
+  by_confidence: Record<string, CalibrationBucket>;
+  by_confluence: Record<string, CalibrationBucket>;
+}
+
 const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'compute' }[] = [
   { id: 'A1', label: 'Activos · micro', model: 'sonnet-4-6', mode: 'narrate' },
   { id: 'A2', label: 'Macro · global', model: 'sonnet-4-6', mode: 'narrate' },
@@ -31,6 +44,7 @@ const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'co
 export default function SystemScreen() {
   const router = useRouter();
   const [stats, setStats] = useState<SystemStats | null>(null);
+  const [calibration, setCalibration] = useState<Calibration | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,15 +54,19 @@ export default function SystemScreen() {
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch('/api/system');
-      if (!r.ok) {
-        if (r.status === 401) {
+      const [statsRes, calRes] = await Promise.all([
+        fetch('/api/system'),
+        fetch('/api/metrics/calibration'),
+      ]);
+      if (!statsRes.ok) {
+        if (statsRes.status === 401) {
           router.push('/login?next=/system');
           return;
         }
         return;
       }
-      setStats(await r.json());
+      setStats(await statsRes.json());
+      if (calRes.ok) setCalibration(await calRes.json());
     } finally {
       setLoading(false);
     }
@@ -95,6 +113,82 @@ export default function SystemScreen() {
         <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media A4" />
         <Stat n={fmtTokens(stats?.tokens_total ?? 0)} l="tokens consumidos" />
         <Stat n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`} l="coste estimado (USD)" cls="text-emerald" />
+      </div>
+
+      <SectionLabel>calibración · backtesting modo B</SectionLabel>
+      <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
+        {!calibration || calibration.total.n === 0 ? (
+          <div className="font-mono text-[9px] text-white/45 leading-snug">
+            Sin outcomes evaluados aún. El cron diario (22:00 UTC) evalúa
+            análisis con horizonte 7d/30d madurado. Threshold v1: ±2%.
+          </div>
+        ) : (
+          <>
+            <div className="font-mono text-[9px] text-emerald uppercase tracking-wider font-medium mb-1.5">
+              hit-rate global: {calibration.total.hit_rate_pct}% · N={calibration.total.n}
+            </div>
+            <KV
+              k="horizonte 7d"
+              v={`${calibration.by_horizon['7']?.hit_rate_pct ?? '—'}% · n=${calibration.by_horizon['7']?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="horizonte 30d"
+              v={`${calibration.by_horizon['30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_horizon['30']?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="dirección alcista"
+              v={`${calibration.by_direction.alcista?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.alcista?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="dirección bajista"
+              v={`${calibration.by_direction.bajista?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.bajista?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="dirección neutral"
+              v={`${calibration.by_direction.neutral?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.neutral?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confianza muy_alta"
+              v={`${calibration.by_confidence.muy_alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.muy_alta?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confianza alta"
+              v={`${calibration.by_confidence.alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.alta?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confianza media"
+              v={`${calibration.by_confidence.media?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.media?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confianza baja"
+              v={`${calibration.by_confidence.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.baja?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confluence 61-100"
+              v={`${calibration.by_confluence['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['61-100']?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confluence 31-60"
+              v={`${calibration.by_confluence['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['31-60']?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="confluence 0-30"
+              v={`${calibration.by_confluence['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['0-30']?.n ?? 0}`}
+              cls="text-white/85"
+            />
+          </>
+        )}
       </div>
 
       <SectionLabel>agentes</SectionLabel>
