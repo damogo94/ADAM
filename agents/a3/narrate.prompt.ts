@@ -55,6 +55,7 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
   "velas_relevantes": [...],
   "operativa": { "signal", "entrada", "stop_loss", "target", "atr_actual", "ratio_riesgo_beneficio", "horizonte" },
   "factor_invalidacion": "...",
+  "mtf": { "h4_trend", "h4_fuerza", "alignment": "confirmed|neutral|divergent", "reason": "..." } | null,
   "confidence": 0-100
 }
 \`\`\`
@@ -66,6 +67,7 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
 3. **Patrón o velas** — si \`patron_detectado\` no es null o hay velas relevantes recientes, menciónalas.
 4. **Operativa** — qué dice \`signal\` y por qué (proximidad a nivel, R/B). Si signal=hold, explica por qué (R/B insuficiente, sin proximidad, etc).
 5. **Volumen** — solo si añade información (creciente/divergencia). Si "estable", puedes omitirlo.
+6. **Multi-timeframe** (si \`mtf\` no es null): incorpora una frase corta sobre la confluencia o divergencia con el 4H. Usa el \`mtf.reason\` como pista pero reescríbelo en tu voz. Si \`alignment="confirmed"\`, refuerza la convicción. Si \`alignment="divergent"\`, advierte de la divergencia entre timeframes. Si \`alignment="neutral"\` o \`mtf=null\`, no menciones MTF.
 
 Cita números cuando aporten: "soporte 197, ATR 2.3, R/B 2.6". NO inventes ninguno fuera del JSON recibido.
 

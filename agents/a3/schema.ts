@@ -48,6 +48,19 @@ export const A3_OUTPUT_SCHEMA = z.object({
     horizonte: z.enum(['intradia', 'swing', 'posicional']),
   }),
   factor_invalidacion: z.string().max(1000),
+  /**
+   * Multi-timeframe — confluencia entre daily y 4H agregado.
+   * null cuando no hay intraday suficiente para evaluar.
+   */
+  mtf: z
+    .object({
+      h4_trend: z.enum(['alcista', 'bajista', 'lateral']),
+      h4_fuerza: z.number().int().min(1).max(5),
+      alignment: z.enum(['confirmed', 'neutral', 'divergent']),
+      reason: z.string().max(500),
+    })
+    .nullable()
+    .optional(),
   confidence: z.number().int().min(0).max(100),
   narrative: z.string().min(20).max(2500),
 });

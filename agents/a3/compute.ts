@@ -43,6 +43,7 @@ import {
   detectVolumeDivergence,
 } from './compute/patterns';
 import { computeOperativa } from './compute/operative';
+import { analyzeMtf, mtfConfidenceDelta } from './compute/mtf';
 import type {
   A3Output_t,
   OHLCVCandle_t,
@@ -54,6 +55,12 @@ export interface ComputeTechnicalInput {
   ohlcv: OHLCVCandle_t[];
   /** Identificador del timeframe del array OHLCV. */
   timeframe: Timeframe_t;
+  /**
+   * Velas intradía hourly opcionales. Si presentes con ≥24 velas, se agregan
+   * a 4H y se computa multi-timeframe alignment. Si null o insuficientes,
+   * mtf en la salida es null y no hay penalización ni boost de confidence.
+   */
+  intraday?: OHLCVCandle_t[];
 }
 
 /** Salida de computeTechnical = A3Output sin `narrative` (lo añade el LLM). */
@@ -62,7 +69,7 @@ export type ComputeTechnicalOutput = Omit<A3Output_t, 'narrative'>;
 export function computeTechnical(
   input: ComputeTechnicalInput
 ): ComputeTechnicalOutput {
-  const { ticker, ohlcv, timeframe } = input;
+  const { ticker, ohlcv, timeframe, intraday } = input;
 
   // ── Indicadores ──────────────────────────────────────────────────
   const sma20 = smaLast(ohlcv, 20);
@@ -96,8 +103,11 @@ export function computeTechnical(
     atr,
   });
 
-  // ── Confidence (heurística determinística) ───────────────────────
-  const confidence = computeConfidence({
+  // ── Multi-timeframe (opcional, solo si hay intraday suficiente) ──
+  const mtf = analyzeMtf(trend.primaria, intraday);
+
+  // ── Confidence (heurística determinística + ajuste MTF) ──────────
+  const baseConfidence = computeConfidence({
     candleCount: ohlcv.length,
     trend: trend.primaria,
     hasLevels: levels.soportes.length > 0 && levels.resistencias.length > 0,
@@ -105,6 +115,8 @@ export function computeTechnical(
     volumeOk: volumeState === 'creciente' || volumeState === 'estable',
     operativaActive: operativa.signal !== 'hold',
   });
+  const mtfDelta = mtf ? mtfConfidenceDelta(mtf.alignment) : 0;
+  const confidence = Math.max(0, Math.min(100, baseConfidence + mtfDelta));
 
   // ── Factor invalidación (texto determinístico) ───────────────────
   const factor_invalidacion = describeInvalidation(operativa, levels, trend.primaria);
@@ -112,7 +124,7 @@ export function computeTechnical(
   // ── Output ───────────────────────────────────────────────────────
   return {
     ticker,
-    timeframes_analizados: [timeframe],
+    timeframes_analizados: mtf ? [timeframe, '4H'] : [timeframe],
     tendencia: trend,
     soportes: levels.soportes,
     resistencias: levels.resistencias,
@@ -132,6 +144,7 @@ export function computeTechnical(
     velas_relevantes,
     operativa,
     factor_invalidacion,
+    mtf,
     confidence,
   };
 }

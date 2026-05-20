@@ -32,6 +32,8 @@ export interface NarrateA3Input {
   ticker: string;
   ohlcv: OHLCVCandle_t[];
   timeframe?: Timeframe_t;
+  /** Velas intradía hourly (≥24) para análisis multi-timeframe. Opcional. */
+  intraday?: OHLCVCandle_t[];
 }
 
 export interface NarrateA3Options {
@@ -58,6 +60,7 @@ export async function narrateA3(
     ticker: input.ticker,
     ohlcv: input.ohlcv,
     timeframe,
+    intraday: input.intraday,
   });
 
   // 2. LLM narrate — solo prosa

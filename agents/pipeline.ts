@@ -167,6 +167,7 @@ export async function runADAM(
         ticker,
         ohlcv: snapshot.ohlcv_daily,
         timeframe: '1D',
+        intraday: snapshot.ohlcv_intraday,
       },
       { traceId, onUsage }
     ),

@@ -355,6 +355,21 @@ export const A3Output = z
       })
       .strict(),
     factor_invalidacion: z.string().max(1000),
+    /**
+     * Multi-timeframe — confluencia daily vs 4H agregado.
+     * null cuando no hay intraday suficiente. Opcional para retro-
+     * compatibilidad con runs anteriores y outputs del LLM que aún no lo
+     * incluyan.
+     */
+    mtf: z
+      .object({
+        h4_trend: TrendDirection,
+        h4_fuerza: z.number().int().min(1).max(5),
+        alignment: z.enum(['confirmed', 'neutral', 'divergent']),
+        reason: z.string().max(500),
+      })
+      .nullable()
+      .optional(),
     confidence: z.number().int().min(0).max(100),
     narrative: z.string().max(2500),
   })
