@@ -29,6 +29,7 @@ import type {
   TrendDirection_t,
 } from '@/agents/shared/types';
 import type { LevelsResult } from './levels';
+import { roundProfile, type AssetProfile } from '../profiles';
 
 export interface OperativaResult {
   signal: Signal_t;
@@ -45,17 +46,33 @@ export interface OperativaInput {
   tendencia: TrendDirection_t;
   levels: LevelsResult;
   atr: number | null;
+  /**
+   * Profile derivado del ticker en compute.ts (PR5). Opcional para
+   * backward compatibility: sin profile, usa los defaults históricos que
+   * coinciden con el `equity` profile (proximity 3%, atr 1%, rb 1.5).
+   */
+  profile?: AssetProfile;
 }
 
-/** R/B mínimo aceptable (acuerdo de proyecto). */
+/** R/B mínimo aceptable (default histórico — equity profile lo coincide). */
 export const MIN_RB_RATIO = 1.5;
 /** Datos insuficientes para emitir setup. */
 export const MIN_CANDLES_FOR_SIGNAL = 20;
-/** Proximidad al nivel para considerar "entrada limpia". */
-const PROXIMITY_PCT = 3;
+/** Proximidad al nivel para considerar "entrada limpia" (default histórico). */
+const DEFAULT_PROXIMITY_PCT = 3;
+/** Fallback de ATR como % del precio actual (default histórico). */
+const DEFAULT_ATR_FALLBACK_PCT = 1;
 
 export function computeOperativa(input: OperativaInput): OperativaResult {
-  const { candles, tendencia, levels, atr } = input;
+  const { candles, tendencia, levels, atr, profile } = input;
+
+  // Resolución de parámetros: profile si existe, default histórico si no.
+  // Los defaults coinciden con el equity profile → tests existentes pasan.
+  const proximityPct = profile?.proximity_pct ?? DEFAULT_PROXIMITY_PCT;
+  const atrFallbackPct = profile?.atr_fallback_pct ?? DEFAULT_ATR_FALLBACK_PCT;
+  const minRbRatio = profile?.min_rb_ratio ?? MIN_RB_RATIO;
+  const round = (n: number) =>
+    profile ? roundProfile(n, profile) : Math.round(n * 100) / 100;
 
   const fallbackHorizonte: TradingHorizon_t = horizonteFromCandles(candles);
 
@@ -80,24 +97,24 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
     const nearestResistance = levels.resistencias[0]!;
     const proximityToSupport = ((currentPrice - nearestSupport) / currentPrice) * 100;
 
-    // "Cerca" = dentro del 3% sobre el soporte
-    if (proximityToSupport >= 0 && proximityToSupport <= PROXIMITY_PCT) {
+    // "Cerca" = dentro del proximityPct sobre el soporte (por profile)
+    if (proximityToSupport >= 0 && proximityToSupport <= proximityPct) {
       const entrada = currentPrice;
-      const stop_loss = round2(nearestSupport - (atr ?? currentPrice * 0.01));
-      const target = round2(nearestResistance);
+      const stop_loss = round(nearestSupport - (atr ?? currentPrice * (atrFallbackPct / 100)));
+      const target = round(nearestResistance);
       const riesgo = entrada - stop_loss;
       const beneficio = target - entrada;
 
       if (riesgo > 0 && beneficio > 0) {
         const ratio = beneficio / riesgo;
-        if (ratio >= MIN_RB_RATIO) {
+        if (ratio >= minRbRatio) {
           return {
             signal: 'buy',
-            entrada: round2(entrada),
+            entrada: round(entrada),
             stop_loss,
             target,
             atr_actual: atr,
-            ratio_riesgo_beneficio: round2(ratio),
+            ratio_riesgo_beneficio: round(ratio),
             horizonte: fallbackHorizonte,
           };
         }
@@ -111,23 +128,23 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
     const nearestSupport = levels.soportes[0]!;
     const proximityToResistance = ((nearestResistance - currentPrice) / currentPrice) * 100;
 
-    if (proximityToResistance >= 0 && proximityToResistance <= PROXIMITY_PCT) {
+    if (proximityToResistance >= 0 && proximityToResistance <= proximityPct) {
       const entrada = currentPrice;
-      const stop_loss = round2(nearestResistance + (atr ?? currentPrice * 0.01));
-      const target = round2(nearestSupport);
+      const stop_loss = round(nearestResistance + (atr ?? currentPrice * (atrFallbackPct / 100)));
+      const target = round(nearestSupport);
       const riesgo = stop_loss - entrada;
       const beneficio = entrada - target;
 
       if (riesgo > 0 && beneficio > 0) {
         const ratio = beneficio / riesgo;
-        if (ratio >= MIN_RB_RATIO) {
+        if (ratio >= minRbRatio) {
           return {
             signal: 'sell',
-            entrada: round2(entrada),
+            entrada: round(entrada),
             stop_loss,
             target,
             atr_actual: atr,
-            ratio_riesgo_beneficio: round2(ratio),
+            ratio_riesgo_beneficio: round(ratio),
             horizonte: fallbackHorizonte,
           };
         }
@@ -164,8 +181,4 @@ function horizonteFromCandles(candles: OHLCVCandle_t[]): TradingHorizon_t {
   if (spanDays < 7) return 'intradia';
   if (spanDays < 90) return 'swing';
   return 'posicional';
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
 }

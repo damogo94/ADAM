@@ -44,6 +44,7 @@ import {
 } from './compute/patterns';
 import { computeOperativa } from './compute/operative';
 import { analyzeMtf, mtfConfidenceDelta } from './compute/mtf';
+import { profileFor } from './profiles';
 import type {
   A3Output_t,
   OHLCVCandle_t,
@@ -96,11 +97,16 @@ export function computeTechnical(
   const volumeComment = describeVolume(volumeState, ohlcv);
 
   // ── Operativa ────────────────────────────────────────────────────
+  // PR5: profile derivado del ticker parametriza proximity/ATR/RB por
+  // clase de activo. No entra al LLM (no rompe aislamiento de A3) — solo
+  // ajusta las magnitudes del compute determinístico.
+  const profile = profileFor(ticker);
   const operativa = computeOperativa({
     candles: ohlcv,
     tendencia: trend.primaria,
     levels,
     atr,
+    profile,
   });
 
   // ── Multi-timeframe (opcional, solo si hay intraday suficiente) ──
