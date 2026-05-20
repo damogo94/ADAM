@@ -180,6 +180,7 @@ export async function POST(req: NextRequest) {
           a4_output: result.output,
           latency_ms: result.meta.durationMs,
           tokens_used: tokensUsed,
+          usage_breakdown: usages,
           initial_price: currentPrice,
           initial_price_at: new Date().toISOString(),
         } as any);

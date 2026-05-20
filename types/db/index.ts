@@ -72,6 +72,18 @@ export interface AnalysisLog {
   a4_output: Record<string, unknown>;
   latency_ms: number | null;
   tokens_used: number | null;
+  /**
+   * Desglose por agente de tokens y modelo (uno por llamada LLM dentro del run).
+   * NULL en runs anteriores a 2026-05 (migración 0005).
+   */
+  usage_breakdown: Array<{
+    agent: string;
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+  }> | null;
   /** Precio del activo al ejecutar el run. Necesario para evaluar outcomes. */
   initial_price: number | null;
   initial_price_at: string | null;

@@ -7,6 +7,19 @@ import { SectionLabel } from '@/components/section-label';
 import { ArchitectureDiagram } from '@/components/architecture-diagram';
 import { cn } from '@/lib/utils';
 
+interface AgentAggregate {
+  agent: string;
+  runs: number;
+  models: string[];
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+  total_tokens: number;
+  cost_usd: number;
+  cache_hit_rate_pct: number;
+}
+
 interface SystemStats {
   analyses_total: number;
   signals_total: number;
@@ -17,6 +30,7 @@ interface SystemStats {
   watchlist_tickers: number;
   tokens_total: number;
   cost_usd_estimated: number;
+  by_agent: AgentAggregate[];
 }
 
 interface CalibrationBucket {
@@ -114,6 +128,12 @@ export default function SystemScreen() {
         <Stat n={fmtTokens(stats?.tokens_total ?? 0)} l="tokens consumidos" />
         <Stat n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`} l="coste estimado (USD)" cls="text-emerald" />
       </div>
+
+      <SectionLabel>coste por agente · últimos 100 runs</SectionLabel>
+      <AgentCostBreakdown
+        rows={stats?.by_agent ?? []}
+        totalCost={stats?.cost_usd_estimated ?? 0}
+      />
 
       <SectionLabel>calibración · backtesting modo B</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
@@ -292,5 +312,78 @@ function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
       <span className="font-mono text-[9px] text-white/55 flex-shrink-0">{k}</span>
       <span className={cn('text-right font-mono text-[9px]', cls ?? 'text-white')}>{v}</span>
     </div>
+  );
+}
+
+function shortModel(m: string): string {
+  // claude-sonnet-4-6 → sonnet-4-6 · claude-haiku-4-5-20251001 → haiku-4-5
+  return m.replace(/^claude-/, '').replace(/-\d{8}$/, '');
+}
+
+function AgentCostBreakdown({
+  rows,
+  totalCost,
+}: {
+  rows: AgentAggregate[];
+  totalCost: number;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
+        <div className="font-mono text-[9px] text-white/45 leading-snug">
+          Sin runs con desglose por agente todavía. Cualquier análisis nuevo
+          aparecerá aquí — la columna usage_breakdown (migración 0005) se
+          puebla automáticamente desde /api/agents/run.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5 space-y-1.5">
+      {rows.map((r) => {
+        const share = totalCost > 0 ? Math.round((r.cost_usd / totalCost) * 100) : 0;
+        return (
+          <div
+            key={r.agent}
+            className="flex items-center gap-3 border-b border-white/5 py-1.5 last:border-b-0"
+          >
+            <span className="font-orbitron text-[11px] font-bold tracking-wider text-white w-14 flex-shrink-0">
+              {r.agent}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-mono text-[9px] text-white/85 truncate">
+                ${r.cost_usd.toFixed(4)} · {share}% del total
+              </div>
+              <div className="font-mono text-[8px] text-white/50 truncate">
+                {r.models.map(shortModel).join(' · ')} · {r.runs} runs · cache {r.cache_hit_rate_pct}%
+              </div>
+            </div>
+            <div className="font-mono text-[9px] text-white/55 flex-shrink-0 tabular-nums">
+              {fmtTokens(r.total_tokens)} tok
+            </div>
+            <div className="h-8 w-12 flex items-end gap-0.5 flex-shrink-0" aria-hidden>
+              <Bar pct={pctOf(r.input_tokens, r.total_tokens)} hint="input" />
+              <Bar pct={pctOf(r.output_tokens, r.total_tokens)} hint="output" />
+              <Bar pct={pctOf(r.cache_read_input_tokens, r.total_tokens)} hint="cache" muted />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function pctOf(n: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.max(2, Math.round((n / total) * 100)); // mín 2% para que se vea la barra
+}
+
+function Bar({ pct, hint, muted }: { pct: number; hint: string; muted?: boolean }) {
+  return (
+    <div
+      className={cn('w-2 rounded-sm', muted ? 'bg-white/25' : 'bg-white/85')}
+      style={{ height: `${Math.min(100, pct)}%` }}
+      title={`${hint}: ${pct}%`}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { summarize, type UsageRow, type AgentAggregate } from '@/lib/cost';
 
 export const runtime = 'nodejs';
 
@@ -13,12 +14,16 @@ interface SystemStats {
   watchlist_tickers: number;
   tokens_total: number;
   cost_usd_estimated: number;
+  /**
+   * Desglose por agente (PR4 observabilidad). Vacío para usuarios sin
+   * runs persistidos con `usage_breakdown` (= sin runs post 2026-05-20).
+   */
+  by_agent: AgentAggregate[];
 }
 
-// Tarifas oficiales Anthropic 2026 — agregadas para estimacion grosso modo.
-// Como no separamos tokens por modelo en `analyses_log`, usamos blended rate
-// 70% Sonnet (A1/A2/A3) + 30% Opus (A4 + Debate ocasional).
-const BLENDED_USD_PER_MTOK = 0.7 * (3 + 15) / 2 + 0.3 * (15 + 75) / 2; // ~$19.8/MTok blended
+// Fallback blended para runs antiguos que NO tienen usage_breakdown
+// (anteriores a migración 0005). 70% Sonnet + 30% Opus.
+const FALLBACK_BLENDED_USD_PER_MTOK = 0.7 * (3 + 15) / 2 + 0.3 * (15 + 75) / 2;
 
 /**
  * GET /api/system → métricas agregadas del usuario autenticado.
@@ -31,10 +36,16 @@ export async function GET() {
   const [analysesRes, signalsRes, watchlistsRes] = await Promise.all([
     supabase
       .from('analyses_log')
-      .select('confluence_pct, latency_ms, tokens_used, created_at')
+      .select('confluence_pct, latency_ms, tokens_used, usage_breakdown, created_at')
       .order('created_at', { ascending: false })
       .limit(100)
-      .returns<{ confluence_pct: number; latency_ms: number | null; tokens_used: number | null; created_at: string }[]>(),
+      .returns<{
+        confluence_pct: number;
+        latency_ms: number | null;
+        tokens_used: number | null;
+        usage_breakdown: UsageRow[] | null;
+        created_at: string;
+      }[]>(),
     supabase
       .from('signals_history')
       .select('level')
@@ -57,8 +68,22 @@ export async function GET() {
     : 0;
   const latencies = analyses.map((a) => a.latency_ms).filter((n): n is number => typeof n === 'number');
   const avgLatency = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
-  const tokensTotal = analyses.reduce((acc, a) => acc + (a.tokens_used ?? 0), 0);
-  const costUsd = (tokensTotal / 1_000_000) * BLENDED_USD_PER_MTOK;
+
+  // Coste exacto por agente cuando hay usage_breakdown; fallback blended
+  // para runs antiguos sin la columna poblada.
+  const allUsages: UsageRow[] = [];
+  let legacyTokens = 0;
+  for (const a of analyses) {
+    if (a.usage_breakdown && Array.isArray(a.usage_breakdown) && a.usage_breakdown.length > 0) {
+      allUsages.push(...a.usage_breakdown);
+    } else {
+      legacyTokens += a.tokens_used ?? 0;
+    }
+  }
+  const breakdown = summarize(allUsages);
+  const legacyCostUsd = (legacyTokens / 1_000_000) * FALLBACK_BLENDED_USD_PER_MTOK;
+  const tokensTotal = breakdown.total_tokens + legacyTokens;
+  const costUsd = breakdown.total_cost_usd + legacyCostUsd;
 
   let watchlistTickers = 0;
   if (watchlistsRes.data) {
@@ -79,6 +104,7 @@ export async function GET() {
     watchlist_tickers: watchlistTickers,
     tokens_total: tokensTotal,
     cost_usd_estimated: Number(costUsd.toFixed(4)),
+    by_agent: breakdown.by_agent,
   };
 
   return NextResponse.json(stats);
