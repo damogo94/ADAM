@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 const RequestSchema = z
   .object({
-    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/]+$/i, 'ticker invalido').toUpperCase(),
+    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido').toUpperCase(),
   })
   .strict();
 

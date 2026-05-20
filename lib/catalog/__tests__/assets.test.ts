@@ -117,4 +117,27 @@ describe('CATALOG — integridad', () => {
       new Set(['metals', 'indices', 'commodities', 'equities', 'etf', 'crypto', 'forex'])
     );
   });
+
+  /**
+   * REGRESSION GUARD — el regex anti-prompt-injection vive duplicado en 6
+   * endpoints (/api/agents/{run,a1,a2,a3,a4} + /api/market/quote{,s}).
+   * Si añades un ticker al catálogo con un carácter no soportado por el
+   * regex, el endpoint devuelve 400 "Entrada inválida" y el usuario ve
+   * "error en A1/A2/A3 — reintenta" sin más pista. Ya pasó con `GC=F`
+   * (caracter `=`) tras introducir los futuros de metales.
+   *
+   * Mantén ESTE regex sincronizado con el de los endpoints. Si alguno
+   * diverge, los catalog tickers fallarían en runtime sin que este test
+   * lo capture — la única defensa real sería centralizar la constante.
+   */
+  it('todos los tickers del catálogo pasan el regex anti-injection de los endpoints', () => {
+    const ENDPOINT_REGEX = /^[A-Z0-9.\-/=^]+$/i;
+    const failures = CATALOG.filter((a) => !ENDPOINT_REGEX.test(a.ticker)).map((a) => a.ticker);
+    expect(failures).toEqual([]);
+  });
+
+  it('todos los tickers del catálogo caben en 20 chars (cap del schema Zod)', () => {
+    const tooLong = CATALOG.filter((a) => a.ticker.length > 20).map((a) => a.ticker);
+    expect(tooLong).toEqual([]);
+  });
 });

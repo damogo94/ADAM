@@ -16,7 +16,7 @@ export const maxDuration = 60;
 const RequestSchema = z
   .object({
     // regex anti prompt-injection — sólo chars válidos en tickers reales
-    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/]+$/i, 'ticker invalido').toUpperCase(),
+    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido').toUpperCase(),
   })
   .strict(); // .strict() rechaza campos adicionales — extra defense
 

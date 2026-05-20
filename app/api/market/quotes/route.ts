@@ -5,7 +5,7 @@ import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
 export const runtime = 'edge';
 export const maxDuration = 60;
 
-const SYMBOL_REGEX = /^[A-Z0-9.\-/]+$/i;
+const SYMBOL_REGEX = /^[A-Z0-9.\-/=^]+$/i;
 
 const RequestSchema = z.object({
   symbols: z.string().min(1).max(500),
