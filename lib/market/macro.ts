@@ -133,6 +133,16 @@ export async function buildMacroSnapshot(
 const MAX_STALE_DAYS = 7;
 
 /**
+ * Timeout duro del snapshot completo (cache+fetch+fallback). Vercel
+ * lambda son 60s; A1+A2+A3 + Debate + A4 piden ~50s en pico, y nos
+ * quedan 10s para data fetch. Si FRED tarda más, robamos budget al
+ * pipeline y un agente puede cronicar timeout (visto con A2 el 2026-05-21).
+ *
+ * Si excedemos: degradamos a stale cache (sin esperar a la lambda).
+ */
+const SNAPSHOT_HARD_TIMEOUT_MS = 3000;
+
+/**
  * Considera el snapshot "vacío" si los 6 indicadores principales (los que
  * mueven la narrativa de A2) están todos null. Sirve para decidir si:
  *  - persistir al cache (no si vacío)
@@ -214,8 +224,15 @@ export async function getMacroSnapshot(): Promise<MacroSnapshotPayload> {
     console.warn('[macro] cache read failed, fetching fresh:', err instanceof Error ? err.message : err);
   }
 
-  // 2. Cache miss / cache vacío → fetch FRED
-  const fresh = await buildMacroSnapshot(asOf);
+  // 2. Cache miss / cache vacío → fetch FRED con HARD TIMEOUT.
+  // Sin este timeout, FRED colgado robaba 5s/serie del budget de lambda
+  // y A2 hitteaba "Request timed out" con frecuencia. El timeout cae
+  // a stale fallback (paso 3) que es lo correcto cuando FRED falla.
+  const fresh = await raceWithTimeout(
+    buildMacroSnapshot(asOf),
+    SNAPSHOT_HARD_TIMEOUT_MS,
+    () => makeEmptyPayload(asOf)
+  );
   if (!isEffectivelyEmpty(fresh)) {
     // Persistir solo cuando hay datos reales — never persist empty
     try {
@@ -248,4 +265,48 @@ export async function getMacroSnapshot(): Promise<MacroSnapshotPayload> {
   // 4. Sin nada. Devolvemos vacío SIN persistir — la próxima petición
   // reintentará desde cero. A2 entra en su edge case ya conocido.
   return fresh;
+}
+
+/** Payload todo-null para casos de timeout o failure total. */
+function makeEmptyPayload(asOf: string): MacroSnapshotPayload {
+  return {
+    fed_funds_rate_pct: null,
+    us_10y_yield_pct: null,
+    us_2y_yield_pct: null,
+    cpi_yoy_pct: null,
+    cpi_trend: null,
+    unemployment_pct: null,
+    vix: null,
+    curva_invertida: null,
+    as_of: asOf,
+  };
+}
+
+/**
+ * Promise.race contra un timeout, con fallback síncrono al expirar.
+ * La promesa perdedora sigue ejecutándose (no se cancela — los abort
+ * signals viven dentro de fred.ts), pero el caller no espera.
+ *
+ * Side effects de la promesa lenta (escritura a cache) podrían suceder
+ * tarde, pero como solo persistimos cuando NO está vacío, el peor caso
+ * es escribir tarde un buen snapshot — beneficioso, no problemático.
+ */
+async function raceWithTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  onTimeout: () => T
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      // eslint-disable-next-line no-console
+      console.warn(`[macro] hard timeout ${ms}ms — degrading to fallback`);
+      resolve(onTimeout());
+    }, ms);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
