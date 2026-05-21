@@ -94,7 +94,11 @@ export async function POST(req: NextRequest) {
     };
 
     const t0 = Date.now();
-    const a2 = await narrateA2(ticker, snapshot);
+    // Timeout 45s: este lambda tiene 60s dedicados solo a A2, asi que
+    // podemos darle al SDK casi todo el budget sin riesgo de 504.
+    // Math: 45s Anthropic + 5s data fetch + 5s overhead = 55s.
+    // (En el pipeline /run el default es 25s para fit con A1+Debate+A4.)
+    const a2 = await narrateA2(ticker, snapshot, { timeoutMs: 45_000 });
     const durationMs = Date.now() - t0;
     // eslint-disable-next-line no-console
     console.log(`[a2-standalone] ticker=${ticker} duration=${durationMs}ms user=${user.id.slice(0, 8)}`);

@@ -22,6 +22,12 @@ import { readA2Cache, writeA2Cache } from '@/lib/a2-cache';
 export interface NarrateA2Options {
   traceId?: string;
   onUsage?: (u: AgentUsage) => void;
+  /**
+   * Timeout per-call. Default 25s para callers dentro del pipeline.
+   * /api/agents/a2 standalone lo sube a 45s porque su lambda dedicado
+   * (60s) puede absorberlo sin riesgo.
+   */
+  timeoutMs?: number;
 }
 
 export async function narrateA2(
@@ -29,7 +35,7 @@ export async function narrateA2(
   snapshot: MarketSnapshot,
   options: NarrateA2Options = {}
 ): Promise<A2Output_t> {
-  const { traceId, onUsage } = options;
+  const { traceId, onUsage, timeoutMs } = options;
 
   // ── Cache lookup (best-effort) ─────────────────────────────────
   // Solo cacheamos cuando el snapshot tiene `as_of`. Si está vacío
@@ -77,6 +83,7 @@ export async function narrateA2(
     // de timeout (visto P99 ~26-28s causando timeouts en prod).
     maxTokens: 2500,
     onUsage,
+    timeoutMs,
   });
 
   // ── Persist al cache (best-effort, no bloquea respuesta) ───────

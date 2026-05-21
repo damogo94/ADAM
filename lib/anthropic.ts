@@ -104,7 +104,17 @@ interface RunAgentArgs<T extends z.ZodTypeAny> {
   agentName: string;
   /** Callback opcional para tracking de coste — invocado tras parsing OK */
   onUsage?: (usage: AgentUsage) => void;
+  /**
+   * Timeout per-call al SDK Anthropic. Default DEFAULT_TIMEOUT_MS (25s) es
+   * para callers dentro del pipeline /api/agents/run, donde el budget de
+   * 60s de lambda Hobby fuerza moderacion. Callers en lambdas dedicados
+   * (ej. /api/agents/a2) pueden subir a 45-50s sin riesgo de 504.
+   */
+  timeoutMs?: number;
 }
+
+/** Timeout default. Calibrado para encajar 5 calls en 60s lambda Hobby. */
+const DEFAULT_TIMEOUT_MS = 25_000;
 
 export class AgentParseError extends Error {
   constructor(
@@ -144,6 +154,7 @@ export async function runAgent<T extends z.ZodTypeAny>(
     maxTokens = 8192,
     temperature = 0.3,
     agentName,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
   } = args;
 
   // Timeout hard de 18s — un Anthropic colgado NO consume nuestros 60s de maxDuration.
@@ -201,7 +212,7 @@ export async function runAgent<T extends z.ZodTypeAny>(
           system: systemWithCache,
           messages: [{ role: 'user', content: userMessage }],
         },
-        { timeout: 25_000 }
+        { timeout: timeoutMs }
       ),
   });
 }
