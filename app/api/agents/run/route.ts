@@ -153,9 +153,13 @@ export async function POST(req: NextRequest) {
       };
 
       // ─── Ejecuta pipeline ──────────────────────────────────────
+      // skipA2Narrate=true: A2 SOLO desde cache. Frontend dispara
+      // /api/agents/a2 en paralelo para calentar el cache en su propio
+      // lambda. Evita saturar este lambda Hobby de 60s.
       const usages: AgentUsage[] = [];
       const result = await runADAM(ticker, snapshot, {
         onUsage: (u) => usages.push(u),
+        skipA2Narrate: true,
       });
 
       const tokensUsed = usages.reduce(

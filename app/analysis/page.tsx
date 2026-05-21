@@ -106,14 +106,38 @@ function AnalysisInner() {
       a3Status: 'scanning',
     });
 
+    // ── Fetch principal /api/agents/run (A1+A3+Debate+A4) ───────────
+    // A2 sale del pipeline (architectural decision 2026-05-21). El run
+    // devuelve A2 desde cache si lo hay; si no, A2 viene null y se
+    // rellena por el fetch paralelo de /api/agents/a2.
+    const runPromise = fetch('/api/agents/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+      signal: ctrl.signal,
+    });
+
+    // ── Fetch paralelo /api/agents/a2 (A2 con su propio lambda de 60s) ─
+    // Se dispara YA, no esperamos a /run. Su 60s budget esta dedicado
+    // exclusivamente a A2, por lo que el Sonnet de A2 puede tomarse su
+    // tiempo sin riesgo de 504. Persiste la cache; runs siguientes del
+    // mismo ticker leeran A2 instant via /run.
+    const a2Promise = fetch('/api/agents/a2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+      signal: ctrl.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok) return null;
+        const j = (await r.json()) as { a2?: A2Output };
+        return j.a2 ?? null;
+      })
+      .catch(() => null);
+
     try {
-      const res = await fetch('/api/agents/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticker }),
-        signal: ctrl.signal,
-      });
-      if (ctrl.signal.aborted) return; // request superseded, abandona setState
+      const res = await runPromise;
+      if (ctrl.signal.aborted) return;
       const data = await res.json();
       if (ctrl.signal.aborted) return;
 
@@ -148,10 +172,17 @@ function AnalysisInner() {
         chart_data?: { daily: Candle[] };
       };
 
+      // Render inicial con lo que vino del pipeline. A2 puede llegar null
+      // si era primera petición del ticker (cache vacia) — luego lo updateo
+      // cuando termine a2Promise.
       setState({
         ticker,
         a1Status: !a1 ? 'error' : a1.anomaly_detected ? 'anomaly' : 'done',
-        a2Status: !a2 ? 'error' : a2.opportunity_detected ? 'anomaly' : 'done',
+        a2Status: a2
+          ? a2.opportunity_detected
+            ? 'anomaly'
+            : 'done'
+          : 'scanning', // A2 aun en vuelo (standalone)
         a3Status: !a3 ? 'error' : 'done',
         debateStatus: debate ? 'done' : 'idle',
         a4Status: 'done',
@@ -165,6 +196,24 @@ function AnalysisInner() {
         failures: failures ?? [],
         dailyCandles: chart_data?.daily ?? [],
       });
+
+      // Si A2 venia del cache, no esperamos al standalone (el resultado
+      // standalone seria identico o redundante).
+      if (!a2) {
+        // Espera al fetch paralelo y actualiza solo la card de A2.
+        const a2Standalone = await a2Promise;
+        if (ctrl.signal.aborted) return;
+        if (a2Standalone) {
+          setState((s) => ({
+            ...s,
+            a2: a2Standalone,
+            a2Status: a2Standalone.opportunity_detected ? 'anomaly' : 'done',
+          }));
+        } else {
+          // Si el standalone tambien fallo, marca como error
+          setState((s) => ({ ...s, a2Status: 'error' }));
+        }
+      }
     } catch (e) {
       if (ctrl.signal.aborted) return; // AbortError esperado, no es fallo
       if (e instanceof DOMException && e.name === 'AbortError') return;
