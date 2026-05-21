@@ -171,12 +171,15 @@ export async function runAgent<T extends z.ZodTypeAny>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ] as any;
 
-  // Timeout 30s (2026-05-21: subido de 25s). A2 con Sonnet generando ~2000
-  // tokens caia ocasionalmente en P99 ~26-28s y hittaba el cap anterior.
-  // 30s cubre P99 sin entrar en territorio peligroso de lambda 60s.
-  // Hobby maxDuration=60s: 3 calls paralelas × 30s = 30s peak (Promise.all),
-  // + Sonnet Debate ~12s + Sonnet A4 ~12s = ~54s worst case. Margen 6s
-  // para data fetch (macro tiene su propio timeout 3s en lib/market/macro.ts).
+  // Timeout 25s. REVERT del intento de subirlo a 30s (2026-05-21) que
+  // provoco 504 Gateway Timeout en prod: yo mismo calcule mal el worst
+  // case suponiendo que Debate y A4 son siempre rapidos (~12s avg),
+  // ignorando que tambien pueden hittear el per-call timeout.
+  // Worst case real con 30s era 5s data + 30s parallel + 30s Debate +
+  // 30s A4 = 95s, muy por encima del lambda Hobby 60s.
+  // 25s + Debate ~12s + A4 ~12s + 5s data = ~54s, encaja con cushion.
+  // El precio: A2 ocasionalmente cae en P99 y degrada a "parcial".
+  // Aceptable hasta migrar a Pro plan (maxDuration 300s).
   //
   // RETRY POLICY (Refactor F2.2):
   //   Si el LLM devuelve JSON malformado o output que no cumple schema,
@@ -198,7 +201,7 @@ export async function runAgent<T extends z.ZodTypeAny>(
           system: systemWithCache,
           messages: [{ role: 'user', content: userMessage }],
         },
-        { timeout: 30_000 }
+        { timeout: 25_000 }
       ),
   });
 }
