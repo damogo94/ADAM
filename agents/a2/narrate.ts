@@ -44,8 +44,12 @@ export async function narrateA2(
     systemPrompt: A2_SYSTEM_PROMPT,
     userMessage,
     schema: A2Output,
-    model: MODELS.SONNET,
-    maxTokens: 3000,
+    // 2500 (antes 3000). El prompt pide narrativa max 1200 chars +
+    // macro_context.narrative 1000 chars + opportunity_description 600,
+    // estructura ~500 tokens → total tipico ~1500-1800 tokens. 2500
+    // da cushion sin invitar al modelo a alargarse y comerse el budget
+    // de timeout (visto P99 ~26-28s causando timeouts en prod).
+    maxTokens: 2500,
     onUsage,
   });
 }
