@@ -163,6 +163,27 @@ export async function POST(req: NextRequest) {
         0
       );
 
+      // Captura individual de agent failures a Sentry — antes el pipeline
+      // tragaba estos via Promise.allSettled y NO llegaban a Sentry, por lo
+      // que un timeout cronico de A2 era invisible para diagnostico.
+      // Nivel 'warning' (no 'error') porque el pipeline degrada graciosamente
+      // con partial; el user ve el resultado de los agentes vivos.
+      for (const f of result.meta.failures) {
+        Sentry.captureMessage(`pipeline agent failed: ${f.agent}`, {
+          level: 'warning',
+          tags: {
+            agent: f.agent,
+            ticker,
+            traceId: result.meta.traceId,
+          },
+          extra: {
+            message: f.message,
+            durationMs: result.meta.durationMs,
+            debateRan: result.meta.debateRan,
+          },
+        });
+      }
+
       // ─── Persistir log (best-effort) ───────────────────────────
       try {
         const admin = createSupabaseAdmin();

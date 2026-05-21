@@ -159,17 +159,23 @@ export async function runADAM(
   console.log(`[pipeline] ${traceId} start ticker=${ticker}`);
 
   // ── Step 1+2: LLM paralelo de A1, A2, A3 (A3 incluye su propio compute)
+  // Cada agente envuelto en `timed()` para tener telemetria por-agente:
+  // saber EXACTAMENTE cual tarda mas o cual timeoutea. Antes este info
+  // era invisible (Promise.allSettled tragaba todo). Sin esto era imposible
+  // diagnosticar por que A2 cae mas que A1/A3 en prod.
   const settled = await Promise.allSettled([
-    A.narrateA1(ticker, snapshot, { traceId, onUsage }),
-    A.narrateA2(ticker, snapshot, { traceId, onUsage }),
-    A.narrateA3(
-      {
-        ticker,
-        ohlcv: snapshot.ohlcv_daily,
-        timeframe: '1D',
-        intraday: snapshot.ohlcv_intraday,
-      },
-      { traceId, onUsage }
+    timed('A1', traceId, () => A.narrateA1(ticker, snapshot, { traceId, onUsage })),
+    timed('A2', traceId, () => A.narrateA2(ticker, snapshot, { traceId, onUsage })),
+    timed('A3', traceId, () =>
+      A.narrateA3(
+        {
+          ticker,
+          ohlcv: snapshot.ohlcv_daily,
+          timeframe: '1D',
+          intraday: snapshot.ohlcv_intraday,
+        },
+        { traceId, onUsage }
+      )
     ),
   ]);
 
@@ -259,4 +265,32 @@ function extractErrorMsg(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
   return 'unknown';
+}
+
+/**
+ * Envuelve una llamada de agente para loguear duracion + outcome.
+ * El log emitido va a Vercel runtime logs y aparece como una linea por
+ * agente con formato:
+ *   [pipeline] <trace> A2 ok in 12345ms
+ *   [pipeline] <trace> A2 FAIL in 25001ms · Request timed out.
+ * Esto da la pista necesaria para diagnosticar timeouts en prod.
+ */
+async function timed<T>(
+  agent: string,
+  traceId: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  const t0 = Date.now();
+  try {
+    const out = await fn();
+    // eslint-disable-next-line no-console
+    console.log(`[pipeline] ${traceId} ${agent} ok in ${Date.now() - t0}ms`);
+    return out;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[pipeline] ${traceId} ${agent} FAIL in ${Date.now() - t0}ms · ${extractErrorMsg(err)}`
+    );
+    throw err;
+  }
 }

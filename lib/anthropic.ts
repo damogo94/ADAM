@@ -171,12 +171,12 @@ export async function runAgent<T extends z.ZodTypeAny>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ] as any;
 
-  // Timeout 25s (antes 18s). Subido tras detectar que A2/A3 cronicamente
-  // hitteaban 18s con maxTokens=8192 por defecto. Ahora con maxTokens=3000
-  // el budget tipico es 8-12s, pero 25s da cushion para cold starts y
-  // primera token latency variable.
-  // Hobby maxDuration=60s: 3 calls paralelas × 25s = 25s peak (Promise.all),
-  // + Sonnet Debate ~12s + Sonnet A4 ~12s = ~50s worst case. Encaja.
+  // Timeout 30s (2026-05-21: subido de 25s). A2 con Sonnet generando ~2000
+  // tokens caia ocasionalmente en P99 ~26-28s y hittaba el cap anterior.
+  // 30s cubre P99 sin entrar en territorio peligroso de lambda 60s.
+  // Hobby maxDuration=60s: 3 calls paralelas × 30s = 30s peak (Promise.all),
+  // + Sonnet Debate ~12s + Sonnet A4 ~12s = ~54s worst case. Margen 6s
+  // para data fetch (macro tiene su propio timeout 3s en lib/market/macro.ts).
   //
   // RETRY POLICY (Refactor F2.2):
   //   Si el LLM devuelve JSON malformado o output que no cumple schema,
@@ -198,7 +198,7 @@ export async function runAgent<T extends z.ZodTypeAny>(
           system: systemWithCache,
           messages: [{ role: 'user', content: userMessage }],
         },
-        { timeout: 25_000 }
+        { timeout: 30_000 }
       ),
   });
 }
