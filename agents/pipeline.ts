@@ -207,19 +207,39 @@ export async function runADAM(
     throw new AllAgentsFailedError(failures);
   }
 
-  // ── Step 3: Debate condicional
+  // ── Step 3: Debate condicional + budget-aware
+  //
+  // Lambda Hobby = 60s. Si el bloque paralelo de A1/A2/A3 ya consumió
+  // ~30s+, ejecutar Debate (~15s Sonnet) + A4 (~6s Haiku) + data fetch
+  // (~5s ya gastados) puede empujarnos a 504 Gateway Timeout. Mejor
+  // skip Debate y degradar a "sin debate" — la confluence sabe procesar
+  // ese caso con peso reducido para A1+A2 (debateForCompute=null abajo).
+  //
+  // Budget de Debate: 60s lambda - 25s peor caso parallel block ya
+  // gastados - 25s A4 cushion - 5s data ya gastados = 5s. Insuficiente.
+  // Como Debate timeout es 25s, lo cancelamos si llevamos >32s — eso
+  // deja 25s+3s para A4+overhead.
+  const DEBATE_SKIP_THRESHOLD_MS = 32_000;
   let debate: DebateOutput | null = null;
   let debateRan = false;
   if (needsDebate(a1, a2)) {
-    try {
-      debate = await A.runDebate({ a1: a1!, a2: a2! }, onUsage);
-      debateRan = true;
-    } catch (err) {
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs > DEBATE_SKIP_THRESHOLD_MS) {
       // eslint-disable-next-line no-console
       console.warn(
-        `[pipeline] ${traceId} debate failed, continuing without:`,
-        extractErrorMsg(err)
+        `[pipeline] ${traceId} skip Debate · elapsed=${elapsedMs}ms > ${DEBATE_SKIP_THRESHOLD_MS}ms threshold`
       );
+    } else {
+      try {
+        debate = await A.runDebate({ a1: a1!, a2: a2! }, onUsage);
+        debateRan = true;
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[pipeline] ${traceId} debate failed, continuing without:`,
+          extractErrorMsg(err)
+        );
+      }
     }
   }
 
