@@ -27,13 +27,11 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
   slate: 'border-slate/30',
 };
 
-const ACCENT_SWEEP: Record<AgentAccent, string> = {
-  blue: 'via-a1',
-  cyan: 'via-a2',
-  amber: 'via-a3',
-  violet: 'via-a4',
-  slate: 'via-slate-l',
-};
+// NOTA: ACCENT_SWEEP eliminado en el rediseño visual del scanner. La línea
+// blanca recorrida (`animate-sweep`) se sustituyó por el carrusel de tareas
+// (components/scan-carousel.tsx), que comunica progreso de forma textual y
+// no decorativa. Si en el futuro se quisiera el sweep como capa adicional,
+// el keyframe `sweep` sigue declarado en tailwind.config.ts.
 
 interface AgentCardShellProps {
   accent: AgentAccent;
@@ -66,15 +64,8 @@ export function AgentCardShell({
         isScanning ? ACCENT_SCAN[accent] : 'border-white/5'
       )}
     >
-      {/* sweep animation when scanning */}
-      {isScanning && (
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-x-0 z-[5] h-px bg-gradient-to-r from-transparent to-transparent animate-sweep',
-            ACCENT_SWEEP[accent]
-          )}
-        />
-      )}
+      {/* sweep animation removed — el carrusel de tareas (ScanCarousel) en el
+          children comunica el estado de scanning de forma textual. */}
 
       <header className={cn('flex items-center gap-1.5 border-b border-white/5 px-2.5 py-2', ACCENT_BG[accent])}>
         <span className={cn('font-orbitron text-[8px] font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0', ACCENT_BADGE[accent])}>

@@ -1,5 +1,6 @@
 import type { A3Output } from '@/agents/a3/schema';
-import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
+import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
+import { ScanCarousel } from '@/components/scan-carousel';
 import { MiniCandleChart } from '@/components/mini-candle-chart';
 import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
@@ -33,13 +34,13 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
     >
       {status === 'idle' && <IdleState label="esperando activo..." />}
       {status === 'scanning' && (
-        <ScanSteps
-          steps={[
-            { label: 'estructura de tendencia', done: false },
-            { label: 'soportes y resistencias', done: false },
-            { label: 'medias móviles · cruces', done: false },
-            { label: 'patrones · velas · volumen', done: false },
-            { label: 'gestión de posición · ATR', done: false },
+        <ScanCarousel
+          tasks={[
+            'estructura de tendencia',
+            'soportes y resistencias',
+            'medias móviles · cruces',
+            'patrones · velas · volumen',
+            'gestión de posición · ATR',
           ]}
         />
       )}

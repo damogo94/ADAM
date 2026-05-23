@@ -42,26 +42,31 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
         {/* top-edge whisper line */}
         <div className="absolute inset-x-[10%] top-px h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-        <div className="mb-2 flex items-center justify-between">
-          <p className="flex items-center gap-1 font-mono text-[8px] font-medium uppercase tracking-[0.12em] text-white/65">
-            <span className="text-[8px]">▸</span>
-            activo — jerarquía superior · inicializa todos los agentes
-          </p>
+        <div className="mb-2 flex items-center gap-2">
+          {/* Botón catálogo: ahora a la IZQUIERDA y cuadrado (icon-only).
+              Handler intacto (setPickerOpen). Esquinas mantienen el radio
+              del sistema (rounded-[11px], igual que el input + botón ▶).
+              Accesibilidad: aria-label + title (tooltip nativo) porque
+              perdió la etiqueta textual al pasar a icon-only. */}
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
             disabled={disabled}
             className={cn(
-              'flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.04] px-2 py-0.5',
-              'font-mono text-[8px] uppercase tracking-[0.1em] text-white/70 transition-all',
+              'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[11px] border border-white/15 bg-white/[0.04]',
+              'text-[12px] leading-none text-white/70 transition-all',
               'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
               'disabled:opacity-30 disabled:cursor-not-allowed'
             )}
-            aria-label="Abrir catálogo de activos"
+            aria-label="Catálogo"
+            title="Catálogo"
           >
-            <span className="text-[10px] leading-none">⊞</span>
-            catálogo
+            <span aria-hidden="true">⊞</span>
           </button>
+          <p className="flex items-center gap-1 font-mono text-[8px] font-medium uppercase tracking-[0.12em] text-white/65">
+            <span className="text-[8px]">▸</span>
+            activo — jerarquía superior · inicializa todos los agentes
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex gap-2 mb-2.5">
