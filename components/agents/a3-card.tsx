@@ -37,10 +37,17 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
         <ScanCarousel
           tasks={[
             'estructura de tendencia',
-            'soportes y resistencias',
-            'medias móviles · cruces',
-            'patrones · velas · volumen',
-            'gestión de posición · ATR',
+            'higher-highs / higher-lows',
+            'soportes y resistencias · pivots',
+            'medias móviles SMA 20/50/200',
+            'detección golden cross / death cross',
+            'VWAP · contexto intradía',
+            'ATR · volatilidad operativa',
+            'patrones de velas · doble top/bottom',
+            'multi-timeframe 4H · 1D',
+            'volumen · divergencias',
+            'cálculo R/B ≥ 1.5',
+            'componiendo narrativa A3',
           ]}
         />
       )}

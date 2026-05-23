@@ -18,9 +18,16 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
         <ScanCarousel
           tasks={[
             'régimen económico actual',
+            'ciclo · expansión / contracción',
             'curva de tipos · Fed funds',
-            'correlaciones cruzadas',
-            'previsión 1Y / 3Y',
+            'BCE · BoE · política monetaria',
+            'inflación · CPI YoY',
+            'PMI manufacturero · servicios',
+            'correlaciones cruzadas · activos',
+            'factores geopolíticos',
+            'régimen risk-on / risk-off',
+            'previsión 1Y / 3Y · rangos',
+            'componiendo narrativa A2',
           ]}
         />
       )}

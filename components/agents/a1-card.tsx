@@ -24,9 +24,16 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
         <ScanCarousel
           tasks={[
             'consultando precio · Investing.com',
-            'fundamentales · ratios',
-            'noticias relevantes · Bloomberg',
+            'volumen 24h · cambio porcentual',
+            'fundamentales · ratios P/E',
+            'EV/EBITDA · market cap',
+            'dividendos · payout ratio',
+            'noticias últimas 48h · Bloomberg',
+            'cruzando sentiment · headlines',
+            'momentum 24h / 7d',
+            'comparativa sector · peers',
             'detección de anomalías',
+            'componiendo narrativa A1',
           ]}
         />
       )}
