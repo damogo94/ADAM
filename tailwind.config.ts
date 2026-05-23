@@ -77,12 +77,20 @@ const config: Config = {
           '0%, 100%': { boxShadow: '0 0 0 0 rgba(244,63,94,0.45)' },
           '50%': { boxShadow: '0 0 0 5px rgba(244,63,94,0)' },
         },
+        // fadeSlideIn: entrada del item activo del carrusel de tareas
+        // (scan-carousel). Fade + leve translateY de abajo a su sitio.
+        // 380ms casa con la cadencia de rotación (~2.8s por tarea).
+        fadeSlideIn: {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
         blink: 'blink 1.1s ease-in-out infinite',
         'blink-slow': 'blink 1.6s ease-in-out infinite',
         'urg-pulse': 'urgPulse 2s ease-in-out infinite',
+        'fade-slide-in': 'fadeSlideIn 380ms ease-out',
       },
     },
   },

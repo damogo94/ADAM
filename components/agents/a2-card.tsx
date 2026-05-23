@@ -1,5 +1,6 @@
 import type { A2Output } from '@/agents/a2/schema';
-import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
+import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
+import { ScanCarousel } from '@/components/scan-carousel';
 import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
 
@@ -14,12 +15,12 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
     <AgentCardShell accent="cyan" badge="A2" title="Macro" status={status} source="Bloomberg · Fed">
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
-        <ScanSteps
-          steps={[
-            { label: 'régimen económico actual', done: false },
-            { label: 'curva de tipos · Fed funds', done: false },
-            { label: 'correlaciones cruzadas', done: false },
-            { label: 'previsión 1Y / 3Y', done: false },
+        <ScanCarousel
+          tasks={[
+            'régimen económico actual',
+            'curva de tipos · Fed funds',
+            'correlaciones cruzadas',
+            'previsión 1Y / 3Y',
           ]}
         />
       )}

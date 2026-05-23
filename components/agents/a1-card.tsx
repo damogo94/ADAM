@@ -1,5 +1,6 @@
 import type { A1Output } from '@/agents/a1/schema';
-import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
+import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
+import { ScanCarousel } from '@/components/scan-carousel';
 import { cn, fmtPct } from '@/lib/utils';
 
 interface A1CardProps {
@@ -20,12 +21,12 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
     >
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
-        <ScanSteps
-          steps={[
-            { label: 'consultando precio · Investing.com', done: false },
-            { label: 'fundamentales · ratios', done: false },
-            { label: 'noticias relevantes · Bloomberg', done: false },
-            { label: 'detección de anomalías', done: false },
+        <ScanCarousel
+          tasks={[
+            'consultando precio · Investing.com',
+            'fundamentales · ratios',
+            'noticias relevantes · Bloomberg',
+            'detección de anomalías',
           ]}
         />
       )}
