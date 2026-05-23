@@ -1,33 +1,42 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+/**
+ * Watchlist · "radar de atención" (feature/watchlist-radar).
+ *
+ * Cambia de mostrar "ticker + precio" a un radar accionable:
+ *   - Cabecera "3 cosas que mirar hoy" (digest server-side).
+ *   - Por fila: dictamen + delta + distancia a la acción + frescura +
+ *     badge de anomalía + signal CMT activa.
+ *
+ * Datos REALES desde GET /api/watchlist/radar (un solo round-trip a la
+ * RPC `get_watchlist_radar` + quotes paralelos server-side).
+ *
+ * Cero cambios en lógica de agentes ni en /api/agents/*.
+ */
+
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
-import { Sparkline } from '@/components/sparkline';
 import { AssetPicker } from '@/components/asset-picker';
-import { cn, fmtPct, getCurrencyFromTicker } from '@/lib/utils';
-import type { Watchlist, WatchlistItem, AssetType } from '@/types/db';
-
-interface QuoteState {
-  current: number;
-  change_pct_24h: number;
-  spark7d?: number[];
-  loading: boolean;
-  error?: string;
-}
+import { RadarRow } from '@/components/watchlist/radar-row';
+import { DigestHeader } from '@/components/watchlist/digest-header';
+import { LensToggle } from '@/components/lens/lens-toggle';
+import { cn } from '@/lib/utils';
+import { RadarResponse, type RadarResponse_t } from '@/lib/radar/types';
+import type { AssetType } from '@/types/db';
 
 export default function WatchlistScreen() {
   const router = useRouter();
-  const [watchlist, setWatchlist] = useState<Watchlist | null>(null);
-  const [items, setItems] = useState<WatchlistItem[]>([]);
-  const [quotes, setQuotes] = useState<Record<string, QuoteState>>({});
+  const [radar, setRadar] = useState<RadarResponse_t | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTicker, setNewTicker] = useState('');
   const [newAssetType, setNewAssetType] = useState<AssetType>('equity');
   const [adding, setAdding] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     void load();
@@ -37,67 +46,28 @@ export default function WatchlistScreen() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch('/api/watchlist');
+      const r = await fetch('/api/watchlist/radar');
       if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
         if (r.status === 401) {
           router.push('/login?next=/watchlist');
           return;
         }
-        throw new Error(data.detail ?? data.error ?? 'fetch_failed');
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.detail ?? j.error ?? 'fetch_failed');
       }
-      const data = (await r.json()) as { watchlist: Watchlist; items: WatchlistItem[] };
-      setWatchlist(data.watchlist);
-      setItems(data.items);
-      if (data.items.length > 0) void loadQuotesBatch(data.items.map((it) => it.ticker));
+      const data = await r.json();
+      const parsed = RadarResponse.safeParse(data);
+      if (!parsed.success) {
+        // eslint-disable-next-line no-console
+        console.warn('[watchlist/radar] respuesta no valida', parsed.error.issues.slice(0, 3));
+        throw new Error('respuesta de radar inválida');
+      }
+      setRadar(parsed.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     } finally {
       setLoading(false);
     }
-  }
-
-  async function loadQuotesBatch(tickers: string[]) {
-    // Set loading state para todos
-    setQuotes((prev) => {
-      const next = { ...prev };
-      for (const t of tickers) next[t] = { current: 0, change_pct_24h: 0, loading: true };
-      return next;
-    });
-    try {
-      const r = await fetch(`/api/market/quotes?symbols=${tickers.map(encodeURIComponent).join(',')}&spark=1`);
-      if (!r.ok) throw new Error('batch_quotes_failed');
-      const data = (await r.json()) as {
-        quotes: { symbol: string; current?: number; change_pct_24h?: number; spark7d?: number[]; error?: string }[];
-      };
-      setQuotes((prev) => {
-        const next = { ...prev };
-        for (const q of data.quotes) {
-          if (q.error || q.current === undefined) {
-            next[q.symbol] = { current: 0, change_pct_24h: 0, loading: false, error: q.error ?? 'no_quote' };
-          } else {
-            next[q.symbol] = {
-              current: q.current,
-              change_pct_24h: q.change_pct_24h ?? 0,
-              spark7d: q.spark7d,
-              loading: false,
-            };
-          }
-        }
-        return next;
-      });
-    } catch {
-      setQuotes((prev) => {
-        const next = { ...prev };
-        for (const t of tickers) next[t] = { current: 0, change_pct_24h: 0, loading: false, error: 'no_quote' };
-        return next;
-      });
-    }
-  }
-
-  async function loadQuote(ticker: string) {
-    // Versión single — usada solo al añadir un nuevo ticker
-    return loadQuotesBatch([ticker]);
   }
 
   async function onAdd(e: FormEvent) {
@@ -113,9 +83,10 @@ export default function WatchlistScreen() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail ?? data.error ?? 'add_failed');
-      setItems((prev) => [...prev, data.item]);
       setNewTicker('');
-      void loadQuote(data.item.ticker);
+      // Re-fetch radar entero — la nueva fila aún no tiene análisis ni quote
+      // cargado en el server-side, pero esto trae al menos el item.
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     } finally {
@@ -124,9 +95,6 @@ export default function WatchlistScreen() {
   }
 
   async function onAddFromPicker(ticker: string) {
-    // Mismo POST que onAdd pero sin formulario. Tipo de activo lo
-    // dejamos al del select actual; el catálogo no expone tipo y el
-    // server tolera 'equity' por defecto para la mayoría.
     setAdding(true);
     setError(null);
     try {
@@ -137,8 +105,7 @@ export default function WatchlistScreen() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail ?? data.error ?? 'add_failed');
-      setItems((prev) => [...prev, data.item]);
-      void loadQuote(data.item.ticker);
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     } finally {
@@ -147,30 +114,47 @@ export default function WatchlistScreen() {
   }
 
   async function onDelete(itemId: string) {
-    const snapshot = items;
-    setItems((prev) => prev.filter((it) => it.id !== itemId));
+    // Optimistic delete sobre el array local de radar.rows
+    const prevRadar = radar;
+    setRadar((cur) => (cur ? { ...cur, rows: cur.rows.filter((r) => r.item_id !== itemId) } : cur));
     const r = await fetch(`/api/watchlist/${itemId}`, { method: 'DELETE' });
     if (!r.ok) {
-      setItems(snapshot);
+      setRadar(prevRadar);
       setError('No se pudo borrar — reintenta');
     }
   }
 
+  const onDigestSelect = useCallback((ticker: string) => {
+    setHighlight(ticker);
+    const el = rowRefs.current.get(ticker);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    // Quitar highlight a los pocos segundos
+    window.setTimeout(() => setHighlight((cur) => (cur === ticker ? null : cur)), 3500);
+  }, []);
+
+  const rows = radar?.rows ?? [];
+  const digest = radar?.digest ?? [];
+  const generatedAt = radar?.generated_at;
+
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
-      <Header status={loading ? 'running' : items.length ? 'ok' : 'offline'} />
+      <Header status={loading ? 'running' : rows.length ? 'ok' : 'offline'} />
 
-      <SectionLabel>watchlist · {watchlist?.name ?? '…'}</SectionLabel>
-
-      <div className="grid grid-cols-2 gap-2 px-4 mb-2">
-        <StatBlock label="ACTIVOS" value={String(items.length)} />
-        <StatBlock label="SEÑALES" value="0" sub="próximamente" />
+      {/* Toggle prosumer/educativo + Digest */}
+      <div className="mx-4 mt-2 flex items-center justify-between">
+        <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-white/35">
+          radar
+        </span>
+        <LensToggle />
       </div>
+      <div className="mt-2" />
+      <DigestHeader entries={digest} onSelect={onDigestSelect} generatedAt={generatedAt} />
 
-      <form onSubmit={onAdd} className="px-4 pt-2">
+      {/* Form alta — sin tocar (botón catálogo + input + select + +) */}
+      <form onSubmit={onAdd} className="px-4 pt-3">
         <div className="flex gap-2">
-          {/* Botón catálogo cuadrado a la IZQUIERDA — abre AssetPicker.
-              Mismo símbolo/estilo que en /analysis para consistencia. */}
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
@@ -230,10 +214,10 @@ export default function WatchlistScreen() {
         </div>
       )}
 
-      <SectionLabel>activos monitorizados</SectionLabel>
-      {loading && items.length === 0 ? (
-        <div className="px-4 py-8 text-center font-mono text-[10px] text-slate">cargando watchlist…</div>
-      ) : items.length === 0 ? (
+      <SectionLabel>activos en radar · {rows.length}</SectionLabel>
+      {loading && rows.length === 0 ? (
+        <div className="px-4 py-8 text-center font-mono text-[10px] text-slate">cargando radar…</div>
+      ) : rows.length === 0 ? (
         <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">◎</div>
           <div className="font-mono text-[10px] text-slate">
@@ -241,15 +225,24 @@ export default function WatchlistScreen() {
           </div>
         </div>
       ) : (
-        <div className="px-4 space-y-1.5">
-          {items.map((it) => (
-            <WatchlistRow
-              key={it.id}
-              item={it}
-              quote={quotes[it.ticker]}
-              onAnalyze={() => router.push(`/analysis?ticker=${encodeURIComponent(it.ticker)}`)}
-              onDelete={() => void onDelete(it.id)}
-            />
+        <div className="px-4 space-y-2">
+          {rows.map((row) => (
+            <div
+              key={row.item_id}
+              ref={(el) => {
+                if (el) rowRefs.current.set(row.ticker, el);
+                else rowRefs.current.delete(row.ticker);
+              }}
+            >
+              <RadarRow
+                row={row}
+                highlighted={highlight === row.ticker}
+                onAnalyze={() =>
+                  router.push(`/analysis?ticker=${encodeURIComponent(row.ticker)}`)
+                }
+                onDelete={() => void onDelete(row.item_id)}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -257,93 +250,6 @@ export default function WatchlistScreen() {
       <footer className="px-5 pt-6 text-center font-mono text-[8px] text-slate opacity-60 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
-    </div>
-  );
-}
-
-function StatBlock({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3 py-2.5">
-      <div className="font-mono text-[8px] uppercase tracking-wider text-slate mb-0.5">{label}</div>
-      <div className="font-orbitron text-[20px] font-black text-white">{value}</div>
-      {sub && <div className="font-mono text-[8px] text-slate mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function WatchlistRow({
-  item,
-  quote,
-  onAnalyze,
-  onDelete,
-}: {
-  item: WatchlistItem;
-  quote?: QuoteState;
-  /** Click EXPLÍCITO en el botón ▶ para ir a /analysis. La fila completa
-   *  ya NO navega — sólo este botón. */
-  onAnalyze: () => void;
-  onDelete: () => void;
-}) {
-  const pos = (quote?.change_pct_24h ?? 0) >= 0;
-  return (
-    <div className="group relative rounded-[15px] border border-white/8 bg-surface-2 hover:border-white/30 transition-all duration-300">
-      {/* Fila como contenedor NO clickable. La acción de "ir al análisis"
-          se hace explícita vía el botón ▶ a la derecha — antes la fila
-          entera navegaba y daba sustos al user. */}
-      <div className="w-full px-3 py-2.5 flex items-center gap-3 text-left">
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="font-orbitron text-[13px] font-bold tracking-wider text-white truncate">
-            {item.ticker}
-          </div>
-          <div className="font-mono text-[8px] uppercase tracking-wider text-slate">
-            {item.asset_type}
-          </div>
-        </div>
-
-        {quote?.spark7d && quote.spark7d.length >= 2 && (
-          <Sparkline values={quote.spark7d} width={56} height={18} />
-        )}
-
-        <div className="flex flex-col items-end gap-0.5">
-          {quote?.loading ? (
-            <span className="font-mono text-[10px] text-slate">…</span>
-          ) : quote?.error ? (
-            <span className="font-mono text-[9px] text-slate">no quote</span>
-          ) : quote ? (
-            <>
-              <span className="font-mono text-[13px] font-medium text-white">
-                {quote.current.toFixed(2)} <span className="text-white/45 text-[10px]">{getCurrencyFromTicker(item.ticker)}</span>
-              </span>
-              <span className={cn('font-mono text-[10px]', pos ? 'text-emerald' : 'text-rose')}>
-                {pos ? '↑ ' : '↓ '}
-                {fmtPct(quote.change_pct_24h)}
-              </span>
-            </>
-          ) : (
-            <span className="font-mono text-[10px] text-slate">—</span>
-          )}
-        </div>
-
-        <button
-          onClick={onAnalyze}
-          aria-label={`Analizar ${item.ticker}`}
-          title="Analizar"
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] font-mono text-[12px] text-white/45 hover:border-white/40 hover:bg-white/[0.08] hover:text-white transition"
-        >
-          ▶
-        </button>
-      </div>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute right-2 top-2 px-1.5 py-0.5 opacity-0 group-hover:opacity-100 rounded font-mono text-[10px] text-rose/70 hover:bg-rose/[0.08] hover:text-rose transition"
-        aria-label="Eliminar"
-      >
-        ×
-      </button>
     </div>
   );
 }
