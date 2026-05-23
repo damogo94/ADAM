@@ -21,6 +21,7 @@ import { SectionLabel } from '@/components/section-label';
 import { AssetPicker } from '@/components/asset-picker';
 import { RadarRow } from '@/components/watchlist/radar-row';
 import { DigestHeader } from '@/components/watchlist/digest-header';
+import { LensToggle } from '@/components/lens/lens-toggle';
 import { cn } from '@/lib/utils';
 import { RadarResponse, type RadarResponse_t } from '@/lib/radar/types';
 import type { AssetType } from '@/types/db';
@@ -141,8 +142,14 @@ export default function WatchlistScreen() {
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
       <Header status={loading ? 'running' : rows.length ? 'ok' : 'offline'} />
 
-      {/* Digest "3 cosas que mirar hoy" */}
-      <SectionLabel>radar</SectionLabel>
+      {/* Toggle prosumer/educativo + Digest */}
+      <div className="mx-4 mt-2 flex items-center justify-between">
+        <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-white/35">
+          radar
+        </span>
+        <LensToggle />
+      </div>
+      <div className="mt-2" />
       <DigestHeader entries={digest} onSelect={onDigestSelect} generatedAt={generatedAt} />
 
       {/* Form alta — sin tocar (botón catálogo + input + select + +) */}

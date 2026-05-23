@@ -2,6 +2,7 @@
 
 import { cn, fmtPct, getCurrencyFromTicker } from '@/lib/utils';
 import { AnomalyBadge } from './anomaly-badge';
+import { Glossed } from '@/components/lens/glossed';
 import type { RadarRow_t } from '@/lib/radar/types';
 
 /**
@@ -111,25 +112,29 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
       {/* ───── 3. Dictamen + DELTA + FRESCURA ───── */}
       <div className="mt-2 grid grid-cols-3 gap-2 border-t border-white/5 px-3 py-2">
         {/* Dictamen + confluencia */}
-        <DataCell label="Dictamen">
+        <DataCell label={<Glossed term="dictamen">Dictamen</Glossed>}>
           {hasAnalysis ? (
             <span className="flex items-baseline gap-1.5">
               <DirectionGlyph direction={latest!.direction} />
-              <span
-                className={cn(
-                  'font-orbitron text-[12px] font-bold',
-                  is_stale ? 'text-white/45' : 'text-white'
-                )}
-              >
-                {latest!.confluence_pct}%
-              </span>
-              {is_stale && (
+              <Glossed term="confluencia">
                 <span
-                  className="font-mono text-[7px] uppercase tracking-wider text-amber/80"
-                  title="Análisis con más de 24h. Vuelve a correrlo para refresh."
+                  className={cn(
+                    'font-orbitron text-[12px] font-bold',
+                    is_stale ? 'text-white/45' : 'text-white'
+                  )}
                 >
-                  stale
+                  {latest!.confluence_pct}%
                 </span>
+              </Glossed>
+              {is_stale && (
+                <Glossed term="stale">
+                  <span
+                    className="font-mono text-[7px] uppercase tracking-wider text-amber/80"
+                    title="Análisis con más de 24h. Vuelve a correrlo para refresh."
+                  >
+                    stale
+                  </span>
+                </Glossed>
               )}
             </span>
           ) : (
@@ -172,19 +177,23 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
         >
           <div className="mb-1 flex items-baseline justify-between">
             <span className="font-mono text-[8px] uppercase tracking-wider text-white/45">
-              {distances.actionable ? 'accionable ahora' : 'en radar'} ·{' '}
-              {latest!.a3_signal === 'buy' ? 'LONG' : 'SHORT'}
+              <Glossed term={distances.actionable ? 'accionable' : 'accionable'}>
+                {distances.actionable ? 'accionable ahora' : 'en radar'}
+              </Glossed>{' '}
+              · {latest!.a3_signal === 'buy' ? 'LONG' : 'SHORT'}
             </span>
             {distances.risk_reward !== null && (
-              <span className="font-mono text-[9px] text-amber">
-                R/B {distances.risk_reward.toFixed(2)}
-              </span>
+              <Glossed term="rb">
+                <span className="font-mono text-[9px] text-amber">
+                  R/B {distances.risk_reward.toFixed(2)}
+                </span>
+              </Glossed>
             )}
           </div>
           <div className="grid grid-cols-3 gap-2 font-mono text-[10px]">
-            <DistanceBlock label="Entrada" pct={distances.to_entry_pct} accent="text-white" />
-            <DistanceBlock label="Stop" pct={distances.to_stop_pct} accent="text-rose" />
-            <DistanceBlock label="Target" pct={distances.to_target_pct} accent="text-emerald" />
+            <DistanceBlock label="Entrada" term="entrada" pct={distances.to_entry_pct} accent="text-white" />
+            <DistanceBlock label="Stop" term="stop" pct={distances.to_stop_pct} accent="text-rose" />
+            <DistanceBlock label="Target" term="target" pct={distances.to_target_pct} accent="text-emerald" />
           </div>
         </div>
       )}
@@ -201,18 +210,20 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
                 : 'border-emerald/25 bg-emerald/[0.03]'
           )}
         >
-          <span
-            className={cn(
-              'font-orbitron text-[8px] font-bold uppercase tracking-wider',
-              signal.level === 'urgente'
-                ? 'text-rose'
-                : signal.level === 'atencion'
-                  ? 'text-amber'
-                  : 'text-emerald'
-            )}
-          >
-            CMT · {signal.level}
-          </span>
+          <Glossed term="cmt">
+            <span
+              className={cn(
+                'font-orbitron text-[8px] font-bold uppercase tracking-wider',
+                signal.level === 'urgente'
+                  ? 'text-rose'
+                  : signal.level === 'atencion'
+                    ? 'text-amber'
+                    : 'text-emerald'
+              )}
+            >
+              CMT · {signal.level}
+            </span>
+          </Glossed>
           <span className="flex-1 font-mono text-[10px] text-white/80 truncate">
             {signal.setup_detected}
           </span>
@@ -237,7 +248,7 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
 
 // ─── Subcomponentes ─────────────────────────────────────────────────
 
-function DataCell({ label, children }: { label: string; children: React.ReactNode }) {
+function DataCell({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
       <div className="mb-0.5 font-mono text-[7px] uppercase tracking-wider text-white/35">
@@ -256,12 +267,14 @@ function DeltaCell({ delta }: { delta: RadarRow_t['delta'] }) {
   // Prioridad de etiqueta: FLIP > NUEVO > Δ confluencia
   if (delta.direction_flipped || delta.a3_signal_flipped) {
     return (
-      <span
-        className="inline-flex items-center gap-1 rounded border border-amber/40 bg-amber/[0.08] px-1.5 py-0.5 font-orbitron text-[8px] font-bold uppercase tracking-wider text-amber"
-        title={delta.direction_flipped ? 'A4 cambió de dirección' : 'A3 cambió de señal'}
-      >
-        FLIP
-      </span>
+      <Glossed term="flip">
+        <span
+          className="inline-flex items-center gap-1 rounded border border-amber/40 bg-amber/[0.08] px-1.5 py-0.5 font-orbitron text-[8px] font-bold uppercase tracking-wider text-amber"
+          title={delta.direction_flipped ? 'A4 cambió de dirección' : 'A3 cambió de señal'}
+        >
+          FLIP
+        </span>
+      </Glossed>
     );
   }
 
@@ -286,16 +299,21 @@ function DeltaCell({ delta }: { delta: RadarRow_t['delta'] }) {
 
 function DistanceBlock({
   label,
+  term,
   pct,
   accent,
 }: {
   label: string;
+  /** Slug del glosario — habilita la lente educativa sobre la etiqueta. */
+  term: string;
   pct: number | null;
   accent: string;
 }) {
   return (
     <div className="min-w-0">
-      <div className="font-mono text-[7px] uppercase tracking-wider text-white/40">{label}</div>
+      <div className="font-mono text-[7px] uppercase tracking-wider text-white/40">
+        <Glossed term={term}>{label}</Glossed>
+      </div>
       <div className={cn('font-mono text-[10px] font-medium', pct === null ? 'text-white/30' : accent)}>
         {pct === null ? '—' : `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}
       </div>
