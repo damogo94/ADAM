@@ -35,6 +35,9 @@ export const A2_OUTPUT_SCHEMA = z.object({
   }),
   opportunity_detected: z.boolean(),
   opportunity_description: z.string().max(1500).nullable(),
+  // Régimen direccional macro. Optional+nullable para back-compat. Ver
+  // explicación detallada en agents/shared/types.ts (A2Output canónico).
+  regime_outlook: z.enum(['risk_on', 'risk_off', 'neutral']).nullable().optional(),
   confidence: z.number().int().min(0).max(100),
   narrative: z.string().min(20).max(2500),
 });

@@ -102,12 +102,32 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto antes ni después):
   },
   "opportunity_detected": boolean,
   "opportunity_description": string max 600 chars | null,
+  "regime_outlook": "risk_on | risk_off | neutral",  // ver REGIME_OUTLOOK abajo
   "confidence": 0-100,           // 0-30=baja · 31-60=media · 61-80=alta · 81-100=muy alta
   "narrative": "string max 1200 chars — 4-6 frases en español, según LENGUAJE ATLAS CAPITAL (ver abajo)"
 }
 \`\`\`
 
 ${ATLAS_CAPITAL_STYLE}
+
+## REGIME_OUTLOOK (CRÍTICO — campo nuevo)
+
+Indica la dirección de tu lectura macro sobre el activo. Es independiente de
+\`opportunity_detected\` (oportunidad puntual) — esto es el RÉGIMEN agregado.
+
+- **"risk_on"**: macro favorece activos de riesgo / el activo concreto. Tipos
+  bajando o pausados, inflación controlada, crecimiento, política fiscal
+  expansiva. O específico del activo: viento de cola sectorial / geográfico.
+- **"risk_off"**: macro adversa. Tipos subiendo, inflación desbocada,
+  contracción, geopolítica hostil. O específico: viento en contra
+  sectorial. **Úsalo cuando lo veas — antes este flag no existía y el
+  sistema NO podía expresar régimen bajista**, sesgando el análisis.
+- **"neutral"**: macro mixta, sin tesis direccional clara, o datos
+  insuficientes (correlato con \`confidence\` ≤ 30).
+
+Consistencia: si \`opportunity_detected\` = true → \`regime_outlook\` debe ser
+\`risk_on\` (no tendría sentido detectar oportunidad alcista en régimen risk_off).
+Lo contrario NO es simétrico: puedes tener \`risk_off\` sin \`opportunity_detected\`.
 
 ## RESTRICCIONES
 - Análisis EDUCATIVO. No es asesoramiento regulado.

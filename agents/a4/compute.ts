@@ -197,11 +197,18 @@ function directionOfA1(a1: A1Output_t | null): 'alcista' | 'bajista' | 'neutral'
 
 function directionOfA2(a2: A2Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
   if (!a2) return null;
+  // Lectura prioritaria del nuevo campo `regime_outlook` (cuando el LLM
+  // empieza a emitirlo). Permite a A2 expresar régimen bajista — antes
+  // imposible por diseño, creando asimetría: ADAM no podía alinear los 3
+  // agentes en dirección bajista. Ver agents/shared/types.ts:A2Output.
+  if (a2.regime_outlook === 'risk_on') return 'alcista';
+  if (a2.regime_outlook === 'risk_off') return 'bajista';
+  if (a2.regime_outlook === 'neutral') return 'neutral';
+  // Fallback back-compat: si el LLM no emite regime_outlook (runs viejos,
+  // schema legacy), seguimos derivando de opportunity_detected. Ausencia
+  // de oportunidad sigue siendo neutral aquí — la asimetría solo se rompe
+  // cuando el LLM aprende a emitir regime_outlook explícitamente.
   if (a2.opportunity_detected) return 'alcista';
-  // A2 no tiene flag bajista explícito — la ausencia de oportunidad es neutral,
-  // NO bajista. Si el régimen macro fuera adverso, A2 debería expresarlo en
-  // factores_clave con impacto negativo (no manejado aquí para mantener la
-  // función pura y testeable; futura ampliación podría sumar magnitudes).
   return 'neutral';
 }
 
@@ -258,6 +265,11 @@ export function computeConfluence(
   const score_total_pct = Math.max(0, Math.min(100, Math.round(total)));
 
   return {
+    // a3_solo.nivel está fijado a 'baja' por invariante de diseño en
+    // ConfluenceResult (agents/shared/types.ts:416): "A3 sola NUNCA llega a
+    // 'alta' por diseño — una sola pata técnica no constituye confluencia".
+    // El `score` SÍ refleja la confianza de A3 (puede ser 80, 90...), pero
+    // la categoría agregada para el aspecto "A3 solo" se queda en baja.
     a3_solo: { score: a3Score, nivel: 'baja' as const },
     a1_a2: { score: a12Score, nivel: levelFromScore(a12Score) },
     alineados: { score: alignScore, nivel: levelFromScore(alignScore) },

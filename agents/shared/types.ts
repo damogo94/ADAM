@@ -296,6 +296,26 @@ export const A2Output = z
       .strict(),
     opportunity_detected: z.boolean(),
     opportunity_description: z.string().max(1500).nullable(),
+    /**
+     * Régimen macro direccional. Antes A2 solo podía emitir señal alcista
+     * (via opportunity_detected). Esto creaba una asimetría estructural:
+     * el motor de confluencia NUNCA podía alinear los 3 agentes en
+     * dirección bajista. Con este campo A2 puede declarar 'risk_off' y
+     * contribuir a la alineación bajista.
+     *
+     * Mapping en agents/a4/compute.ts:directionOfA2():
+     *   - 'risk_on'  → alcista
+     *   - 'risk_off' → bajista
+     *   - 'neutral'  → neutral
+     *
+     * Opcional + nullable para back-compat con outputs/runs anteriores
+     * y con el LLM mientras el prompt no lo emita. Cuando el LLM lo
+     * empiece a emitir, la consistencia con opportunity_detected la
+     * impone el prompt (no el schema). Si `regime_outlook` falta, se
+     * cae al comportamiento previo: opportunity_detected → alcista,
+     * resto → neutral.
+     */
+    regime_outlook: z.enum(['risk_on', 'risk_off', 'neutral']).nullable().optional(),
     confidence: z.number().int().min(0).max(100),
     narrative: z.string().max(2500),
   })

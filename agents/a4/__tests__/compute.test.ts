@@ -259,6 +259,27 @@ describe('scoreAlignment', () => {
     );
     expect(r).toBe(0); // nadie opina con dirección
   });
+
+  // ── regime_outlook (nuevo) ──────────────────────────────────────────────
+  it('A2 con regime_outlook="risk_off" + A1 vulnerabilidad + A3 sell → 100 (bajista alineado)', () => {
+    const r = scoreAlignment(
+      mkA1({ anomaly_detected: true, anomaly_type: 'vulnerabilidad' }),
+      mkA2({ opportunity_detected: false, regime_outlook: 'risk_off' }),
+      mkA3({ operativa: { ...mkA3().operativa, signal: 'sell' } })
+    );
+    // Antes del fix esto daba 70 (A2 era neutral forzado). Con regime_outlook
+    // los 3 votan bajista → 100. Resuelve la asimetría estructural.
+    expect(r).toBe(100);
+  });
+
+  it('A2 con regime_outlook="risk_on" override opportunity_detected=false', () => {
+    const r = scoreAlignment(
+      mkA1({ anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      mkA2({ opportunity_detected: false, regime_outlook: 'risk_on' }),
+      mkA3({ operativa: { ...mkA3().operativa, signal: 'buy' } })
+    );
+    expect(r).toBe(100);
+  });
 });
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -427,5 +448,77 @@ describe('Constantes exportadas — invariantes de diseño', () => {
     for (let i = 1; i < ALIVE_CAPS.length; i++) {
       expect(ALIVE_CAPS[i]).toBeGreaterThanOrEqual(ALIVE_CAPS[i - 1]!);
     }
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// REGRESIÓN — bug "Alineados pinta '—' incluso con agentes coincidiendo"
+//
+// Causa raíz: la UI antes usaba `lib/confluence.ts` cuya lógica de alignment
+// era binaria y exigía `debate !== null`. Con A1/A2 sin señal el debate NO
+// se dispara → alignment = 0 → UI lo muestra como "—".
+//
+// El motor canónico (este archivo) opera por direcciones de cada agente
+// sin necesidad de debate. Estos tests son centinelas: si alguien añade
+// "requires debate" a scoreAlignment, fallan y avisan.
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('REGRESIÓN — Alineados funciona sin debate', () => {
+  it('A1 oportunidad + A3 buy + A2 neutral, SIN debate → alineados > 0', () => {
+    const result = computeConfluence({
+      a1: mkA1({ confidence: 60, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: mkA2({ confidence: 40, opportunity_detected: false }),
+      a3: mkA3({ confidence: 70, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: null,
+    });
+    // 2 agentes con dirección coincidente (alcista) → scoreAlignment = 70
+    expect(result.alineados.score).toBe(70);
+    expect(result.alineados.nivel).not.toBe('baja');
+  });
+
+  it('A1 vulnerabilidad + A3 sell, SIN debate → alineados bajista 70', () => {
+    const result = computeConfluence({
+      a1: mkA1({ confidence: 60, anomaly_detected: true, anomaly_type: 'vulnerabilidad' }),
+      a2: null,
+      a3: mkA3({ confidence: 70, operativa: { ...mkA3().operativa, signal: 'sell' } }),
+      debate: null,
+    });
+    expect(result.alineados.score).toBe(70);
+  });
+
+  it('3 vivos coincidiendo alcista, SIN debate → alineados = 100', () => {
+    const result = computeConfluence({
+      a1: mkA1({ confidence: 60, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: mkA2({ confidence: 50, opportunity_detected: true }),
+      a3: mkA3({ confidence: 70, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: null,
+    });
+    expect(result.alineados.score).toBe(100);
+    expect(result.alineados.nivel).toBe('alta');
+  });
+
+  it('caso del screenshot: A3 50% + A1/A2 sin signal → alineados se calcula (no es 0 fijo)', () => {
+    // Reproduce el escenario reportado por el usuario: A3 confidence 50,
+    // A1+A2 sin signal pero ambos vivos con confidences medias. El motor
+    // antiguo daba alineados = 0 SIEMPRE. El canónico debe devolver un
+    // valor coherente con las direcciones de los agentes.
+    const result = computeConfluence({
+      a1: mkA1({ confidence: 40, anomaly_detected: false, anomaly_type: null }),
+      a2: mkA2({ confidence: 38, opportunity_detected: false }),
+      a3: mkA3({ confidence: 50, operativa: { ...mkA3().operativa, signal: 'hold' } }),
+      debate: null,
+    });
+    // Todos neutrales → 0 (es coherente: nadie opina con dirección).
+    // PERO si A3 cambia a buy, alineados sube. Eso es lo que importa.
+    expect(result.alineados.score).toBe(0);
+
+    // Y si A3 emite signal con A1/A2 neutrales, el solitario tira 30.
+    const withA3Buy = computeConfluence({
+      a1: mkA1({ confidence: 40, anomaly_detected: false, anomaly_type: null }),
+      a2: mkA2({ confidence: 38, opportunity_detected: false }),
+      a3: mkA3({ confidence: 50, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: null,
+    });
+    expect(withA3Buy.alineados.score).toBe(30);
   });
 });
