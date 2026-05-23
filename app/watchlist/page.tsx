@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
 import { Sparkline } from '@/components/sparkline';
+import { AssetPicker } from '@/components/asset-picker';
 import { cn, fmtPct, getCurrencyFromTicker } from '@/lib/utils';
 import type { Watchlist, WatchlistItem, AssetType } from '@/types/db';
 
@@ -26,6 +27,7 @@ export default function WatchlistScreen() {
   const [newTicker, setNewTicker] = useState('');
   const [newAssetType, setNewAssetType] = useState<AssetType>('equity');
   const [adding, setAdding] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     void load();
@@ -121,6 +123,29 @@ export default function WatchlistScreen() {
     }
   }
 
+  async function onAddFromPicker(ticker: string) {
+    // Mismo POST que onAdd pero sin formulario. Tipo de activo lo
+    // dejamos al del select actual; el catálogo no expone tipo y el
+    // server tolera 'equity' por defecto para la mayoría.
+    setAdding(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker, asset_type: newAssetType }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail ?? data.error ?? 'add_failed');
+      setItems((prev) => [...prev, data.item]);
+      void loadQuote(data.item.ticker);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'unknown');
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function onDelete(itemId: string) {
     const snapshot = items;
     setItems((prev) => prev.filter((it) => it.id !== itemId));
@@ -144,6 +169,23 @@ export default function WatchlistScreen() {
 
       <form onSubmit={onAdd} className="px-4 pt-2">
         <div className="flex gap-2">
+          {/* Botón catálogo cuadrado a la IZQUIERDA — abre AssetPicker.
+              Mismo símbolo/estilo que en /analysis para consistencia. */}
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            disabled={adding}
+            className={cn(
+              'flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04]',
+              'text-[14px] leading-none text-white/70 transition-all',
+              'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
+              'disabled:opacity-30 disabled:cursor-not-allowed'
+            )}
+            aria-label="Catálogo"
+            title="Catálogo"
+          >
+            <span aria-hidden="true">⊞</span>
+          </button>
           <input
             type="text"
             value={newTicker}
@@ -173,6 +215,15 @@ export default function WatchlistScreen() {
         </div>
       </form>
 
+      <AssetPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(ticker) => {
+          setPickerOpen(false);
+          void onAddFromPicker(ticker);
+        }}
+      />
+
       {error && (
         <div className="mx-4 mt-3 rounded-lg border border-rose/35 bg-rose/[0.07] px-3 py-2 font-mono text-[10px] text-rose animate-urg-pulse">
           {error}
@@ -196,7 +247,7 @@ export default function WatchlistScreen() {
               key={it.id}
               item={it}
               quote={quotes[it.ticker]}
-              onTap={() => router.push(`/analysis?ticker=${encodeURIComponent(it.ticker)}`)}
+              onAnalyze={() => router.push(`/analysis?ticker=${encodeURIComponent(it.ticker)}`)}
               onDelete={() => void onDelete(it.id)}
             />
           ))}
@@ -223,18 +274,23 @@ function StatBlock({ label, value, sub }: { label: string; value: string; sub?: 
 function WatchlistRow({
   item,
   quote,
-  onTap,
+  onAnalyze,
   onDelete,
 }: {
   item: WatchlistItem;
   quote?: QuoteState;
-  onTap: () => void;
+  /** Click EXPLÍCITO en el botón ▶ para ir a /analysis. La fila completa
+   *  ya NO navega — sólo este botón. */
+  onAnalyze: () => void;
   onDelete: () => void;
 }) {
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   return (
     <div className="group relative rounded-[15px] border border-white/8 bg-surface-2 hover:border-white/30 transition-all duration-300">
-      <button onClick={onTap} className="w-full px-3 py-2.5 flex items-center gap-3 text-left">
+      {/* Fila como contenedor NO clickable. La acción de "ir al análisis"
+          se hace explícita vía el botón ▶ a la derecha — antes la fila
+          entera navegaba y daba sustos al user. */}
+      <div className="w-full px-3 py-2.5 flex items-center gap-3 text-left">
         <div className="flex flex-col flex-1 min-w-0">
           <div className="font-orbitron text-[13px] font-bold tracking-wider text-white truncate">
             {item.ticker}
@@ -268,8 +324,15 @@ function WatchlistRow({
           )}
         </div>
 
-        <span className="font-mono text-[16px] text-white opacity-30 group-hover:opacity-100 transition">▶</span>
-      </button>
+        <button
+          onClick={onAnalyze}
+          aria-label={`Analizar ${item.ticker}`}
+          title="Analizar"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] font-mono text-[12px] text-white/45 hover:border-white/40 hover:bg-white/[0.08] hover:text-white transition"
+        >
+          ▶
+        </button>
+      </div>
 
       <button
         onClick={(e) => {

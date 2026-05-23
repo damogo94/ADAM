@@ -125,8 +125,17 @@ export default function SystemScreen() {
         <Stat n={stats?.watchlist_tickers ?? 0} l="activos en watchlist" />
         <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" cls="text-amber" />
         <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media A4" />
-        <Stat n={fmtTokens(stats?.tokens_total ?? 0)} l="tokens consumidos" />
-        <Stat n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`} l="coste estimado (USD)" cls="text-emerald" />
+        <Stat
+          n={fmtTokens(stats?.tokens_total ?? 0)}
+          l="tokens · últimos 100 runs"
+          sub="acumulado del período"
+        />
+        <Stat
+          n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`}
+          l="coste USD · últimos 100"
+          cls="text-emerald"
+          sub="acumulado del período"
+        />
       </div>
 
       <SectionLabel>coste por agente · últimos 100 runs</SectionLabel>
@@ -289,7 +298,21 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-function Stat({ n, l, cls, emphasis }: { n: number | string; l: string; cls?: string; emphasis?: boolean }) {
+function Stat({
+  n,
+  l,
+  cls,
+  emphasis,
+  sub,
+}: {
+  n: number | string;
+  l: string;
+  cls?: string;
+  emphasis?: boolean;
+  /** Línea opcional debajo del label para aclarar el alcance del dato
+   *  (ej. "acumulado del período", "última consulta", etc.) */
+  sub?: string;
+}) {
   // `emphasis` para stats que se vuelven prominentes cuando son > 0
   // (ej. urgentes con valor positivo). Antes se conseguía con text-rose;
   // ahora con border+bg más intensos manteniendo la familia B&W.
@@ -302,6 +325,7 @@ function Stat({ n, l, cls, emphasis }: { n: number | string; l: string; cls?: st
     >
       <div className={cn('font-orbitron text-[20px] font-black', cls ?? 'text-white')}>{n}</div>
       <div className="mt-0.5 font-mono text-[8px] text-white/50">{l}</div>
+      {sub && <div className="mt-px font-mono text-[7px] text-white/30 italic">{sub}</div>}
     </div>
   );
 }
