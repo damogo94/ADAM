@@ -4,119 +4,142 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * ScanCarousel — sustituye la antigua animación de "sweep" (línea blanca
- * recorriendo el cuadro) por un carrusel secuencial de tareas. Una tarea
- * a la vez, entrada con fade+slide, salida implícita al cambiar de índice.
+ * ScanCarousel — carrusel vertical estilo "log de tareas".
  *
- * INTEGRACIÓN CON DATOS REALES (TODO futuro):
- *   Hoy la rotación es por temporizador (no hay progreso real de tarea-a-
- *   tarea desde el backend — el pipeline no emite eventos intermedios).
- *   Cuando el pipeline emita progreso (p. ej. SSE/streaming en /api/agents/run
- *   con eventos como `task:start` / `task:done`), reemplazar el efecto del
- *   temporizador por un useEffect que sincronice `index` con el índice de
- *   la tarea ACTIVA recibida. La prop `tasks` ya admite ese caso porque
- *   trabaja sobre el array completo.
+ * Diseño (revisión 2026-05):
+ *   - Ventana de 3 líneas visibles a la vez (no 1 como antes).
+ *   - Tareas entran por abajo, se mueven arriba a medida que la siguiente
+ *     toma el foco, y se desvanecen al salir por la parte superior.
+ *   - Rotación más rápida (1.1s, antes 2.8s) → percepción de mucho más
+ *     trabajo en curso, sin tocar nada del pipeline.
+ *   - Máscaras de fade top/bottom para sensación de scroll continuo.
  *
- * INVARIANTES:
- *   - NO altera lógica de negocio. Solo presentación.
- *   - Reserva altura fija (min-h) → cero layout shift al rotar.
- *   - Respeta `prefers-reduced-motion`: cambio directo sin animación.
- *   - Estado vacío idle (tasks=[]): dot + "en espera", no pantalla blanca.
- *   - Textos largos: clamp a 2 líneas, ellipsis natural.
+ * Buffer largo (BUFFER_REPEATS=30) garantiza scroll fluido sin "saltos"
+ * por reset modular: en cualquier escaneo realista (worst case ~60s en
+ * Hobby lambda) jamás se alcanza el final del buffer.
+ *
+ * INVARIANTES preservados:
+ *   - NO altera lógica de negocio, solo presentación.
+ *   - Altura fija → cero layout shift.
+ *   - `prefers-reduced-motion`: estática (sin transform ni transition).
+ *   - tasks=[] → estado idle discreto, sin pantalla en blanco.
+ *   - Prop `activeIndex` reservada para sincronización futura con
+ *     progreso real del pipeline (cuando emita eventos por SSE).
  */
 
-const ROTATION_MS = 2800; // 2.5–3.5s rango pedido; 2.8 = punto medio
+const ROTATION_MS = 1100; // antes 2800 — sensación de actividad real
+const LINE_HEIGHT = 20; // px · debe coincidir con leading inline abajo
+const VISIBLE_COUNT = 3; // líneas simultáneas en el viewport
+const BUFFER_REPEATS = 30; // ~2 min de rotación continua sin loop visible
 
 interface ScanCarouselProps {
-  /** Tareas a rotar. Si está vacío, renderiza estado idle discreto. */
+  /** Tareas a rotar. Vacío → renderiza estado idle discreto. */
   tasks: string[];
-  /** Icono opcional al lado de cada tarea (símbolo unicode o ReactNode). */
+  /** Icono opcional al lado de la tarea EN FOCO. */
   icon?: ReactNode;
   /**
-   * Índice externo (opcional). Si se pasa, el carrusel deja de rotar por
-   * timer y refleja el índice indicado — pensado para cuando los datos
-   * reales lleguen y queramos sincronizar progreso real.
+   * Índice externo (opcional). Si se pasa, el carrusel deja de avanzar
+   * por timer y refleja el índice indicado — para sincronizar con
+   * progreso real del pipeline cuando se implemente SSE/streaming.
    */
   activeIndex?: number;
 }
 
 export function ScanCarousel({ tasks, icon, activeIndex }: ScanCarouselProps) {
-  const [internalIndex, setInternalIndex] = useState(0);
+  const [tick, setTick] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const isExternal = typeof activeIndex === 'number';
-  const index = isExternal ? activeIndex! : internalIndex;
 
-  // Detecta prefers-reduced-motion sin layout effects (cliente puro).
+  // prefers-reduced-motion
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(mql.matches);
-    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    // Algunos browsers viejos solo soportan addListener
-    if (mql.addEventListener) mql.addEventListener('change', onChange);
-    else mql.addListener(onChange);
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    if (mql.addEventListener) mql.addEventListener('change', handler);
+    else mql.addListener(handler);
     return () => {
-      if (mql.removeEventListener) mql.removeEventListener('change', onChange);
-      else mql.removeListener(onChange);
+      if (mql.removeEventListener) mql.removeEventListener('change', handler);
+      else mql.removeListener(handler);
     };
   }, []);
 
-  // Rotación temporizada solo cuando NO hay índice externo controlado.
+  // Rotación temporizada (solo si no hay índice externo)
   useEffect(() => {
-    if (isExternal || tasks.length <= 1) return;
-    const id = window.setInterval(() => {
-      setInternalIndex((i) => (i + 1) % tasks.length);
-    }, ROTATION_MS);
+    if (isExternal || tasks.length === 0) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), ROTATION_MS);
     return () => window.clearInterval(id);
   }, [isExternal, tasks.length]);
 
-  // Si la lista cambia (otro agente, otro run), reset del cursor interno.
+  // Reset cuando cambia la lista (otro agente, otro run)
   useEffect(() => {
-    if (!isExternal) setInternalIndex(0);
+    if (!isExternal) setTick(0);
   }, [tasks.join('|'), isExternal]);
 
-  // Estado vacío idle — discreto, sin "pantalla en blanco".
-  if (!tasks.length) {
+  // Estado vacío idle — sin pantalla en blanco
+  if (tasks.length === 0) {
     return (
-      <div className="flex min-h-[60px] items-center gap-1.5 py-2 font-mono text-[9px] tracking-wider text-white/40">
+      <div className="flex h-[60px] items-center gap-1.5 py-2 font-mono text-[9px] tracking-wider text-white/40">
         <span className="h-1 w-1 rounded-full bg-white/40 animate-blink-slow" />
         <span>en espera</span>
       </div>
     );
   }
 
-  const current = tasks[index] ?? tasks[0]!;
+  const currentIdx = isExternal ? activeIndex! : tick;
+  // Buffer = lista repetida muchas veces. Para scans realistas nunca
+  // alcanzamos el final → la sensación es de scroll infinito sin saltos.
+  const buffer = Array.from({ length: BUFFER_REPEATS }, () => tasks).flat();
+  const safeIdx = Math.min(currentIdx, buffer.length - VISIBLE_COUNT);
+  const translateY = reducedMotion ? 0 : -safeIdx * LINE_HEIGHT;
 
   return (
-    // Altura mínima fija = sin layout shift al rotar. min-h y no h-fixed
-    // para que un texto a 2 líneas no recorte si llega cerca del límite.
-    <div className="relative min-h-[60px] py-2">
+    <div
+      className="relative overflow-hidden"
+      style={{ height: `${VISIBLE_COUNT * LINE_HEIGHT}px` }}
+      aria-live="polite"
+      aria-label={tasks[currentIdx % tasks.length]}
+    >
       <div
-        // key fuerza remount del nodo activo → re-dispara animación de entrada
-        key={index}
         className={cn(
-          'flex items-start gap-1.5 font-mono text-[10px] leading-snug text-white/80',
-          !reducedMotion && 'animate-fade-slide-in'
+          'flex flex-col will-change-transform',
+          !reducedMotion && 'transition-transform duration-500 ease-out'
         )}
+        style={{ transform: `translateY(${translateY}px)` }}
       >
-        {icon && <span className="flex-shrink-0 pt-px text-white/55">{icon}</span>}
-        <span className="line-clamp-2 break-words">{current}</span>
+        {buffer.map((task, i) => {
+          // offset relativo al foco (slot 0 = en cabeza, slot 1 = siguiente, …)
+          const offset = i - safeIdx;
+          // Solo los 3 slots visibles tienen opacidad. El resto vive
+          // fuera del viewport (overflow-hidden los recorta).
+          let opacity = 0;
+          if (offset === 0) opacity = 1;
+          else if (offset === 1) opacity = 0.55;
+          else if (offset === 2) opacity = 0.25;
+
+          return (
+            <div
+              key={i}
+              style={{
+                height: `${LINE_HEIGHT}px`,
+                lineHeight: `${LINE_HEIGHT}px`,
+                opacity,
+              }}
+              className="flex items-center gap-1.5 font-mono text-[10px] text-white/85 transition-opacity duration-500"
+            >
+              {icon && offset === 0 && (
+                <span className="flex-shrink-0 text-white/55">{icon}</span>
+              )}
+              <span className="truncate">{task}</span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Indicador discreto de posición. Si solo hay 1 tarea, no se muestra. */}
-      {tasks.length > 1 && (
-        <div className="absolute bottom-0 left-0 flex gap-1 pt-1">
-          {tasks.map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                'h-px w-2 rounded-full transition-opacity duration-300',
-                i === index ? 'bg-white/70' : 'bg-white/15'
-              )}
-            />
-          ))}
-        </div>
-      )}
+      {/* Fade masks top/bottom — acentúan la sensación de scroll
+          continuo (las tareas salen de la vista difuminadas). */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3 bg-gradient-to-b from-surface-2 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3 bg-gradient-to-t from-surface-2 to-transparent" />
     </div>
   );
 }
