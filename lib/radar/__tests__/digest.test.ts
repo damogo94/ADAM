@@ -15,6 +15,8 @@ function mkRow(overrides: Partial<RadarRow_t> = {}): RadarRow_t {
     position: 0,
     notes: null,
     added_at: '2026-05-01T00:00:00Z',
+    is_pinned: false,
+    pinned_at: null,
     quote: { current: 100, change_pct_24h: 0 },
     latest: null,
     delta: noDelta(),

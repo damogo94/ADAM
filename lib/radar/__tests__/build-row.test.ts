@@ -13,6 +13,8 @@ function mkRpcRow(overrides: Partial<RpcRadarRow_t> = {}): RpcRadarRow_t {
     position: 0,
     notes: null,
     added_at: '2026-05-01T00:00:00Z',
+    is_pinned: false,
+    pinned_at: null,
     latest_analysis: null,
     previous_analysis: null,
     latest_unacked_signal: null,
@@ -107,6 +109,13 @@ describe('buildRow', () => {
     expect(r.distances!.to_entry_pct).toBeNull();
     expect(r.distances!.risk_reward).toBe(3);
     expect(r.distances!.actionable).toBe(false);
+  });
+
+  it('is_pinned + pinned_at se propagan tal cual del RPC al row', () => {
+    const at = '2026-05-23T10:30:00Z';
+    const r = buildRow(mkRpcRow({ is_pinned: true, pinned_at: at }), null, new Date('2026-05-23T12:00:00Z'));
+    expect(r.is_pinned).toBe(true);
+    expect(r.pinned_at).toBe(at);
   });
 
   it('row con signal unacked → propagada al row', () => {

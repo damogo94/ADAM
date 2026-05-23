@@ -38,6 +38,9 @@ export interface WatchlistItem {
   position: number;
   notes: string | null;
   added_at: string;
+  // Migración 0008: pin/unpin para el panel.
+  is_pinned: boolean;
+  pinned_at: string | null;
 }
 
 export interface SignalHistory {
