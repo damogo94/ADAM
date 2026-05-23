@@ -112,7 +112,29 @@ export async function POST(req: NextRequest) {
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
 
-  return handleManual();
+  // Opcional: body `{ tickers: string[] }` para limitar el scan a un
+  // subset (selección desde /signals). Sin body → escanea TODA la
+  // watchlist (comportamiento histórico).
+  let selectedTickers: string[] | null = null;
+  try {
+    const text = await req.text();
+    if (text.trim()) {
+      const body = JSON.parse(text) as { tickers?: unknown };
+      if (Array.isArray(body.tickers)) {
+        const arr = body.tickers
+          .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+          .map((t) => t.trim().toUpperCase());
+        if (arr.length > 0) {
+          // Cap defensivo a 5 — el UI ya lo limita, esto blindaje server.
+          selectedTickers = arr.slice(0, 5);
+        }
+      }
+    }
+  } catch {
+    // Body inválido → ignorar y escanear watchlist completa (degrada en seguro)
+  }
+
+  return handleManual(selectedTickers);
 }
 
 /**
@@ -130,7 +152,7 @@ export async function GET(req: NextRequest) {
   return handleCron();
 }
 
-async function handleManual() {
+async function handleManual(selectedTickers: string[] | null = null) {
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -148,12 +170,24 @@ async function handleManual() {
     .select('ticker')
     .eq('watchlist_id', watchlist.id)
     .returns<{ ticker: string }[]>();
-  const tickers = (items ?? []).map((it) => it.ticker);
+  const allTickers = (items ?? []).map((it) => it.ticker);
+
+  // Si vino selección, intersección con la watchlist del user (defense in
+  // depth — el user solo puede escanear tickers que están en su lista).
+  // Sin selección → escanea toda la watchlist (comportamiento histórico).
+  const tickers = selectedTickers
+    ? allTickers.filter((t) => selectedTickers.includes(t.toUpperCase()))
+    : allTickers;
 
   const { results } = await runScanLoop(user.id, tickers);
   const persisted = await persistSignals(user.id, results);
 
-  return NextResponse.json({ scanned: results.length, persisted, results });
+  return NextResponse.json({
+    scanned: results.length,
+    persisted,
+    selected: selectedTickers !== null,
+    results,
+  });
 }
 
 async function handleCron() {

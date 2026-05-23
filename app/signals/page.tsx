@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
-import type { SignalHistory, SignalLevel } from '@/types/db';
+import type { SignalHistory, SignalLevel, WatchlistItem } from '@/types/db';
 
 interface Stats {
   urgente: number;
   atencion: number;
   monitorear: number;
 }
+
+const MAX_SELECTABLE = 5;
 
 type LevelFilter = 'all' | SignalLevel;
 type AckFilter = 'all' | 'unread' | 'acknowledged';
@@ -24,6 +26,11 @@ export default function SignalsScreen() {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Selección de activos a escanear (max 5). Vacío = escanea TODA la watchlist
+  // (comportamiento previo, fallback seguro).
+  const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
+  const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
 
   // Filtros
   const [filterLevel, setFilterLevel] = useState<LevelFilter>('all');
@@ -40,6 +47,7 @@ export default function SignalsScreen() {
 
   useEffect(() => {
     void load();
+    void loadWatchlist();
   }, []);
 
   async function load() {
@@ -63,11 +71,38 @@ export default function SignalsScreen() {
     }
   }
 
+  async function loadWatchlist() {
+    try {
+      const r = await fetch('/api/watchlist');
+      if (!r.ok) return; // 401 lo maneja load() arriba
+      const data = (await r.json()) as { items: WatchlistItem[] };
+      setWatchlistItems(data.items ?? []);
+    } catch {
+      // No bloqueamos la página por esto — el scan sin selección
+      // sigue funcionando contra toda la watchlist en server.
+    }
+  }
+
+  function toggleTicker(ticker: string) {
+    setSelectedTickers((prev) => {
+      if (prev.includes(ticker)) return prev.filter((t) => t !== ticker);
+      if (prev.length >= MAX_SELECTABLE) return prev; // cap en cliente
+      return [...prev, ticker];
+    });
+  }
+
   async function onScan() {
     setScanning(true);
     setError(null);
     try {
-      const r = await fetch('/api/cmt/scan', { method: 'POST' });
+      // Si hay selección → enviamos solo esos tickers. Sin selección →
+      // body vacío → server escanea toda la watchlist (comportamiento previo).
+      const init: RequestInit = { method: 'POST' };
+      if (selectedTickers.length > 0) {
+        init.headers = { 'Content-Type': 'application/json' };
+        init.body = JSON.stringify({ tickers: selectedTickers });
+      }
+      const r = await fetch('/api/cmt/scan', init);
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail ?? data.error ?? 'scan failed');
       await load();
@@ -102,16 +137,71 @@ export default function SignalsScreen() {
         <CountBox label="MONITOREAR" value={stats.monitorear} tone="monitorear" />
       </div>
 
+      {/* Selección de activos a escanear (máx 5). Sin selección → toda la
+          watchlist (comportamiento previo). */}
+      {watchlistItems.length > 0 && (
+        <>
+          <SectionLabel>
+            seleccionar activos · {selectedTickers.length}/{MAX_SELECTABLE}
+            {selectedTickers.length === 0 && (
+              <span className="ml-1 text-white/30 normal-case">— vacío = toda la watchlist</span>
+            )}
+          </SectionLabel>
+          <div className="px-4">
+            <div className="flex flex-wrap gap-1.5">
+              {watchlistItems.map((it) => {
+                const active = selectedTickers.includes(it.ticker);
+                const disabled = !active && selectedTickers.length >= MAX_SELECTABLE;
+                return (
+                  <button
+                    key={it.id}
+                    onClick={() => toggleTicker(it.ticker)}
+                    disabled={disabled}
+                    aria-pressed={active}
+                    title={disabled ? `Máximo ${MAX_SELECTABLE} activos` : undefined}
+                    className={cn(
+                      'rounded-lg border px-2 py-1 font-orbitron text-[10px] font-bold tracking-wider transition',
+                      active
+                        ? 'border-white bg-white text-black'
+                        : disabled
+                          ? 'border-white/5 bg-surface-2 text-white/20 cursor-not-allowed'
+                          : 'border-white/15 bg-surface-2 text-white/75 hover:border-white/40 hover:text-white'
+                    )}
+                  >
+                    {it.ticker}
+                  </button>
+                );
+              })}
+              {selectedTickers.length > 0 && (
+                <button
+                  onClick={() => setSelectedTickers([])}
+                  className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-white/45 hover:border-white/30 hover:text-white/80 transition"
+                  aria-label="Limpiar selección"
+                >
+                  limpiar
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       <div className="px-4 pt-3">
         <button
           onClick={onScan}
           disabled={scanning}
           className="w-full rounded-lg border border-white bg-white px-3 py-2.5 font-orbitron text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {scanning ? 'ESCANEANDO WATCHLIST…' : 'EJECUTAR SCAN CMT ▶'}
+          {scanning
+            ? 'ESCANEANDO…'
+            : selectedTickers.length > 0
+              ? `EJECUTAR SCAN · ${selectedTickers.length} ACTIVO${selectedTickers.length > 1 ? 'S' : ''} ▶`
+              : 'EJECUTAR SCAN CMT ▶'}
         </button>
         <p className="mt-1.5 font-mono text-[8px] text-white/40 text-center">
-          escanea tus tickers · usa Haiku (rápido)
+          {selectedTickers.length > 0
+            ? `escaneando solo: ${selectedTickers.join(' · ')}`
+            : 'escanea tus tickers · usa Haiku (rápido)'}
         </p>
       </div>
 

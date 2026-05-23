@@ -1,568 +1,237 @@
 /**
- * ArchitectureDiagram — SVG estático del flujo del sistema.
+ * ArchitectureDiagram — diagrama del pipeline de A.D.A.M.
  *
- * Sesión Refactor F1+F2 (2026-05):
- *   El diagrama refleja la arquitectura POST-refactor:
- *   - COMPUTE layer (determinístico, sin LLM): computeTechnical para A3,
- *     computeConfluence para A4. Visualmente: rectángulo emerald-tinted.
- *   - NARRATE layer (LLM, solo prosa): A1, A2, A3-narrate, A4-narrate,
- *     Debate. Visualmente: rectángulo blanco (como antes).
+ * Rediseño (sesión 2026-05): layout vertical limpio en CAPAS bien
+ * separadas, mucho menos cruce de líneas, columnas izquierdas con
+ * etiqueta de "capa" para que se lea como un flujo de arriba abajo.
  *
- * Re-skin B&W con un único acento: emerald muy tenue (border + bg)
- * SOLO para identificar el compute layer determinístico. Esto comunica
- * la novedad arquitectónica sin volver al color-por-agente del original.
+ * Capas:
+ *   1. INPUT      — usuario inicia el run con un ticker
+ *   2. DATA       — fuentes externas (Yahoo / Finnhub / FRED)
+ *   3. COMPUTE    — math determinístico para A3 (sin LLM)
+ *   4. NARRATE    — A1, A2, A3 (paralelo)
+ *   5. DEBATE     — A1×A2 condicional
+ *   6. CONFLUENCE — math determinístico (30/40/30)
+ *   7. OUTPUT     — A4 narrate · cita A3 · disclaimer literal
  *
- * Reglas load-bearing preservadas:
- *   - A3 NO recibe flujo de A1/A2/Debate (aislamiento)
- *   - El usuario es comandante único de A3 (trazo grueso USER→OHLCV)
- *   - A4 cita textualmente a A3 (trazo grueso A3→A4)
- *
- * Nuevo en este diagrama:
- *   - "compute" como caja explícita junto a A3-narrate y antes de A4
- *   - Trazo "confluence" determinístico entrando en A4
+ * Reglas load-bearing preservadas (NO tocar sin revisión):
+ *   - A3 isolation: OHLCV es el ÚNICO input que recibe (no A1/A2/news).
+ *   - A4 cita textualmente a A3 (trazo grueso A3 → A4).
+ *   - Compute determinístico marcado con acento emerald sutil.
  */
 export function ArchitectureDiagram() {
   return (
     <div className="overflow-hidden rounded-[15px] border border-white/5 bg-black/40 p-3">
       <div className="font-mono text-[8px] uppercase tracking-wider text-white/40 mb-2">
-        flujo de procesamiento · compute (determinístico) + narrate (LLM)
+        pipeline · compute (determinístico) + narrate (LLM)
       </div>
       <svg
-        viewBox="0 0 400 320"
+        viewBox="0 0 420 480"
         className="w-full"
         xmlns="http://www.w3.org/2000/svg"
-        aria-label="Architecture diagram"
+        aria-label="A.D.A.M. — diagrama del pipeline"
       >
         <defs>
-          <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.45)" />
-          </marker>
-          <marker id="arrow-a3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.95)" />
-          </marker>
+          {/* Flecha estándar (gris) */}
           <marker
-            id="arrow-compute"
-            markerWidth="6"
-            markerHeight="6"
-            refX="5"
-            refY="3"
+            id="arr"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
             orient="auto"
           >
-            <path d="M0,0 L6,3 L0,6 Z" fill="rgba(52,211,153,0.85)" />
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="rgba(255,255,255,0.55)" />
+          </marker>
+          {/* Flecha A3-strict (blanco brillante) */}
+          <marker
+            id="arr-strict"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="rgba(255,255,255,1)" />
+          </marker>
+          {/* Flecha compute (emerald) */}
+          <marker
+            id="arr-compute"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="rgba(52,211,153,0.95)" />
           </marker>
         </defs>
 
-        {/* USUARIO */}
-        <g>
-          <rect
-            x="160"
-            y="6"
-            width="80"
-            height="22"
-            rx="4"
-            fill="rgba(255,255,255,0.05)"
-            stroke="rgba(255,255,255,0.5)"
-            strokeWidth="1"
-          />
-          <text
-            x="200"
-            y="21"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.95)"
-            fontFamily="Orbitron, monospace"
-            fontSize="9"
-            fontWeight="700"
-          >
-            USUARIO
-          </text>
+        {/* ───────── Etiquetas de CAPA (columna izquierda) ───────── */}
+        <g fontFamily="Orbitron, monospace" fontSize="7" fontWeight="700" fill="rgba(255,255,255,0.35)" letterSpacing="1">
+          <text x="6" y="36">INPUT</text>
+          <text x="6" y="92">DATA</text>
+          <text x="6" y="166">COMPUTE</text>
+          <text x="6" y="232">NARRATE</text>
+          <text x="6" y="312">DEBATE</text>
+          <text x="6" y="372">CONFLUENCE</text>
+          <text x="6" y="436">OUTPUT</text>
         </g>
 
-        {/* DATA SOURCES — fila 1 */}
-        <g>
-          <rect
-            x="15"
-            y="48"
-            width="100"
-            height="20"
-            rx="3"
-            fill="rgba(255,255,255,0.03)"
-            stroke="rgba(255,255,255,0.15)"
-            strokeWidth="0.5"
-          />
-          <text
-            x="65"
-            y="61"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="8"
-          >
-            Finnhub: quote+news
-          </text>
-          <rect
-            x="120"
-            y="48"
-            width="80"
-            height="20"
-            rx="3"
-            fill="rgba(255,255,255,0.03)"
-            stroke="rgba(255,255,255,0.15)"
-            strokeWidth="0.5"
-          />
-          <text
-            x="160"
-            y="61"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="8"
-          >
-            macro snapshot
-          </text>
-          <rect
-            x="205"
-            y="48"
-            width="80"
-            height="20"
-            rx="3"
-            fill="rgba(255,255,255,0.05)"
-            stroke="rgba(255,255,255,0.4)"
-            strokeWidth="1"
-            strokeDasharray="3 2"
-          />
-          <text
-            x="245"
-            y="61"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.95)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="8"
-            fontWeight="600"
-          >
-            Yahoo: OHLCV only
-          </text>
+        {/* Líneas guía verticales sutiles (separan capas) */}
+        <g stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 4">
+          <line x1="70" y1="50" x2="410" y2="50" />
+          <line x1="70" y1="120" x2="410" y2="120" />
+          <line x1="70" y1="190" x2="410" y2="190" />
+          <line x1="70" y1="280" x2="410" y2="280" />
+          <line x1="70" y1="340" x2="410" y2="340" />
+          <line x1="70" y1="400" x2="410" y2="400" />
         </g>
 
-        {/* COMPUTE LAYER — para A3 (entre data y narrate) */}
+        {/* ───────── 1. INPUT — Usuario ───────── */}
         <g>
-          <rect
-            x="205"
-            y="82"
-            width="80"
-            height="22"
-            rx="4"
-            fill="rgba(52,211,153,0.06)"
-            stroke="rgba(52,211,153,0.65)"
-            strokeWidth="1"
-          />
-          <text
-            x="245"
-            y="92"
-            textAnchor="middle"
-            fill="rgba(52,211,153,0.95)"
-            fontFamily="Orbitron, monospace"
-            fontSize="7"
-            fontWeight="700"
-          >
-            COMPUTE
-          </text>
-          <text
-            x="245"
-            y="100"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="6.5"
-          >
-            SMA·EMA·ATR·niveles
-          </text>
+          <rect x="170" y="18" width="120" height="24" rx="5" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
+          <text x="230" y="34" textAnchor="middle" fill="rgba(255,255,255,0.98)" fontFamily="Orbitron, monospace" fontSize="10" fontWeight="700">USUARIO · ticker</text>
         </g>
 
-        {/* AGENTES NARRATE — A1, A2, A3 */}
-        <g>
-          <rect
-            x="15"
-            y="118"
-            width="100"
-            height="32"
-            rx="6"
-            fill="rgba(255,255,255,0.04)"
-            stroke="rgba(255,255,255,0.45)"
-            strokeWidth="1"
-          />
-          <text
-            x="65"
-            y="133"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.95)"
-            fontFamily="Orbitron, monospace"
-            fontSize="10"
-            fontWeight="700"
-          >
-            A1
-          </text>
-          <text
-            x="65"
-            y="144"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.55)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            Activos · narrate
-          </text>
+        {/* ───────── 2. DATA — 3 cajas paralelas ───────── */}
+        <g fontFamily="IBM Plex Mono, monospace">
+          {/* Yahoo OHLCV — destacado: única entrada de A3 */}
+          <rect x="280" y="74" width="120" height="32" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2" strokeDasharray="4 2" />
+          <text x="340" y="89" textAnchor="middle" fill="rgba(255,255,255,1)" fontSize="9" fontWeight="700">Yahoo</text>
+          <text x="340" y="100" textAnchor="middle" fill="rgba(255,255,255,0.65)" fontSize="7">OHLCV · daily + 1h</text>
 
-          <rect
-            x="120"
-            y="118"
-            width="80"
-            height="32"
-            rx="6"
-            fill="rgba(255,255,255,0.04)"
-            stroke="rgba(255,255,255,0.45)"
-            strokeWidth="1"
-          />
-          <text
-            x="160"
-            y="133"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.95)"
-            fontFamily="Orbitron, monospace"
-            fontSize="10"
-            fontWeight="700"
-          >
-            A2
-          </text>
-          <text
-            x="160"
-            y="144"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.55)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            Macro · narrate
-          </text>
+          {/* Finnhub */}
+          <rect x="150" y="74" width="120" height="32" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+          <text x="210" y="89" textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize="9" fontWeight="600">Finnhub</text>
+          <text x="210" y="100" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="7">quote · fund · news</text>
 
-          {/* A3 narrate — recibe compute output, solo añade narrative */}
-          <rect
-            x="205"
-            y="118"
-            width="80"
-            height="32"
-            rx="6"
-            fill="rgba(255,255,255,0.06)"
-            stroke="rgba(255,255,255,0.85)"
-            strokeWidth="1.8"
-            strokeDasharray="4 2"
-          />
-          <text
-            x="245"
-            y="133"
-            textAnchor="middle"
-            fill="rgba(255,255,255,1)"
-            fontFamily="Orbitron, monospace"
-            fontSize="10"
-            fontWeight="700"
-          >
-            A3
-          </text>
-          <text
-            x="245"
-            y="144"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            Aislado · narrate
-          </text>
+          {/* FRED macro */}
+          <rect x="78" y="74" width="62" height="32" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+          <text x="109" y="89" textAnchor="middle" fill="rgba(255,255,253,0.85)" fontSize="9" fontWeight="600">FRED</text>
+          <text x="109" y="100" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="7">macro</text>
         </g>
 
-        {/* DEBATE — solo entre A1 y A2 */}
+        {/* ───────── 3. COMPUTE técnico — alimentado SOLO por Yahoo ───── */}
         <g>
-          <rect
-            x="60"
-            y="170"
-            width="120"
-            height="22"
-            rx="4"
-            fill="rgba(255,255,255,0.03)"
-            stroke="rgba(255,255,255,0.25)"
-            strokeWidth="0.5"
-            strokeDasharray="2 2"
-          />
-          <text
-            x="120"
-            y="184"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="8"
-          >
-            Debate A1 × A2 (si anomalía)
-          </text>
+          <rect x="280" y="138" width="120" height="36" rx="5" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.75)" strokeWidth="1.2" />
+          <text x="340" y="154" textAnchor="middle" fill="rgba(52,211,153,1)" fontFamily="Orbitron, monospace" fontSize="9" fontWeight="700">computeTechnical</text>
+          <text x="340" y="166" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontFamily="IBM Plex Mono, monospace" fontSize="7">SMA · EMA · ATR · niveles · patrones</text>
         </g>
 
-        {/* CONFLUENCE COMPUTE — determinístico, alimenta A4 */}
-        <g>
-          <rect
-            x="205"
-            y="208"
-            width="80"
-            height="22"
-            rx="4"
-            fill="rgba(52,211,153,0.06)"
-            stroke="rgba(52,211,153,0.65)"
-            strokeWidth="1"
-          />
-          <text
-            x="245"
-            y="218"
-            textAnchor="middle"
-            fill="rgba(52,211,153,0.95)"
-            fontFamily="Orbitron, monospace"
-            fontSize="7"
-            fontWeight="700"
-          >
-            CONFLUENCE
-          </text>
-          <text
-            x="245"
-            y="226"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="6.5"
-          >
-            scoring 30/40/30
-          </text>
+        {/* ───────── 4. NARRATE — A1, A2, A3 ───────── */}
+        <g fontFamily="Orbitron, monospace">
+          {/* A1 */}
+          <rect x="78" y="200" width="116" height="50" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+          <text x="136" y="220" textAnchor="middle" fill="rgba(255,255,255,1)" fontSize="14" fontWeight="700">A1</text>
+          <text x="136" y="234" textAnchor="middle" fill="rgba(255,255,255,0.65)" fontFamily="IBM Plex Mono, monospace" fontSize="7">Activos · micro</text>
+          <text x="136" y="244" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontFamily="IBM Plex Mono, monospace" fontSize="6.5">Sonnet · narrate</text>
+
+          {/* A2 */}
+          <rect x="206" y="200" width="64" height="50" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+          <text x="238" y="220" textAnchor="middle" fill="rgba(255,255,255,1)" fontSize="14" fontWeight="700">A2</text>
+          <text x="238" y="234" textAnchor="middle" fill="rgba(255,255,255,0.65)" fontFamily="IBM Plex Mono, monospace" fontSize="7">Macro</text>
+          <text x="238" y="244" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontFamily="IBM Plex Mono, monospace" fontSize="6.5">Sonnet · narrate</text>
+
+          {/* A3 — destacado (aislado) */}
+          <rect x="282" y="200" width="118" height="50" rx="6" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" strokeDasharray="4 2" />
+          <text x="341" y="220" textAnchor="middle" fill="rgba(255,255,255,1)" fontSize="14" fontWeight="700">A3</text>
+          <text x="341" y="234" textAnchor="middle" fill="rgba(255,255,255,0.85)" fontFamily="IBM Plex Mono, monospace" fontSize="7">Price action · AISLADO</text>
+          <text x="341" y="244" textAnchor="middle" fill="rgba(255,255,255,0.45)" fontFamily="IBM Plex Mono, monospace" fontSize="6.5">Haiku · narrate</text>
         </g>
 
-        {/* A4 narrate final */}
+        {/* ───────── 5. DEBATE — solo si A1 o A2 detectan signal ────── */}
         <g>
-          <rect
-            x="120"
-            y="248"
-            width="160"
-            height="34"
-            rx="6"
-            fill="rgba(255,255,255,0.06)"
-            stroke="rgba(255,255,255,0.55)"
-            strokeWidth="1"
-          />
-          <text
-            x="200"
-            y="263"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.95)"
-            fontFamily="Orbitron, monospace"
-            fontSize="10"
-            fontWeight="700"
-          >
-            A4
-          </text>
-          <text
-            x="200"
-            y="275"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.55)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            narrate · cita A3 · disclaimer
-          </text>
+          <rect x="100" y="290" width="180" height="32" rx="5" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" strokeDasharray="3 3" />
+          <text x="190" y="304" textAnchor="middle" fill="rgba(255,255,255,0.85)" fontFamily="Orbitron, monospace" fontSize="9" fontWeight="700">DEBATE A1 × A2</text>
+          <text x="190" y="316" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontFamily="IBM Plex Mono, monospace" fontSize="7">condicional · si A1 o A2 flagan signal</text>
         </g>
 
-        {/* CONEXIONES — USER → sources */}
-        <path
-          d="M 180 28 L 65 48"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth="0.5"
-          fill="none"
-        />
-        <path
-          d="M 200 28 L 160 48"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth="0.5"
-          fill="none"
-        />
-        {/* USER → OHLCV: comandante único de A3 */}
-        <path
-          d="M 220 28 L 245 48"
-          stroke="rgba(255,255,255,0.85)"
-          strokeWidth="1.2"
-          fill="none"
-          markerEnd="url(#arrow-a3)"
-        />
+        {/* ───────── 6. CONFLUENCE — compute determinístico ────────── */}
+        <g>
+          <rect x="120" y="350" width="180" height="36" rx="5" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.75)" strokeWidth="1.2" />
+          <text x="210" y="366" textAnchor="middle" fill="rgba(52,211,153,1)" fontFamily="Orbitron, monospace" fontSize="10" fontWeight="700">computeConfluence</text>
+          <text x="210" y="378" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontFamily="IBM Plex Mono, monospace" fontSize="7">30/40/30 · capping por agentes vivos</text>
+        </g>
 
-        {/* DATA → AGENTS / COMPUTE */}
-        <path
-          d="M 65 68 L 65 118"
-          stroke="rgba(255,255,255,0.25)"
-          strokeWidth="0.5"
-          fill="none"
-          markerEnd="url(#arrow)"
-        />
-        <path
-          d="M 160 68 L 160 118"
-          stroke="rgba(255,255,255,0.25)"
-          strokeWidth="0.5"
-          fill="none"
-          markerEnd="url(#arrow)"
-        />
-        {/* OHLCV → COMPUTE → A3 narrate */}
-        <path
-          d="M 245 68 L 245 82"
-          stroke="rgba(255,255,255,0.85)"
-          strokeWidth="1.4"
-          fill="none"
-          markerEnd="url(#arrow-a3)"
-        />
-        <path
-          d="M 245 104 L 245 118"
-          stroke="rgba(52,211,153,0.85)"
-          strokeWidth="1.4"
-          fill="none"
-          markerEnd="url(#arrow-compute)"
-        />
+        {/* ───────── 7. OUTPUT — A4 ───────── */}
+        <g>
+          <rect x="100" y="410" width="220" height="44" rx="6" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.65)" strokeWidth="1.2" />
+          <text x="210" y="428" textAnchor="middle" fill="rgba(255,255,255,1)" fontFamily="Orbitron, monospace" fontSize="13" fontWeight="700">A4</text>
+          <text x="210" y="442" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontFamily="IBM Plex Mono, monospace" fontSize="7">narrate · cita A3 verbatim · disclaimer literal</text>
+        </g>
 
-        {/* A1, A2 → Debate */}
-        <path
-          d="M 80 150 L 100 170"
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="0.5"
-          fill="none"
-          strokeDasharray="2 2"
-        />
-        <path
-          d="M 160 150 L 140 170"
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="0.5"
-          fill="none"
-          strokeDasharray="2 2"
-        />
+        {/* ────────── CONEXIONES ────────── */}
+        {/* USER → 3 fuentes data */}
+        <g stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" fill="none">
+          <path d="M 200 42 Q 200 58 109 74" markerEnd="url(#arr)" />
+          <path d="M 230 42 L 210 74" markerEnd="url(#arr)" />
+          <path d="M 260 42 Q 290 58 340 74" stroke="rgba(255,255,255,0.85)" strokeWidth="1.4" markerEnd="url(#arr-strict)" />
+        </g>
 
-        {/* A1, A2, A3 → CONFLUENCE compute */}
+        {/* Yahoo → computeTechnical (path A3-strict) */}
+        <path d="M 340 106 L 340 138" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" fill="none" markerEnd="url(#arr-strict)" />
+
+        {/* Finnhub → A1 + A2 */}
+        <g stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" fill="none">
+          <path d="M 190 106 L 140 200" markerEnd="url(#arr)" />
+          <path d="M 230 106 L 240 200" markerEnd="url(#arr)" />
+        </g>
+
+        {/* FRED → A2 */}
+        <path d="M 120 106 Q 180 150 222 200" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" fill="none" markerEnd="url(#arr)" />
+
+        {/* computeTechnical → A3-narrate */}
+        <path d="M 340 174 L 340 200" stroke="rgba(52,211,153,0.95)" strokeWidth="1.6" fill="none" markerEnd="url(#arr-compute)" />
+
+        {/* A1 → DEBATE, A2 → DEBATE */}
+        <g stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" strokeDasharray="3 3" fill="none">
+          <path d="M 140 250 L 160 290" markerEnd="url(#arr)" />
+          <path d="M 238 250 L 220 290" markerEnd="url(#arr)" />
+        </g>
+
+        {/* A1, A2, A3 → computeConfluence (todos contribuyen) */}
+        <g stroke="rgba(52,211,153,0.55)" strokeWidth="0.7" fill="none">
+          <path d="M 140 250 L 175 350" markerEnd="url(#arr-compute)" />
+          <path d="M 238 250 L 210 350" markerEnd="url(#arr-compute)" />
+          <path d="M 341 250 L 245 350" markerEnd="url(#arr-compute)" />
+        </g>
+
+        {/* DEBATE → computeConfluence */}
+        <path d="M 200 322 L 210 350" stroke="rgba(52,211,153,0.55)" strokeWidth="0.7" strokeDasharray="2 2" fill="none" markerEnd="url(#arr-compute)" />
+
+        {/* computeConfluence → A4 */}
+        <path d="M 210 386 L 210 410" stroke="rgba(52,211,153,0.95)" strokeWidth="1.6" fill="none" markerEnd="url(#arr-compute)" />
+
+        {/* A3 → A4 (trazo grueso — A4 cita verbatim) */}
+        <path d="M 341 250 Q 360 330 290 410" stroke="rgba(255,255,255,0.85)" strokeWidth="1.3" fill="none" markerEnd="url(#arr-strict)" />
+
+        {/* A1, A2 → A4 (delgados — A4 también resume A1/A2) */}
+        <g stroke="rgba(255,255,255,0.18)" strokeWidth="0.5" fill="none">
+          <path d="M 140 250 Q 110 340 140 410" markerEnd="url(#arr)" />
+          <path d="M 238 250 Q 230 340 200 410" markerEnd="url(#arr)" />
+        </g>
+
+        {/* A4 → USER (output devuelto) */}
         <path
-          d="M 80 150 L 220 208"
-          stroke="rgba(52,211,153,0.45)"
-          strokeWidth="0.6"
-          fill="none"
-          markerEnd="url(#arrow-compute)"
-        />
-        <path
-          d="M 160 150 L 235 208"
-          stroke="rgba(52,211,153,0.45)"
-          strokeWidth="0.6"
-          fill="none"
-          markerEnd="url(#arrow-compute)"
-        />
-        <path
-          d="M 245 150 L 245 208"
-          stroke="rgba(52,211,153,0.55)"
+          d="M 320 432 Q 405 432 405 130 Q 405 30 290 30"
+          stroke="rgba(255,255,255,0.45)"
           strokeWidth="0.7"
+          strokeDasharray="3 3"
           fill="none"
-          markerEnd="url(#arrow-compute)"
-        />
-        {/* Debate → CONFLUENCE compute */}
-        <path
-          d="M 165 192 L 225 208"
-          stroke="rgba(52,211,153,0.45)"
-          strokeWidth="0.6"
-          fill="none"
-          strokeDasharray="2 2"
-          markerEnd="url(#arrow-compute)"
+          markerEnd="url(#arr)"
         />
 
-        {/* CONFLUENCE → A4 (trazo emerald grueso — determinístico) */}
-        <path
-          d="M 245 230 L 230 248"
-          stroke="rgba(52,211,153,0.85)"
-          strokeWidth="1.4"
-          fill="none"
-          markerEnd="url(#arrow-compute)"
-        />
+        {/* ───────── Leyenda compacta ───────── */}
+        <g fontFamily="IBM Plex Mono, monospace" fontSize="7" fill="rgba(255,255,255,0.65)">
+          <rect x="78" y="466" width="10" height="2" fill="rgba(52,211,153,0.95)" />
+          <text x="92" y="470">compute (sin LLM)</text>
 
-        {/* A1, A2, A3 → A4 (también para que A4 narre con los outputs originales) */}
-        <path
-          d="M 65 150 L 160 248"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth="0.5"
-          fill="none"
-          markerEnd="url(#arrow)"
-        />
-        <path
-          d="M 160 150 L 185 248"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth="0.5"
-          fill="none"
-          markerEnd="url(#arrow)"
-        />
-        {/* A3 → A4 (trazo grueso porque A4 cita textualmente) */}
-        <path
-          d="M 245 150 L 215 248"
-          stroke="rgba(255,255,255,0.85)"
-          strokeWidth="1.2"
-          fill="none"
-          markerEnd="url(#arrow)"
-        />
+          <rect x="190" y="466" width="10" height="1.6" fill="rgba(255,255,255,0.95)" />
+          <text x="204" y="470">A3 isolated · OHLCV only</text>
 
-        {/* A4 → USER (output ensamblado, vuelta arriba) */}
-        <path
-          d="M 280 265 Q 370 250 370 130 Q 370 30 240 22"
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth="0.5"
-          fill="none"
-          strokeDasharray="2 2"
-          markerEnd="url(#arrow)"
-        />
-
-        {/* Leyenda */}
-        <g>
-          <rect
-            x="6"
-            y="294"
-            width="8"
-            height="2"
-            fill="rgba(52,211,153,0.85)"
-          />
-          <text
-            x="18"
-            y="298"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            compute determinístico (sin LLM)
-          </text>
-
-          <rect
-            x="6"
-            y="306"
-            width="8"
-            height="1.5"
-            fill="rgba(255,255,255,0.85)"
-          />
-          <text
-            x="18"
-            y="310"
-            fill="rgba(255,255,255,0.7)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            A3 isolated path (no leaks)
-          </text>
-
-          <text
-            x="200"
-            y="310"
-            fill="rgba(255,255,255,0.4)"
-            fontFamily="IBM Plex Mono, monospace"
-            fontSize="7"
-          >
-            --- LLM narrate · A4 cita A3
-          </text>
+          <line x1="332" y1="467" x2="342" y2="467" stroke="rgba(255,255,255,0.55)" strokeWidth="1" strokeDasharray="2 2" />
+          <text x="346" y="470">condicional</text>
         </g>
       </svg>
     </div>
