@@ -407,19 +407,24 @@ export async function finnhubNews(symbol: string, limit = 5): Promise<{
 }
 
 /**
- * Heurística rápida de sentiment por keywords. NO es nuestro
- * análisis de noticias — A1 lo hace mejor leyendo headline+summary. Esto
- * solo da un primer tag para el UI y para que A1 lo cruce con su lectura.
+ * Antes había aquí una heurística por keywords (~14 palabras bull / 14 bear,
+ * contador, umbral en ±2). Falla en titulares financieros realistas:
+ *   - "Apple beats estimates but warns on China"  → score 0 (neutral) por
+ *     compensación, cuando es claramente mixed con sesgo bearish.
+ *   - "Tesla cuts prices to drive growth"          → score 0 (cut -1, growth +1)
+ *     cuando es bearish para márgenes.
+ *   - "Microsoft strong despite weak quarter"      → score 0, pero la lectura
+ *     real depende de a qué se refiere "weak".
+ *
+ * Además sesgaba el snapshot que recibe A1: si el clasificador decía "bearish"
+ * por keywords ruidosas, A1 podía anclar su narrativa a ese tag previo.
+ *
+ * Decisión: devolver 'neutral' siempre. A1 (Sonnet) clasifica mucho mejor
+ * leyendo headline+summary completo. Si en el futuro queremos sentiment
+ * estructurado pre-A1, debe venir de una fuente real (Perplexity, modelo
+ * dedicado, o servicio de sentiment financiero), no de regex.
  */
-function classifySentiment(text: string): 'bullish' | 'bearish' | 'neutral' {
-  const t = text.toLowerCase();
-  const BULL = ['surge', 'beat', 'beats', 'record', 'rally', 'soar', 'jumped', 'upgrade', 'outperform', 'strong', 'positive', 'growth', 'profit'];
-  const BEAR = ['miss', 'missed', 'fall', 'falls', 'plunge', 'drop', 'drops', 'downgrade', 'underperform', 'weak', 'loss', 'decline', 'cut', 'warns'];
-  let score = 0;
-  for (const w of BULL) if (t.includes(w)) score++;
-  for (const w of BEAR) if (t.includes(w)) score--;
-  if (score >= 2) return 'bullish';
-  if (score <= -2) return 'bearish';
+function classifySentiment(_text: string): 'bullish' | 'bearish' | 'neutral' {
   return 'neutral';
 }
 

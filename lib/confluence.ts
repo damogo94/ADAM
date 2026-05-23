@@ -1,24 +1,28 @@
 /**
- * Confluence math — escala 0-100.
+ * Adapter delgado sobre `agents/a4/compute.ts` — el motor canónico de confluencia.
  *
- * Tres aportes ponderados al score total (max 100%):
- *   - A3 solo:    max 30%  (technical signal confidence)
- *   - A1 + A2:    max 40%  (debate convergence × combined confidence)
- *   - Alineados:  max 30%  (A3 direction matches debate/A4 direction)
+ * HISTORIA: hasta hoy había dos implementaciones paralelas:
+ *   - `lib/confluence.ts` (este archivo, usado por la UI): lógica binaria,
+ *     `alineados` dependía de que el Debate se ejecutara. Resultado: con
+ *     A1+A2 sin signal y sin debate, alineados siempre = 0 → la UI pintaba "—".
+ *   - `agents/a4/compute.ts` (usado por el pipeline server-side): lógica gradual,
+ *     `scoreAlignment` opera sobre 3 agentes vivos sin necesidad de debate.
  *
- * Niveles (sobre score_total):
- *   ≥ 67% → alta
- *   ≥ 34% → media
- *   <  34% → baja
+ * FIX: este archivo se convierte en un adapter que llama al canónico y traduce
+ * los nombres de campo. El bug "Alineados pinta — incluso con A1+A3 al mismo
+ * lado" queda resuelto.
  *
- * NOTA: con sesión 6 todas las confianzas son 0-100 (antes 1-5).
- * Mantenemos la lógica de ponderación, solo cambia el divisor (100 en vez de 5).
+ * Mantenemos la `ConfluenceResult` exportada con la shape antigua (a3_solo,
+ * a1_a2, alineados, total_pct, level, direction, aligned) para no romper la UI
+ * en este patch — el `direction` y `aligned` son derivados aquí, no vienen del
+ * compute canónico.
  */
 
-import type { A3Output } from '@/agents/a3/schema';
-import type { DebateOutput } from '@/agents/debate/schema';
+import { computeConfluence as computeCanonical, type DebateForConfluence } from '@/agents/a4/compute';
 import type { A1Output } from '@/agents/a1/schema';
 import type { A2Output } from '@/agents/a2/schema';
+import type { A3Output } from '@/agents/a3/schema';
+import type { DebateOutput } from '@/agents/debate/schema';
 
 export type ConfluenceLevel = 'baja' | 'media' | 'alta';
 
@@ -32,60 +36,51 @@ export interface ConfluenceResult {
   aligned: boolean;
 }
 
-function levelFromPct(pct: number): ConfluenceLevel {
-  if (pct >= 67) return 'alta';
-  if (pct >= 34) return 'media';
-  return 'baja';
-}
-
 export function computeConfluence(
   a1: A1Output | null,
   a2: A2Output | null,
   a3: A3Output | null,
   debate: DebateOutput | null
 ): ConfluenceResult {
-  // ─── A3 solo (max 30%) ──────────────────────────────────────────
-  const a3Conf = a3?.confidence ?? 0; // 0-100
-  const a3Pct = Math.round((a3Conf / 100) * 30);
+  const debateForCompute: DebateForConfluence | null = debate
+    ? { convergence_score: debate.convergence_score, direccion: debate.direccion }
+    : null;
 
-  // ─── A1 + A2 (max 40%) ──────────────────────────────────────────
-  // Si hubo debate: usa convergence_score (0-100) × combined confidence.
-  // Si no hubo: usa promedio de a1.confidence y a2.confidence como proxy,
-  // capeado a la mitad (max 20%) porque no hay validación cruzada.
-  let a12Pct = 0;
-  if (debate) {
-    const conv = debate.convergence_score / 100;
-    const combined = ((a1?.confidence ?? 0) + (a2?.confidence ?? 0)) / 2 / 100;
-    a12Pct = Math.round(conv * combined * 40);
-  } else if (a1 && a2) {
-    const avg = (a1.confidence + a2.confidence) / 2 / 100;
-    a12Pct = Math.round(avg * 20); // half si no hubo debate confirmado
-  }
+  const canonical = computeCanonical({
+    // Cast seguro: A1Output legacy y A1Output_t canónico son estructuralmente
+    // idénticos (el canónico es el "source of truth" según CLAUDE.md, los
+    // schemas en agents/a*/schema.ts son su back-compat). Si divergen, el
+    // typecheck lo detecta.
+    a1: a1 as never,
+    a2: a2 as never,
+    a3: a3 as never,
+    debate: debateForCompute,
+  });
 
-  // ─── Alineados (max 30%) ────────────────────────────────────────
-  const a3Direction = a3?.operativa.signal === 'buy'
-    ? 'alcista'
-    : a3?.operativa.signal === 'sell'
-      ? 'bajista'
-      : 'neutral';
-  const debateDirection = debate?.direccion;
-  const aligned =
-    debateDirection === a3Direction && debateDirection !== 'neutral' && a3Direction !== 'neutral';
-  const aPct = aligned ? 30 : 0;
+  // Derivar dirección: prioriza el debate (validación cruzada A1×A2).
+  // Si no hay debate, deriva de A3 (técnico). Última opción: A1 vía anomaly_type.
+  const direction: 'alcista' | 'bajista' | 'neutral' = (() => {
+    if (debate?.direccion && debate.direccion !== 'neutral') return debate.direccion;
+    if (a3?.operativa.signal === 'buy') return 'alcista';
+    if (a3?.operativa.signal === 'sell') return 'bajista';
+    if (a1?.anomaly_type === 'oportunidad') return 'alcista';
+    if (a1?.anomaly_type === 'vulnerabilidad') return 'bajista';
+    return 'neutral';
+  })();
 
-  const total = Math.min(100, a3Pct + a12Pct + aPct);
-  const level = levelFromPct(total);
+  // Aligned binario para la UI (badge "alineados" en A4 card): true cuando
+  // el alignment score canónico cruza el umbral de "validación cruzada
+  // significativa". 70 = 2 agentes al mismo lado en scoreAlignment, que es
+  // el primer escalón con valor de señal real.
+  const aligned = canonical.alineados.score >= 70;
 
   return {
-    a3_solo: { score: Math.round(a3Conf), pct: a3Pct },
-    a1_a2: {
-      score: debate ? debate.convergence_score : Math.round(((a1?.confidence ?? 0) + (a2?.confidence ?? 0)) / 2),
-      pct: a12Pct,
-    },
-    alineados: { score: aligned ? 100 : 0, pct: aPct },
-    total_pct: total,
-    level,
-    direction: debateDirection ?? a3Direction,
+    a3_solo: { score: canonical.a3_solo.score, pct: Math.round(canonical.a3_solo.score * 0.3) },
+    a1_a2: { score: canonical.a1_a2.score, pct: Math.round(canonical.a1_a2.score * 0.4) },
+    alineados: { score: canonical.alineados.score, pct: Math.round(canonical.alineados.score * 0.3) },
+    total_pct: canonical.score_total_pct,
+    level: canonical.nivel_final,
+    direction,
     aligned,
   };
 }
