@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
+import { extractJson } from '@/agents/shared/parser';
 
 /**
  * Anthropic client + model assignment for A.D.A.M.
@@ -46,28 +47,6 @@ export const anthropic = new Anthropic({
   maxRetries: 1,
 });
 
-/**
- * Errores transitorios de Anthropic. Códigos HTTP que NO son culpa del input
- * y se autocuran con backoff: rate-limit, overload, capacity, transient 5xx.
- */
-function isTransientAnthropicError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  // Anthropic SDK levanta APIError con .status numérico
-  const status = (err as { status?: number }).status;
-  if (typeof status === 'number') {
-    if (status === 408 || status === 409 || status === 429) return true;
-    if (status >= 500 && status <= 599) return true;
-  }
-  // Algunos errores de red (DNS, socket reset) no traen status pero traen .name
-  const name = (err as { name?: string }).name;
-  if (name === 'APIConnectionError' || name === 'APIConnectionTimeoutError') return true;
-  return false;
-}
-
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export const MODELS = {
   SONNET: 'claude-sonnet-4-6',
   OPUS: 'claude-opus-4-6',
@@ -75,22 +54,6 @@ export const MODELS = {
 } as const;
 
 export type ModelName = (typeof MODELS)[keyof typeof MODELS];
-
-/**
- * Strip a fenced JSON block out of an LLM response if present, otherwise
- * return the raw string. Tolerates the model occasionally wrapping output
- * in ```json ... ``` despite instructions, AND tolerates a leading fence
- * with no closing fence (which can happen when max_tokens cuts the response).
- */
-function extractJson(text: string): string {
-  // Closed fence first
-  const closed = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (closed?.[1]) return closed[1].trim();
-  // Open fence at the start, no closing — strip the opener
-  const opener = text.match(/^\s*```(?:json)?\s*\n?/);
-  if (opener) return text.slice(opener[0].length).trim();
-  return text.trim();
-}
 
 export interface AgentUsage {
   agent: string;
