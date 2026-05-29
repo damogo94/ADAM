@@ -158,7 +158,7 @@ const BY_ALIAS: Map<string, string> = (() => {
 /**
  * Resuelve un input libre del usuario a un ticker canónico del catálogo.
  *
- *   "gold" → "XAU/USD"
+ *   "gold" → "GC=F"
  *   "AAPL" → "AAPL"
  *   "btc"  → "BTC"
  *   "ZZZZ" → "ZZZZ" (passthrough; el pipeline lo intentará igual)

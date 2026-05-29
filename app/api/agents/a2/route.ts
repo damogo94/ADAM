@@ -18,7 +18,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
 import { narrateA2 } from '@/agents/a2/narrate';
-import { fallbackQuote, fallbackNewsSentiment } from '@/lib/market/finnhub';
 import { getMacroSnapshot } from '@/lib/market/macro';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
@@ -58,23 +57,13 @@ export async function POST(req: NextRequest) {
     // Si esta caliente, ~50ms. Si frio, hasta 3s (hard timeout en macro.ts).
     const macro = await getMacroSnapshot();
 
-    // A2 prompt menciona news/quote como anclas opcionales del contexto del
-    // ticker. Para que el output sea coherente con el del pipeline (que SI
-    // los pasa via MarketSnapshot completo), incluimos lo minimo.
-    // Best-effort: si fallan, narrateA2 sigue con macro como ancla principal.
-    const [q, news] = await Promise.all([
-      fallbackQuote(ticker).catch(() => null),
-      fallbackNewsSentiment(ticker, 3).catch(() => []),
-    ]);
-
+    // narrateA2 SOLO consume `macro_snapshot` para construir el prompt (ver
+    // agents/a2/narrate.ts:59-71). quote/news/fundamentals/ohlcv del snapshot
+    // no se leen, así que los dejamos como stubs en vez de pegarle a
+    // Finnhub/Yahoo en cada llamada — ese fetch se descartaba entero.
     const snapshot: MarketSnapshot = {
       ticker,
-      quote: {
-        current: q?.current ?? 0,
-        change_pct_24h: q?.change_pct_24h ?? 0,
-        change_pct_7d: 0,
-        currency: 'USD',
-      },
+      quote: { current: 0, change_pct_24h: 0, change_pct_7d: 0, currency: 'USD' },
       fundamentals: {
         per: null,
         peg: null,
@@ -83,7 +72,7 @@ export async function POST(req: NextRequest) {
         dividend_yield_pct: null,
         market_cap_usd: null,
       },
-      news,
+      news: [],
       ohlcv_daily: [],
       ohlcv_intraday: [],
       // MacroSnapshotPayload tiene solo primitivos (string/number/boolean/null)

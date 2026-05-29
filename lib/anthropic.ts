@@ -4,10 +4,17 @@ import { z } from 'zod';
 /**
  * Anthropic client + model assignment for A.D.A.M.
  *
- * Model assignment locked 2026-05-09:
- *  - A1, A2, A3:    sonnet  (latency-sensitive, parallel calls)
- *  - DEBATE, A4:    opus    (synthesis quality dominates)
- *  - CMT scanner:   haiku   (batch throughput dominates)
+ * Model assignment (ADR-001 — narración en Haiku, razonamiento en Sonnet):
+ *  - Pipeline vivo (narrate*): A1 Haiku · A2 Sonnet · A3 Haiku · A4 Haiku.
+ *    A3/A4 narran sobre compute determinista, así que Haiku basta.
+ *  - Debate: Sonnet (síntesis A1×A2; downgrade desde Opus por el budget Hobby).
+ *  - CMT scanner: Haiku (throughput de batch domina).
+ *  - Clients legacy (runA1/A2/A3/A4): Sonnet — hacen razonamiento + narración
+ *    en una sola call sin capa compute. Sólo los usan el endpoint legacy
+ *    /api/agents/a4 y el per-agent /api/agents/a3.
+ *
+ * Si cambias esta asignación, actualiza también el narrate.ts/client.ts
+ * correspondiente: el budget de coste y latencia del lambda Hobby la asume.
  */
 
 /**
