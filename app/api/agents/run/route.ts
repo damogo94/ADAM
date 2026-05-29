@@ -191,7 +191,6 @@ export async function POST(req: NextRequest) {
       // ─── Persistir log (best-effort) ───────────────────────────
       try {
         const admin = createSupabaseAdmin();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await admin.from('analyses_log').insert({
           user_id: user.id,
           ticker,
