@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { A3_SYSTEM_PROMPT } from '../prompt';
 import { A3_OUTPUT_SCHEMA } from '../schema';
 import { runA3, type A3Input } from '../client';
+import { narrateA3, type NarrateA3Input } from '../narrate';
 
 const FORBIDDEN_TERMS = [
   'Fear & Greed Index',
@@ -101,6 +102,40 @@ describe('A3 isolation — capa 2: firma de runA3()', () => {
     } as unknown as A3Input;
 
     await expect(runA3(badInput)).rejects.toThrow(/A3 isolation violation/);
+  });
+});
+
+describe('A3 isolation — capa 2: firma de narrateA3() (path vivo del pipeline)', () => {
+  // El guard runtime corre ANTES de compute/LLM, así que un input con claves
+  // extra tira sin necesidad de API key ni mocks. ohlcv vacío vale: nunca se
+  // llega a usarlo.
+  const baseOhlcv = [] as NarrateA3Input['ohlcv'];
+
+  it('rechaza un campo extra "news"', async () => {
+    const badInput = {
+      ticker: 'AAPL',
+      ohlcv: baseOhlcv,
+      news: ['fake'],
+    } as unknown as NarrateA3Input;
+    await expect(narrateA3(badInput)).rejects.toThrow(/A3 isolation violation/);
+  });
+
+  it('rechaza outputs de A2 (macro) colados como contexto', async () => {
+    const badInput = {
+      ticker: 'AAPL',
+      ohlcv: baseOhlcv,
+      a2_output: { regime_outlook: 'alcista' },
+    } as unknown as NarrateA3Input;
+    await expect(narrateA3(badInput)).rejects.toThrow(/A3 isolation violation/);
+  });
+
+  it('rechaza sentiment / fear & greed', async () => {
+    const badInput = {
+      ticker: 'AAPL',
+      ohlcv: baseOhlcv,
+      sentiment: { fear_greed: 30 },
+    } as unknown as NarrateA3Input;
+    await expect(narrateA3(badInput)).rejects.toThrow(/A3 isolation violation/);
   });
 });
 
