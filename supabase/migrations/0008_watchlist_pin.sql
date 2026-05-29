@@ -24,7 +24,13 @@ create index if not exists watchlist_items_pinned_idx
 
 -- ─────────────────────────────────────────────────────────────────────
 -- RPC actualizada: incluye is_pinned + pinned_at + nueva ordenación.
+--
+-- DROP antes del CREATE: añadir columnas al RETURNS TABLE cambia el tipo de
+-- retorno, y `create or replace` no permite cambiar la firma de retorno
+-- ("cannot change return type of existing function"). Sin el drop, la
+-- migración entera revertía (transacción implícita) y 0008 nunca se aplicaba.
 -- ─────────────────────────────────────────────────────────────────────
+drop function if exists public.get_watchlist_radar();
 create or replace function public.get_watchlist_radar()
 returns table (
   item_id              uuid,
