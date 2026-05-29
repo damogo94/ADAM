@@ -51,16 +51,25 @@ export default function WatchlistScreen() {
     void load();
   }, []);
 
-  // Recarga sparklines cuando cambia el rango (toggle 7d/30d) o cuando
-  // cambia el conjunto de tickers del radar.
+  // Clave estable del CONJUNTO de tickers (ordenada y deduplicada): así un
+  // pin/reorden — que crea un nuevo objeto `radar` pero no cambia qué activos
+  // hay — no dispara un refetch. Solo cambia al añadir/quitar un activo.
+  const tickerKey = [...new Set((radar?.rows ?? []).map((r) => r.ticker))]
+    .sort()
+    .join(',');
+
+  // Recarga sparklines cuando cambia el rango (toggle 7d/30d) o el conjunto de
+  // tickers. Aborta el fetch anterior en cleanup para que una respuesta lenta
+  // de un set previo no sobrescriba a una más reciente (race → datos stale).
   useEffect(() => {
-    const tickers = (radar?.rows ?? []).map((r) => r.ticker);
-    if (tickers.length === 0) {
+    if (!tickerKey) {
       setSparklines({});
       return;
     }
-    void loadSparklines(tickers, sparkRange);
-  }, [radar, sparkRange]);
+    const ctrl = new AbortController();
+    void loadSparklines(tickerKey.split(','), sparkRange, ctrl.signal);
+    return () => ctrl.abort();
+  }, [tickerKey, sparkRange]);
 
   async function load() {
     setLoading(true);
@@ -90,24 +99,29 @@ export default function WatchlistScreen() {
     }
   }
 
-  async function loadSparklines(tickers: string[], range: SparklineRange_t) {
+  async function loadSparklines(
+    tickers: string[],
+    range: SparklineRange_t,
+    signal?: AbortSignal
+  ) {
     try {
       const qs = new URLSearchParams({
         symbols: tickers.join(','),
         range,
       }).toString();
-      const r = await fetch(`/api/market/sparklines?${qs}`);
+      const r = await fetch(`/api/market/sparklines?${qs}`, { signal });
       if (!r.ok) return; // degradación silenciosa — la página funciona sin sparklines
       const data = await r.json();
       const parsed = SparklinesResponse.safeParse(data);
       if (!parsed.success) return;
+      if (signal?.aborted) return; // respuesta obsoleta — un fetch más nuevo la reemplazó
       const next: Record<string, number[]> = {};
       for (const s of parsed.data.series) {
         next[s.symbol] = s.closes;
       }
       setSparklines(next);
     } catch {
-      // Silencio total: no rompemos UX por sparklines fallidos.
+      // Silencio total: AbortError (cleanup) o fallo de red no rompen UX.
     }
   }
 
