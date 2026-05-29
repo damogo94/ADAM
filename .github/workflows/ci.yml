@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancela runs viejos del mismo ref si llega un push nuevo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm/action-setup lee la versión del campo `packageManager` (pnpm@9.12.0).
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      # NOTA: `pnpm lint` se omite a propósito. Hoy no existe config de ESLint
+      # en el repo y `next lint` arranca en modo interactivo. Cablear lint
+      # requiere resolver el conflicto eslint@9 vs eslint-config-next@14
+      # (Fase 3). Añadir el step aquí en cuanto eso esté hecho.
+
+      - run: pnpm test
