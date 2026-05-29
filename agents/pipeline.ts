@@ -167,23 +167,43 @@ export async function runADAM(
   // eslint-disable-next-line no-console
   console.log(`[pipeline] ${traceId} start ticker=${ticker}`);
 
-  // ── Step 1+2: LLM paralelo de A1 + A3 (A2 desacoplado, ver abajo)
+  // ── A2: cache lookup primero (instant, sin LLM) ──
+  // Si el macro snapshot trae un as_of válido y hay entrada en a2_cache,
+  // usamos A2 sin gastar tokens. En cache miss decidimos abajo si narrar.
+  let a2: A2Output_t | null = await readA2FromMacroSnapshot(ticker, snapshot);
+  if (a2) {
+    // eslint-disable-next-line no-console
+    console.log(`[pipeline] ${traceId} A2 from cache (no Anthropic call)`);
+  }
+
+  // ¿Narramos A2 con LLM? Solo si hubo cache miss y el caller no pidió skip.
+  //   - /api/agents/run pasa skipA2Narrate=true → A2 jamás narra aquí; su
+  //     lambda paralelo /api/agents/a2 calienta el cache por separado.
+  //   - cron (runForUser) y callers legacy → narran A2 como fallback.
+  const runA2Narrate = !a2 && !options.skipA2Narrate;
+
+  // ── Step 1+2: LLM en paralelo (A1 + A3 [+ A2 si toca narrar]) ──
   //
-  // Arquitectura "A2 desacoplado" (2026-05-21): A2 sale del bloque paralelo
-  // porque su Sonnet con ~25s peor caso saturaba el budget de 60s del lambda
-  // Hobby al sumar con Debate (Sonnet) + A4 + data fetch → 504 Gateway Timeout.
+  // Arquitectura "A2 desacoplado" (2026-05-21): /api/agents/run pasa
+  // skipA2Narrate=true para que el bloque paralelo sea solo A1+A3 (~12s) y
+  // A2 se lea del cache o lo caliente su propio lambda — evita el 504 que
+  // daba al sumar A2(Sonnet 25s) + Debate + A4 dentro del lambda de 60s.
   //
-  // Ahora /api/agents/run pasa `skipA2Narrate=true`:
-  //   - Pipeline ejecuta A1 + A3 en paralelo (~12s peor caso)
-  //   - A2 se lee SOLO desde a2_cache (instant)
-  //   - El frontend dispara /api/agents/a2 en paralelo, en su PROPIO lambda
-  //     con su PROPIO 60s budget, para calentar el cache
-  //   - Primera petición: A2 cache miss → pipeline sin A2 (sin Debate) →
-  //     el standalone llega despues y se renderiza
-  //   - Segunda petición mismo ticker hoy: A2 cache hit → Debate disponible
-  //
-  // Tests / callers legacy NO pasan skipA2Narrate → narrateA2 se llama como
-  // fallback secuencial si el cache miss (comportamiento backward-compat).
+  // Para el cron (runForUser) y callers legacy NO hay lambda externo que
+  // caliente el cache, así que A2 SÍ se narra. La clave: la arrancamos ANTES
+  // del allSettled de A1/A3 para que las tres llamadas solapen (~max 25s) en
+  // vez de correr A2 en serie después (lo que sumaba ~12s+25s y rebasaba el
+  // budget). Paralelizada: ~max(25s) + Debate(~15s) + A4(~6s) ≈ 46s, con
+  // cushion para los 60s de Hobby. Adjuntamos .then/.catch al crear el
+  // promise para no arriesgar un unhandledRejection mientras esperamos A1/A3.
+  const a2NarratePromise:
+    | Promise<{ ok: true; value: A2Output_t } | { ok: false; error: unknown }>
+    | null = runA2Narrate
+    ? timed('A2', traceId, () => A.narrateA2(ticker, snapshot, { traceId, onUsage }))
+        .then((value) => ({ ok: true as const, value }))
+        .catch((error) => ({ ok: false as const, error }))
+    : null;
+
   const settled = await Promise.allSettled([
     timed('A1', traceId, () => A.narrateA1(ticker, snapshot, { traceId, onUsage })),
     timed('A3', traceId, () =>
@@ -216,33 +236,22 @@ export async function runADAM(
     });
   }
 
-  // ── A2: cache lookup primero, narrate fallback (si no skipA2Narrate) ──
-  let a2: A2Output_t | null = await readA2FromMacroSnapshot(ticker, snapshot);
-  if (a2) {
-    // eslint-disable-next-line no-console
-    console.log(`[pipeline] ${traceId} A2 from cache (no Anthropic call)`);
-  } else if (!options.skipA2Narrate) {
-    // Fallback legacy: callers sin flag esperan que narrateA2 se llame.
-    // Lo ejecutamos secuencialmente tras A1+A3 — penaliza latencia pero
-    // mantiene compat con tests existentes.
-    try {
-      a2 = await timed('A2', traceId, () =>
-        A.narrateA2(ticker, snapshot, { traceId, onUsage })
-      );
-    } catch (err) {
-      failures.push({ agent: 'A2', message: extractErrorMsg(err) });
-    }
+  // Recogemos A2 narrado (ya en vuelo, en paralelo con A1/A3).
+  if (a2NarratePromise) {
+    const r = await a2NarratePromise;
+    if (r.ok) a2 = r.value;
+    else failures.push({ agent: 'A2', message: extractErrorMsg(r.error) });
   }
   // Si skipA2Narrate=true Y cache miss → a2 queda null. El standalone
-  // endpoint del frontend llenara el hueco en el UI.
+  // endpoint del frontend llenará el hueco en el UI.
 
   if (!a1 && !a3 && !a2) {
     throw new AllAgentsFailedError(failures);
   }
 
   // ── Step 3: Debate condicional
-  // Con A2 desacoplado, el bloque paralelo solo es A1+A3 (~12s peor caso),
-  // dejando budget holgado para Debate (~15s) + A4 (~6s). Total ~38s con
+  // El bloque paralelo es A1+A3 (~12s) en /run, o A1+A2+A3 (~25s) en el cron,
+  // dejando budget para Debate (~15s) + A4 (~6s). Worst case ~46s, con
   // cushion para los 60s de Hobby. Budget-aware skip removido por innecesario.
   let debate: DebateOutput | null = null;
   let debateRan = false;
