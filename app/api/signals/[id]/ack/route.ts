@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
-import { checkSameOrigin, sanitizeDbError } from '@/lib/api-helpers';
+import { checkSameOrigin, rateLimitByIP, sanitizeDbError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
 /**
  * POST /api/signals/[id]/ack → marca una signal como acknowledged.
- * RLS garantiza que sólo el dueño puede tocarla.
+ * RLS garantiza que sólo el dueño puede tocarla; el filtro explícito
+ * user_id es defensa en profundidad por si RLS regresiona.
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
+
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
 
   const { id } = params;
   const supabase = await createSupabaseServer();
@@ -21,7 +25,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('signals_history') as any)
     .update(patch)
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     return NextResponse.json(sanitizeDbError(error, 'update_failed'), { status: 500 });

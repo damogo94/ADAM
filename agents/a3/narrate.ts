@@ -52,6 +52,22 @@ export async function narrateA3(
   input: NarrateA3Input,
   options: NarrateA3Options = {}
 ): Promise<A3Output_t> {
+  // ── Aislamiento de A3 (capa 2, defensa en profundidad) ──
+  // Igual que el legacy runA3: rechazamos cualquier clave fuera del set OHLCV
+  // ANTES de tocar compute o LLM. El pipeline ya pasa solo estas claves; el
+  // guard atrapa un futuro refactor que cuele narrative context (a1/a2 output,
+  // news, macro, sentiment). El tipado TS solo no basta: un `as any` upstream
+  // lo saltaría sin este chequeo runtime.
+  const allowedKeys = new Set(['ticker', 'ohlcv', 'timeframe', 'intraday']);
+  for (const key of Object.keys(input)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error(
+        `[A3 isolation violation] Campo no permitido en narrateA3 input: "${key}". ` +
+          `A3 sólo acepta ticker + ohlcv (+ timeframe/intraday). Revisa el caller.`
+      );
+    }
+  }
+
   const { traceId, onUsage } = options;
   const timeframe = input.timeframe ?? '1D';
 

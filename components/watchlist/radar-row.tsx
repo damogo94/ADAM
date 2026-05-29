@@ -2,6 +2,8 @@
 
 import { cn, fmtPct, getCurrencyFromTicker } from '@/lib/utils';
 import { AnomalyBadge } from './anomaly-badge';
+import { DictamenSparkline } from './dictamen-sparkline';
+import { PinButton } from './pin-button';
 import { Glossed } from '@/components/lens/glossed';
 import type { RadarRow_t } from '@/lib/radar/types';
 
@@ -24,14 +26,25 @@ import type { RadarRow_t } from '@/lib/radar/types';
 
 interface RadarRowProps {
   row: RadarRow_t;
+  /** Cierres de sparkline (rango decidido por la page). [] mientras carga. */
+  sparklineCloses?: number[];
   onAnalyze: () => void;
   onDelete: () => void;
+  /** Pin/unpin del item. */
+  onTogglePin: () => void;
   /** Highlight visual cuando el digest seleccionó este ticker. */
   highlighted?: boolean;
 }
 
-export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProps) {
-  const { ticker, asset_type, quote, latest, delta, distances, signal, is_stale } = row;
+export function RadarRow({
+  row,
+  sparklineCloses,
+  onAnalyze,
+  onDelete,
+  onTogglePin,
+  highlighted,
+}: RadarRowProps) {
+  const { ticker, asset_type, quote, latest, delta, distances, signal, is_stale, is_pinned } = row;
   const currency = quote?.currency ?? getCurrencyFromTicker(ticker);
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   const hasAnalysis = latest !== null;
@@ -51,6 +64,15 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
       <div className="flex items-center gap-3 px-3 pt-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
+            {is_pinned && (
+              <span
+                className="font-mono text-[10px] leading-none text-white/65"
+                aria-label="Fijado"
+                title="Fijado"
+              >
+                ◆
+              </span>
+            )}
             <span className="font-orbitron text-[13px] font-bold tracking-wider text-white">
               {ticker}
             </span>
@@ -59,6 +81,14 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
             </span>
           </div>
         </div>
+
+        {/* Sparkline — coherente con dictamen A4, NO con la pendiente
+            de la serie. Si no hay valores, renderiza placeholder discreto. */}
+        <DictamenSparkline
+          values={sparklineCloses ?? []}
+          direction={latest?.direction ?? null}
+          stale={is_stale}
+        />
 
         <div className="text-right">
           {quote ? (
@@ -85,6 +115,8 @@ export function RadarRow({ row, onAnalyze, onDelete, highlighted }: RadarRowProp
         >
           ▶
         </button>
+
+        <PinButton pinned={is_pinned} onToggle={onTogglePin} />
       </div>
 
       {/* ───── 2. Headline + AnomalyBadge ───── */}

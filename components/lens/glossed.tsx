@@ -59,10 +59,13 @@ export function Glossed({ term, children, variant = 'dashed', forceMode }: Gloss
       >
         {children}
       </span>
-      {/* Tooltip "oculto" para lectores de pantalla. Visible solo en
-          hover/focus via group-hover, manteniendo el title= nativo como
-          fallback consistente cross-browser. */}
-      <span id={id} hidden>
+      {/* Descripción para lectores de pantalla, referenciada por
+          aria-describedby. Va con sr-only (no `hidden`): los elementos
+          `hidden` se eliminan del árbol de accesibilidad, así que un
+          aria-describedby apuntando a uno no resuelve a nada. sr-only lo
+          mantiene invisible visualmente pero accesible al SR. El title=
+          nativo sigue siendo el tooltip visual. */}
+      <span id={id} className="sr-only">
         {entry.label}: {entry.explanation}
       </span>
     </span>

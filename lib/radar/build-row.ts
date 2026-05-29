@@ -33,6 +33,8 @@ export function buildRow(
     position: rpcRow.position,
     notes: rpcRow.notes,
     added_at: rpcRow.added_at,
+    is_pinned: rpcRow.is_pinned,
+    pinned_at: rpcRow.pinned_at,
     quote,
     latest,
     delta,

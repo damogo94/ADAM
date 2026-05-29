@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { getOrCreateDefaultWatchlist } from '@/lib/watchlist';
-import { checkSameOrigin, sanitizeDbError } from '@/lib/api-helpers';
+import { checkSameOrigin, rateLimitByIP, sanitizeDbError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
@@ -37,6 +37,9 @@ const AddSchema = z.object({
 export async function POST(req: NextRequest) {
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
+
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
 
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();

@@ -87,6 +87,9 @@ export const RpcRadarRow = z
     position: z.number().int(),
     notes: z.string().nullable(),
     added_at: z.string(),
+    // Migración 0008: pin
+    is_pinned: z.boolean(),
+    pinned_at: z.string().nullable(),
     // jsonb crudo (puede ser null) — validamos por dentro después.
     latest_analysis: z.unknown().nullable(),
     previous_analysis: z.unknown().nullable(),
@@ -179,6 +182,8 @@ export const RadarRow = z
     position: z.number().int(),
     notes: z.string().nullable(),
     added_at: z.string(),
+    is_pinned: z.boolean(),
+    pinned_at: z.string().nullable(),
     quote: RadarQuote.nullable(),
     latest: RadarAnalysisSnapshot.nullable(),
     delta: RadarDelta,
