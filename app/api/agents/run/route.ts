@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
           usage_breakdown: usages,
           initial_price: currentPrice,
           initial_price_at: new Date().toISOString(),
-        } as any);
+        });
       } catch (logErr) {
         // eslint-disable-next-line no-console
         console.error(

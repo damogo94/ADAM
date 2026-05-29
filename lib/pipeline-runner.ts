@@ -119,8 +119,8 @@ export async function runForUser(
     let analysisId: string | null = null;
     try {
       const admin = createSupabaseAdmin();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await (admin.from('analyses_log') as any)
+      const { data: inserted } = await admin
+        .from('analyses_log')
         .insert({
           user_id: userId,
           ticker,
@@ -173,13 +173,12 @@ export async function hasRecentAnalysis(
 ): Promise<boolean> {
   const admin = createSupabaseAdmin();
   const cutoffISO = new Date(Date.now() - withinHours * 3_600_000).toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (admin
+  const { data } = await admin
     .from('analyses_log')
     .select('id')
     .eq('user_id', userId)
     .eq('ticker', ticker)
     .gte('created_at', cutoffISO)
-    .limit(1) as any);
+    .limit(1);
   return !!(data && data.length > 0);
 }

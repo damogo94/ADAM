@@ -43,13 +43,12 @@ export async function GET() {
   const admin = createSupabaseAdmin();
 
   // Trae outcomes con el row del analisis correspondiente embedded
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rows, error } = await (admin
+  const { data: rows, error } = await admin
     .from('signal_outcomes')
     .select(
       'analysis_id, horizon_days, hit, return_pct, analyses_log!inner(direction, confidence, confluence_pct)'
     )
-    .limit(5000) as any);
+    .limit(5000);
 
   if (error) {
     return NextResponse.json({ error: 'query_failed', detail: error.message }, { status: 500 });

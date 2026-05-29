@@ -80,12 +80,8 @@ export async function PATCH(
     pinned_at: parsed.data.is_pinned ? new Date().toISOString() : null,
   };
 
-  // Cast del from() siguiendo el patrón existente en /api/signals/[id]/ack.
-  // El cliente Supabase tipado genera 'never' en .update() cuando los tipos
-  // Insert/Update no se infieren bien — hasta migrar a `supabase gen types`,
-  // este cast localizado es el menor mal.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('watchlist_items') as any)
+  const { data, error } = await supabase
+    .from('watchlist_items')
     .update(patch)
     .eq('id', itemId)
     .select('*')

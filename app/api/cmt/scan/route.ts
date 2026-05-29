@@ -87,8 +87,7 @@ async function persistSignals(userId: string, results: ScanResult[]): Promise<nu
     });
 
   if (toInsert.length === 0) return 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await admin.from('signals_history').insert(toInsert as any);
+  const { error } = await admin.from('signals_history').insert(toInsert);
   if (error) {
     // eslint-disable-next-line no-console
     console.error('[cmt-scan] persist failed:', error.message);
@@ -197,7 +196,7 @@ async function handleCron() {
     .from('watchlists')
     .select('id, user_id')
     .eq('is_default', true);
-  const watchlists = (wlRes.data ?? []) as unknown as { id: string; user_id: string }[];
+  const watchlists = wlRes.data ?? [];
 
   if (watchlists.length === 0) {
     return NextResponse.json({ users_scanned: 0, total_persisted: 0 });
@@ -213,7 +212,7 @@ async function handleCron() {
         .from('watchlist_items')
         .select('ticker')
         .eq('watchlist_id', wl.id);
-      const items = (itemsRes.data ?? []) as unknown as { ticker: string }[];
+      const items = itemsRes.data ?? [];
       const tickers = items.map((it) => it.ticker);
       if (tickers.length === 0) continue;
 

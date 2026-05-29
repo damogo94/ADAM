@@ -220,7 +220,6 @@ export async function POST(req: NextRequest) {
     // Step 5: persistir log (best-effort)
     try {
       const admin = createSupabaseAdmin();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await admin.from('analyses_log').insert({
         user_id: user.id,
         ticker,
@@ -234,7 +233,7 @@ export async function POST(req: NextRequest) {
         a4_output: a4,
         latency_ms,
         tokens_used,
-      } as any);
+      });
     } catch (logErr) {
       // eslint-disable-next-line no-console
       console.error('[a4] failed to persist analyses_log:', logErr instanceof Error ? logErr.message : logErr);

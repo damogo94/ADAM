@@ -35,8 +35,8 @@ export async function readA2Cache(
 ): Promise<A2Output_t | null> {
   try {
     const admin = createSupabaseAdmin();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (admin.from('a2_cache' as any) as any)
+    const { data, error } = await admin
+      .from('a2_cache')
       .select('output')
       .eq('ticker', ticker)
       .eq('macro_as_of', macroAsOf)
@@ -75,8 +75,7 @@ export async function writeA2Cache(
 ): Promise<void> {
   try {
     const admin = createSupabaseAdmin();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin.from('a2_cache' as any) as any).upsert({
+    await admin.from('a2_cache').upsert({
       ticker,
       macro_as_of: macroAsOf,
       output,

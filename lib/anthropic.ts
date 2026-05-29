@@ -55,14 +55,17 @@ export const MODELS = {
 
 export type ModelName = (typeof MODELS)[keyof typeof MODELS];
 
-export interface AgentUsage {
+// `type` (no `interface`) a propósito: un object-type cerrado es asignable a
+// `Json`, de modo que `AgentUsage[]` encaja en columnas jsonb (usage_breakdown)
+// sin cast. Una `interface` no satisface el index signature de `Json`.
+export type AgentUsage = {
   agent: string;
   model: string;
   input_tokens: number;
   output_tokens: number;
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
-}
+};
 
 interface RunAgentArgs<T extends z.ZodTypeAny> {
   systemPrompt: string;

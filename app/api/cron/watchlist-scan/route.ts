@@ -75,11 +75,10 @@ export async function GET(req: NextRequest) {
   let consecutiveFails = 0;
 
   // 1. Lista usuarios con watchlist default.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: defaultLists, error: wlErr } = await (admin
+  const { data: defaultLists, error: wlErr } = await admin
     .from('watchlists')
     .select('id, user_id')
-    .eq('is_default', true) as any);
+    .eq('is_default', true);
 
   if (wlErr) {
     Sentry.captureMessage('cron watchlist-scan watchlists query failed', {
@@ -88,22 +87,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'watchlists_query_failed', detail: wlErr.message }, { status: 500 });
   }
 
-  const users: UserRow[] = ((defaultLists ?? []) as { id: string; user_id: string }[]).map((w) => ({
+  const users: UserRow[] = (defaultLists ?? []).map((w) => ({
     user_id: w.user_id,
     watchlist_id: w.id,
   }));
 
   // 2. Por cada usuario, escanea sus primeros N tickers
   for (const u of users) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: items } = await (admin
+    const { data: items } = await admin
       .from('watchlist_items')
       .select('ticker, position')
       .eq('watchlist_id', u.watchlist_id)
       .order('position', { ascending: true })
-      .limit(CAP_TICKERS_PER_USER) as any);
+      .limit(CAP_TICKERS_PER_USER);
 
-    const tickers: ItemRow[] = (items ?? []) as ItemRow[];
+    const tickers: ItemRow[] = items ?? [];
     if (tickers.length === 0) continue;
 
     for (const it of tickers) {

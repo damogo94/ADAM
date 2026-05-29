@@ -22,8 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const patch = { acknowledged_at: new Date().toISOString() };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('signals_history') as any)
+  const { error } = await supabase
+    .from('signals_history')
     .update(patch)
     .eq('id', id)
     .eq('user_id', user.id);

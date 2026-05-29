@@ -75,11 +75,9 @@ export async function POST(req: NextRequest) {
       news: [],
       ohlcv_daily: [],
       ohlcv_intraday: [],
-      // MacroSnapshotPayload tiene solo primitivos (string/number/boolean/null)
-      // — encaja con el tipo del campo. Cast as-any para puentear los unions
-      // estrictos del payload vs el index signature del snapshot.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      macro_snapshot: macro as any,
+      // MacroSnapshotPayload es un object-type con solo primitivos → encaja
+      // con el index signature de macro_snapshot sin cast.
+      macro_snapshot: macro,
     };
 
     const t0 = Date.now();

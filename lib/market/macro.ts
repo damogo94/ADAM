@@ -27,7 +27,9 @@
 import { fetchFredSeries, latestValue, type FredObservation } from './fred';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 
-export interface MacroSnapshotPayload {
+// `type` (no `interface`): object-type cerrado asignable a `Json`, para poder
+// escribir el payload en la columna jsonb macro_snapshots_cache sin cast.
+export type MacroSnapshotPayload = {
   fed_funds_rate_pct: number | null;
   us_10y_yield_pct: number | null;
   us_2y_yield_pct: number | null;
@@ -37,7 +39,7 @@ export interface MacroSnapshotPayload {
   vix: number | null;
   curva_invertida: boolean | null;
   as_of: string; // 'YYYY-MM-DD'
-}
+};
 
 const SERIES = {
   FED_FUNDS: 'DFF', // Daily effective federal funds rate
@@ -173,8 +175,8 @@ async function getLatestNonEmptyCached(): Promise<MacroSnapshotPayload | null> {
     const cutoffISO = new Date(Date.now() - MAX_STALE_DAYS * 86_400_000)
       .toISOString()
       .slice(0, 10);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (admin.from('macro_snapshots_cache' as any) as any)
+    const { data, error } = await admin
+      .from('macro_snapshots_cache')
       .select('payload, as_of')
       .gte('as_of', cutoffISO)
       .order('as_of', { ascending: false })
@@ -209,8 +211,8 @@ export async function getMacroSnapshot(): Promise<MacroSnapshotPayload> {
   // app hasta medianoche).
   try {
     const admin = createSupabaseAdmin();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (admin.from('macro_snapshots_cache' as any) as any)
+    const { data, error } = await admin
+      .from('macro_snapshots_cache')
       .select('payload')
       .eq('as_of', asOf)
       .maybeSingle();
@@ -237,8 +239,7 @@ export async function getMacroSnapshot(): Promise<MacroSnapshotPayload> {
     // Persistir solo cuando hay datos reales — never persist empty
     try {
       const admin = createSupabaseAdmin();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (admin.from('macro_snapshots_cache' as any) as any).upsert({
+      await admin.from('macro_snapshots_cache').upsert({
         as_of: asOf,
         payload: fresh,
       });
