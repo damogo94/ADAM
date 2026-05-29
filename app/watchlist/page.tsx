@@ -82,7 +82,16 @@ export default function WatchlistScreen() {
           return;
         }
         const j = await r.json().catch(() => ({}));
-        throw new Error(j.detail ?? j.error ?? 'fetch_failed');
+        // `detail` puede venir como array de issues Zod (objetos). Solo lo
+        // usamos si es string; si no, caemos al código de error legible —
+        // evita renderizar "[object Object],[object Object]…" en el UI.
+        const msg =
+          typeof j?.detail === 'string'
+            ? j.detail
+            : typeof j?.error === 'string'
+              ? j.error
+              : 'fetch_failed';
+        throw new Error(msg);
       }
       const data = await r.json();
       const parsed = RadarResponse.safeParse(data);
