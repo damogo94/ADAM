@@ -10,9 +10,8 @@ import { extractJson } from '@/agents/shared/parser';
  *    A3/A4 narran sobre compute determinista, así que Haiku basta.
  *  - Debate: Sonnet (síntesis A1×A2; downgrade desde Opus por el budget Hobby).
  *  - CMT scanner: Haiku (throughput de batch domina).
- *  - Clients legacy (runA1/A2/A3/A4): Sonnet — hacen razonamiento + narración
- *    en una sola call sin capa compute. Sólo los usan el endpoint legacy
- *    /api/agents/a4 y el per-agent /api/agents/a3.
+ *  - Client legacy (runA3): Sonnet — razonamiento + narración en una sola
+ *    call sin capa compute. Sólo lo usa el endpoint per-agent /api/agents/a3.
  *
  * Si cambias esta asignación, actualiza también el narrate.ts/client.ts
  * correspondiente: el budget de coste y latencia del lambda Hobby la asume.

@@ -3,12 +3,12 @@
  *
  * Refactor Fase 1 · Tarea 1.5
  *
- * Endpoint NUEVO que orquesta el pipeline `runADAM()`:
+ * Endpoint que orquesta el pipeline `runADAM()` y que consume el frontend
+ * (/analysis):
  *   data fetch → computeTechnical → A1+A2+A3 paralelo → debate opcional →
  *   computeConfluence → A4 narrate.
  *
- * El endpoint LEGACY `/api/agents/a4` queda intacto y operativo. El
- * frontend puede migrar cuando esté validado. Mismas garantías:
+ * Garantías:
  *   - Auth requerida
  *   - CSRF (same-origin)
  *   - Rate-limit per IP (5/min + 30/día) y per-user.id (30/día)
