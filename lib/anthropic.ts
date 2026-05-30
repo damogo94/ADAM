@@ -146,13 +146,9 @@ export async function runAgent<T extends z.ZodTypeAny>(
   //   - Multi-user simultáneo (un user calienta el cache, los demás leen)
   // Si el system prompt es <1024 tokens (a1/a2 lo son hoy), no se cachea
   // pero tampoco hay error — graceful no-op.
-  // SDK 0.32 acepta cache_control en runtime pero los types no lo exponen
-  // hasta 0.35+. Cast as-any es estándar para esta feature en SDKs < 0.35.
-  // Migración: bumpear el SDK retira el cast.
-  const systemWithCache = [
+  const systemWithCache: Anthropic.TextBlockParam[] = [
     { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ] as any;
+  ];
 
   // Timeout 25s. REVERT del intento de subirlo a 30s (2026-05-21) que
   // provoco 504 Gateway Timeout en prod: yo mismo calcule mal el worst

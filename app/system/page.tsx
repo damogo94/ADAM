@@ -47,10 +47,10 @@ interface Calibration {
 }
 
 const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'compute' }[] = [
-  { id: 'A1', label: 'Activos · micro', model: 'sonnet-4-6', mode: 'narrate' },
+  { id: 'A1', label: 'Activos · micro', model: 'haiku-4-5', mode: 'narrate' },
   { id: 'A2', label: 'Macro · global', model: 'sonnet-4-6', mode: 'narrate' },
-  { id: 'A3', label: 'Trading · price action', model: 'sonnet-4-6 (narrate) + código (compute)', mode: 'compute' },
-  { id: 'A4', label: 'Sistema · ensamblado', model: 'sonnet-4-6 (narrate) + código (confluence)', mode: 'compute' },
+  { id: 'A3', label: 'Trading · price action', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
+  { id: 'A4', label: 'Sistema · ensamblado', model: 'haiku-4-5 (narrate) + código (confluence)', mode: 'compute' },
   { id: 'DEBATE', label: 'Debate · A1 × A2', model: 'sonnet-4-6', mode: 'narrate' },
   { id: 'CMT', label: 'Scanner autónomo', model: 'haiku-4-5', mode: 'narrate' },
 ];
@@ -252,13 +252,14 @@ export default function SystemScreen() {
         <div className="font-mono text-[9px] text-emerald uppercase tracking-wider font-medium">
           refactor F1 — math fuera del LLM
         </div>
-        <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · trend · niveles · patrones · operativa" cls="text-white/85" />
+        <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-white/85" />
         <KV k="computeConfluence()" v="scoring 30/40/30 · capping por agentes vivos · niveles deterministas" cls="text-white/85" />
         <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-white/85" />
         <KV k="A2 edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-white/85" />
         <KV k="trace ID" v="UUID propagado a los 4 agentes para correlación de logs" cls="text-white/85" />
         <KV k="endpoint" v="/api/agents/run (pipeline integrado)" cls="text-white/85" />
-        <KV k="tests" v="258 unitarios · 0 regresiones" cls="text-emerald" />
+        <KV k="osciladores A3" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-white/85" />
+        <KV k="tests · CI" v="464 unitarios · GitHub Actions typecheck+lint+test" cls="text-emerald" />
       </div>
 
       <SectionLabel>arquitectura</SectionLabel>
@@ -269,7 +270,7 @@ export default function SystemScreen() {
       <SectionLabel>actividad reciente</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/5 bg-surface-2 px-3 py-2">
         <KV k="último análisis" v={lastAnalysis} />
-        <KV k="modelo principal" v="claude-sonnet-4-6 (narrate) + código (compute)" />
+        <KV k="modelos" v="Haiku 4.5 (narrate) · Sonnet 4.6 (A2 · Debate) · código (compute)" />
         <KV k="data provider" v="Finnhub 60/min + Yahoo /v8/chart" />
         <KV k="cache" v="Upstash L1+L2 + prompt caching ephemeral 5min" />
         <KV k="timeout" v="25s/agente · maxDuration 60s · ~50s worst case" />
@@ -281,7 +282,8 @@ export default function SystemScreen() {
         <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-emerald" />
         <KV k="rate-limit" v="✓ 5/min/IP + 30/día/IP + 30/día/user" cls="text-emerald" />
         <KV k="CSRF" v="✓ checkSameOrigin en POST" cls="text-emerald" />
-        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT" cls="text-emerald" />
+        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT (shared/types)" cls="text-emerald" />
+        <KV k="type-safety" v="✓ tipos Supabase generados · 0 casts as-any en src" cls="text-emerald" />
         <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-emerald" />
       </div>
 
