@@ -15,11 +15,13 @@ import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
 import { resolveTicker } from '@/lib/catalog/assets';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
-import type { A1Output } from '@/agents/a1/schema';
-import type { A2Output } from '@/agents/a2/schema';
+import type {
+  A1Output_t as A1Output,
+  A2Output_t as A2Output,
+  A4Output_t as A4Output,
+} from '@/agents/shared/types';
 import type { A3Output } from '@/agents/a3/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
-import type { A4Output } from '@/agents/a4/schema';
 import type { AgentStatus } from '@/components/agent-card-shell';
 
 interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }

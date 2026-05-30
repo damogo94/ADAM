@@ -2,8 +2,7 @@ import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';
 import { todayISO } from '@/lib/utils';
 import { DEBATE_SYSTEM_PROMPT } from './prompt';
 import { DEBATE_OUTPUT_SCHEMA, type DebateOutput } from './schema';
-import type { A1Output } from '@/agents/a1/schema';
-import type { A2Output } from '@/agents/a2/schema';
+import type { A1Output_t as A1Output, A2Output_t as A2Output } from '@/agents/shared/types';
 
 export interface DebateInput {
   a1: A1Output;

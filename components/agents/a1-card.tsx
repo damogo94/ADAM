@@ -1,4 +1,4 @@
-import type { A1Output } from '@/agents/a1/schema';
+import type { A1Output_t as A1Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { ScanCarousel } from '@/components/scan-carousel';
 import { cn, fmtPct } from '@/lib/utils';

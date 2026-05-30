@@ -1,4 +1,4 @@
-import type { A4Output } from '@/agents/a4/schema';
+import type { A4Output_t as A4Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { cn } from '@/lib/utils';
 import { SignalBox } from './a1-card';

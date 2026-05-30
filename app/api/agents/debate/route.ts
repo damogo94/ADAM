@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runDebate } from '@/agents/debate/client';
-import { A1_OUTPUT_SCHEMA } from '@/agents/a1/schema';
-import { A2_OUTPUT_SCHEMA } from '@/agents/a2/schema';
+import { A1Output as A1_OUTPUT_SCHEMA, A2Output as A2_OUTPUT_SCHEMA } from '@/agents/shared/types';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 
