@@ -28,9 +28,6 @@ jobs:
 
       - run: pnpm typecheck
 
-      # NOTA: `pnpm lint` se omite a propósito. Hoy no existe config de ESLint
-      # en el repo y `next lint` arranca en modo interactivo. Cablear lint
-      # requiere resolver el conflicto eslint@9 vs eslint-config-next@14
-      # (Fase 3). Añadir el step aquí en cuanto eso esté hecho.
+      - run: pnpm lint
 
       - run: pnpm test
