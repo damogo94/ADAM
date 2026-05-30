@@ -42,7 +42,7 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 
 ### Pipeline shape — `runADAM()` is the primary path
 
-`app/analysis/page.tsx` hits **`/api/agents/run`** (the refactored pipeline). The legacy `/api/agents/a4` route still exists and works, but new wiring goes through `runADAM()` in `agents/pipeline.ts`. Per-agent endpoints (`/api/agents/{a1,a2,a3,debate}`) remain for cache-warming and ad-hoc calls.
+`app/analysis/page.tsx` hits **`/api/agents/run`** (the pipeline via `runADAM()` in `agents/pipeline.ts`). The legacy `/api/agents/a4` orchestrator and the `/api/agents/a1` per-agent endpoint were **removed** once `/run` became the live path (along with the `runA1`/`runA2`/`runA4` single-call clients). The remaining per-agent endpoints (`/api/agents/{a2,a3,debate}`) stay for cache-warming and ad-hoc calls. Note `/api/agents/a3` still uses the legacy `runA3` client + `agents/a3/prompt.ts` on purpose — that prompt carries the strong isolation blacklist (see "A3 isolation").
 
 `runADAM()` orchestrates:
 
@@ -59,16 +59,16 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 
 ### Market data — Yahoo + Finnhub + FRED (macro)
 
-`lib/market/finnhub.ts` exposes `fallbackQuote / fallbackDaily / fallbackIntraday / fallbackOverview / fallbackNewsSentiment`. Yahoo serves prices and candles (no auth, realtime); Finnhub serves fundamentals and news. `lib/market/macro.ts` adds a daily-cached macro snapshot used to populate `MarketSnapshot.macro_snapshot`. **Alpha Vantage was removed** — do not reintroduce it (the code comment in `a4/route.ts` is `// sesión 6d, AV eliminado`).
+`lib/market/finnhub.ts` exposes `fallbackQuote / fallbackDaily / fallbackIntraday / fallbackOverview / fallbackNewsSentiment`. Yahoo serves prices and candles (no auth, realtime); Finnhub serves fundamentals and news. `lib/market/macro.ts` adds a daily-cached macro snapshot used to populate `MarketSnapshot.macro_snapshot`. **Alpha Vantage was removed** — do not reintroduce it.
 
-Every market call is wrapped in `.catch(() => null|[])`. Downstream code must handle null quote (last-vela fallback in `app/api/agents/run/route.ts` and the legacy `/a4` route).
+Every market call is wrapped in `.catch(() => null|[])`. The fan-out + null-quote recovery (last-vela fallback) + `MarketSnapshot` assembly live in **`lib/market/snapshot.ts` (`buildMarketSnapshot`)**, shared by `app/api/agents/run/route.ts` and the cron's `lib/pipeline-runner.ts`.
 
 ### Auth, rate limits, CSRF
 
 - Supabase auth via `lib/supabase/{server,admin,browser,middleware}.ts`. Cookie-based.
 - `lib/ratelimit.ts` — **lazy-init Upstash limiters**. Without `UPSTASH_REDIS_REST_*`, dev uses a NOOP limiter; prod throws on first `.limit()` (fail-closed by design). The lazy getter pattern exists because eager init at import time poisoned `middleware.ts` and 500'd every route.
 - `lib/api-helpers.ts` — `checkSameOrigin` (CSRF) and `rateLimitByIP` (must be called from Node-runtime routes, not Edge — `@upstash/redis` is not Edge-compatible).
-- `/api/agents/run` and `/api/agents/a4` both enforce: CSRF → IP rate-limit (5/min + 30/day) → auth → per-user limit (30/day).
+- `/api/agents/run` enforces: CSRF → IP rate-limit (5/min + 30/day) → auth → per-user limit (30/day).
 
 ### Timeout and retry policy
 
