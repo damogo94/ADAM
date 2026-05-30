@@ -18,20 +18,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
-import {
-  fallbackQuote,
-  fallbackDaily,
-  fallbackIntraday,
-  fallbackOverview,
-  fallbackNewsSentiment,
-} from '@/lib/market/finnhub';
-import { getMacroSnapshot } from '@/lib/market/macro';
+import { buildMarketSnapshot } from '@/lib/market/snapshot';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { runADAM, AllAgentsFailedError } from '@/agents/pipeline';
-import type { MarketSnapshot } from '@/agents/shared/types';
 import type { AgentUsage } from '@/lib/anthropic';
 
 export const runtime = 'nodejs';
@@ -95,31 +87,11 @@ export async function POST(req: NextRequest) {
     const { ticker } = parsed.data;
 
     try {
-      // ─── Data fetch ─────────────────────────────────────────────
-      // Macro snapshot va en paralelo con los datos de Finnhub; lleva su
-      // propia cache diaria así que no penaliza latencia tras el primer hit.
-      const [q, daily, intraday, ov, news, macro] = await Promise.all([
-        fallbackQuote(ticker).catch(() => null),
-        fallbackDaily(ticker).catch(() => []),
-        fallbackIntraday(ticker).catch(() => []),
-        fallbackOverview(ticker).catch(() => null),
-        fallbackNewsSentiment(ticker, 5).catch(() => []),
-        getMacroSnapshot().catch(() => null),
-      ]);
-
-      // Recovery: precio desde última vela si quote falla
-      let currentPrice = q?.current ?? null;
-      let changePct24h = q?.change_pct_24h ?? 0;
-      if (currentPrice === null && daily.length >= 2) {
-        const last = daily[daily.length - 1];
-        const prev = daily[daily.length - 2];
-        if (last && prev) {
-          currentPrice = last.c;
-          changePct24h = ((last.c - prev.c) / prev.c) * 100;
-        }
-      }
-
-      if (currentPrice === null && daily.length === 0) {
+      // ─── Data fetch + snapshot ──────────────────────────────────
+      // Fan-out + recovery + ensamblado viven en lib/market/snapshot,
+      // compartidos con el cron (pipeline-runner) para no divergir.
+      const built = await buildMarketSnapshot(ticker);
+      if (!built.ok) {
         return NextResponse.json(
           {
             error: 'market_data_unavailable',
@@ -128,29 +100,7 @@ export async function POST(req: NextRequest) {
           { status: 503 }
         );
       }
-
-      // Construye MarketSnapshot unificado para el pipeline
-      const snapshot: MarketSnapshot = {
-        ticker,
-        quote: {
-          current: currentPrice ?? 0,
-          change_pct_24h: changePct24h,
-          change_pct_7d: 0,
-          currency: ov?.currency ?? (q && 'currency' in q ? q.currency : 'USD') ?? 'USD',
-        },
-        fundamentals: {
-          per: ov?.per ?? null,
-          peg: ov?.peg ?? null,
-          ev_ebitda: ov?.ev_ebitda ?? null,
-          fcf_yield_pct: null, // Finnhub free no expone FCF yield
-          dividend_yield_pct: ov?.dividend_yield_pct ?? null,
-          market_cap_usd: ov?.market_cap_usd ?? null,
-        },
-        news,
-        ohlcv_daily: daily.slice(-100),
-        ohlcv_intraday: intraday.slice(-100),
-        macro_snapshot: macro ? { ...macro } : {},
-      };
+      const { snapshot, currentPrice } = built.data;
 
       // ─── Ejecuta pipeline ──────────────────────────────────────
       // skipA2Narrate=true: A2 SOLO desde cache. Frontend dispara
