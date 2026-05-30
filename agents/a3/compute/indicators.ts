@@ -18,7 +18,7 @@
  */
 
 import type { OHLCVCandle_t } from '@/agents/shared/types';
-import { SMA, EMA, ATR, RSI } from 'technicalindicators';
+import { SMA, EMA, ATR, RSI, MACD } from 'technicalindicators';
 
 // ───────────────────────────────────────────────────────────────────────────
 // Helpers privados
@@ -114,6 +114,49 @@ export function rsiLast(candles: OHLCVCandle_t[], period = 14): number | null {
   if (candles.length < period + 1) return null;
   const values = RSI.calculate({ period, values: closes(candles) }) as number[];
   return last(values);
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// MACD (Moving Average Convergence Divergence) — momentum + cruces
+//
+// line = EMA(fast) - EMA(slow) · signal = EMA(line, signalPeriod)
+// histograma = line - signal. Cruces line/signal y signo del histograma son
+// confirmación de momentum, NUNCA driver principal (price action manda).
+// Params estándar 12/26/9. Devuelve null si no hay velas suficientes o si la
+// lib aún no produce las tres componentes en la última vela.
+// ───────────────────────────────────────────────────────────────────────────
+
+export interface MacdResult {
+  line: number;
+  signal: number;
+  histograma: number;
+}
+
+export function macdLast(
+  candles: OHLCVCandle_t[],
+  fast = 12,
+  slow = 26,
+  signalPeriod = 9
+): MacdResult | null {
+  if (candles.length < slow + signalPeriod) return null;
+  const values = MACD.calculate({
+    values: closes(candles),
+    fastPeriod: fast,
+    slowPeriod: slow,
+    signalPeriod,
+    SimpleMAOscillator: false,
+    SimpleMASignal: false,
+  });
+  const lastItem = last(values);
+  if (
+    !lastItem ||
+    lastItem.MACD === undefined ||
+    lastItem.signal === undefined ||
+    lastItem.histogram === undefined
+  ) {
+    return null;
+  }
+  return { line: lastItem.MACD, signal: lastItem.signal, histograma: lastItem.histogram };
 }
 
 // ───────────────────────────────────────────────────────────────────────────

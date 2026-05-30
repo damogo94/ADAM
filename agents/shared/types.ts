@@ -390,6 +390,28 @@ export const A3Output = z
       })
       .nullable()
       .optional(),
+    /**
+     * Osciladores de momentum — RSI(14) y MACD(12/26/9). Derivados SOLO de
+     * OHLCV, así que dentro del toolkit permitido de A3 (regla #1 intacta:
+     * no es contexto news/macro/sentiment). Confirmación lateral, nunca
+     * driver principal. nullable+optional para back-compat con runs previos
+     * (igual que mtf): sub-valores null cuando no hay velas suficientes.
+     */
+    osciladores: z
+      .object({
+        rsi14: z.number().nullable(),
+        macd: z
+          .object({
+            line: z.number(),
+            signal: z.number(),
+            histograma: z.number(),
+          })
+          .strict()
+          .nullable(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
     confidence: z.number().int().min(0).max(100),
     narrative: z.string().max(2500),
   })

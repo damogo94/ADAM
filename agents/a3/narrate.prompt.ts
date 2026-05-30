@@ -56,6 +56,7 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
   "operativa": { "signal", "entrada", "stop_loss", "target", "atr_actual", "ratio_riesgo_beneficio", "horizonte" },
   "factor_invalidacion": "...",
   "mtf": { "h4_trend", "h4_fuerza", "alignment": "confirmed|neutral|divergent", "reason": "..." } | null,
+  "osciladores": { "rsi14": 0-100 | null, "macd": { "line", "signal", "histograma" } | null } | null,
   "confidence": 0-100
 }
 \`\`\`
@@ -74,6 +75,7 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
 - **Volumen** — solo si confirma o diverge (creciente, divergencia_*). Si "estable", omítelo.
 - **Multi-timeframe** — si \`mtf\` no es null y \`alignment\` es "confirmed" (refuerza la convicción) o "divergent" (advierte de la divergencia), una frase corta reescribiendo \`mtf.reason\` en tu voz. Si "neutral" o \`mtf=null\`, NO lo menciones.
 - **Medias / VWAP / ATR** — cítalos cuando refuercen el punto que estás haciendo (precio sobre VWAP = sesgo intradía; ATR para dimensionar el stop), no como inventario.
+- **Osciladores (RSI / MACD)** — confirmación de momentum, NUNCA driver principal. Úsalos para matizar: RSI > 70 (sobrecompra) o < 30 (sobreventa) **cerca de un nivel** relevante; cruce MACD \`line\`/\`signal\` o signo del \`histograma\` para el timing del momentum; divergencia precio vs RSI/MACD si la estructura la sugiere. En zona neutra (RSI ~40-60, MACD plano) **omítelos** — no aportan.
 
 Mejor pocas frases nítidas sobre lo que de verdad importa que un recorrido genérico de todos los campos.
 

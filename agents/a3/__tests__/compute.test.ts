@@ -52,6 +52,31 @@ describe('computeTechnical — schema validation', () => {
   });
 });
 
+describe('computeTechnical — osciladores', () => {
+  it('expone rsi14 y macd con datos suficientes', () => {
+    const out = computeTechnical({
+      ticker: 'TEST',
+      ohlcv: linearUp(60, 100, 0.5),
+      timeframe: '1D',
+    });
+    expect(out.osciladores).toBeDefined();
+    expect(typeof out.osciladores!.rsi14).toBe('number');
+    expect(out.osciladores!.macd).not.toBeNull();
+    expect(typeof out.osciladores!.macd!.line).toBe('number');
+  });
+
+  it('sub-valores null cuando faltan velas', () => {
+    const out = computeTechnical({
+      ticker: 'TEST',
+      ohlcv: flatPrice(10, 100),
+      timeframe: '1D',
+    });
+    expect(out.osciladores).toBeDefined();
+    expect(out.osciladores!.rsi14).toBeNull();
+    expect(out.osciladores!.macd).toBeNull();
+  });
+});
+
 describe('computeTechnical — reglas operativas', () => {
   it('<200 velas → sma200 null', () => {
     const out = computeTechnical({
