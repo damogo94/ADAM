@@ -257,7 +257,7 @@ export default function SystemScreen() {
         <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-white/85" />
         <KV k="A2 edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-white/85" />
         <KV k="trace ID" v="UUID propagado a los 4 agentes para correlación de logs" cls="text-white/85" />
-        <KV k="endpoint nuevo" v="/api/agents/run (legacy /a4 sigue activo)" cls="text-white/85" />
+        <KV k="endpoint" v="/api/agents/run (pipeline integrado)" cls="text-white/85" />
         <KV k="tests" v="258 unitarios · 0 regresiones" cls="text-emerald" />
       </div>
 

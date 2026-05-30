@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { fallbackQuote } from '@/lib/market/finnhub';
 import { scoreSignal, type Direction } from '@/lib/scoring';
+import type { Direction as DbDirection } from '@/types/db';
 import * as Sentry from '@sentry/nextjs';
 
 export const runtime = 'nodejs';
@@ -21,12 +22,24 @@ export const maxDuration = 60;
 
 const HORIZONS_DAYS = [7, 30] as const;
 
+// La columna `direction` de analyses_log usa el vocabulario del enum
+// direction_t (positivo/negativo/neutral); scoreSignal usa alcista/bajista/
+// neutral. Mapeo explícito — sin él, las señales direccionales nunca
+// matcheaban una rama y siempre puntuaban hit=false.
+const DB_TO_SCORING_DIRECTION: Record<DbDirection, Direction> = {
+  positivo: 'alcista',
+  negativo: 'bajista',
+  neutral: 'neutral',
+};
+
+// initial_price / initial_price_at son nullable en la fila; la query filtra
+// initial_price IS NOT NULL en runtime, pero el tipo refleja el schema real.
 interface PendingAnalysis {
   id: string;
   ticker: string;
-  direction: Direction;
-  initial_price: number;
-  initial_price_at: string;
+  direction: DbDirection;
+  initial_price: number | null;
+  initial_price_at: string | null;
 }
 
 export async function GET(req: NextRequest) {
@@ -52,13 +65,12 @@ export async function GET(req: NextRequest) {
     // Trae candidatos: con initial_price_at <= cutoff, que NO tengan ya
     // outcome para este horizon. Postgrest no soporta NOT EXISTS limpio
     // con embedding; hacemos dos queries y diffeamos en memoria.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: candidates, error: candErr } = await (admin
+    const { data: candidates, error: candErr } = await admin
       .from('analyses_log')
       .select('id, ticker, direction, initial_price, initial_price_at')
       .not('initial_price', 'is', null)
       .lte('initial_price_at', cutoffISO)
-      .limit(500) as any);
+      .limit(500);
 
     if (candErr) {
       // eslint-disable-next-line no-console
@@ -67,15 +79,14 @@ export async function GET(req: NextRequest) {
     }
     if (!candidates || candidates.length === 0) continue;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existing, error: existErr } = await (admin
+    const { data: existing, error: existErr } = await admin
       .from('signal_outcomes')
       .select('analysis_id')
       .eq('horizon_days', horizon)
       .in(
         'analysis_id',
-        candidates.map((c: PendingAnalysis) => c.id)
-      ) as any);
+        candidates.map((c) => c.id)
+      );
 
     if (existErr) {
       // eslint-disable-next-line no-console
@@ -98,18 +109,17 @@ export async function GET(req: NextRequest) {
           continue;
         }
         const scored = scoreSignal({
-          direccion: a.direction,
+          direccion: DB_TO_SCORING_DIRECTION[a.direction],
           initial_price: Number(a.initial_price),
           eval_price: q.current,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insErr } = await ((admin.from('signal_outcomes') as any).insert({
+        const { error: insErr } = await admin.from('signal_outcomes').insert({
           analysis_id: a.id,
           horizon_days: horizon,
           eval_price: q.current,
           return_pct: scored.return_pct,
           hit: scored.hit,
-        }));
+        });
         if (insErr) {
           // Conflict (ya evaluado por otra ejecucion paralela) → ignora
           if (insErr.code !== '23505') {

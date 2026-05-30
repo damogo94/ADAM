@@ -13,16 +13,8 @@
 
 import 'server-only';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
-import {
-  fallbackQuote,
-  fallbackDaily,
-  fallbackIntraday,
-  fallbackOverview,
-  fallbackNewsSentiment,
-} from '@/lib/market/finnhub';
-import { getMacroSnapshot } from '@/lib/market/macro';
+import { buildMarketSnapshot } from '@/lib/market/snapshot';
 import { runADAM, AllAgentsFailedError } from '@/agents/pipeline';
-import type { MarketSnapshot } from '@/agents/shared/types';
 import type { AgentUsage } from '@/lib/anthropic';
 import type { RunADAMResult } from '@/agents/pipeline';
 
@@ -52,57 +44,16 @@ export async function runForUser(
   ticker: string
 ): Promise<RunForUserOutcome> {
   try {
-    // ── Data fetch ─────────────────────────────────────────────
-    const [q, daily, intraday, ov, news, macro] = await Promise.all([
-      fallbackQuote(ticker).catch(() => null),
-      fallbackDaily(ticker).catch(() => []),
-      fallbackIntraday(ticker).catch(() => []),
-      fallbackOverview(ticker).catch(() => null),
-      fallbackNewsSentiment(ticker, 5).catch(() => []),
-      getMacroSnapshot().catch(() => null),
-    ]);
-
-    // Recovery: precio desde última vela si quote falla
-    let currentPrice = q?.current ?? null;
-    let changePct24h = q?.change_pct_24h ?? 0;
-    if (currentPrice === null && daily.length >= 2) {
-      const last = daily[daily.length - 1];
-      const prev = daily[daily.length - 2];
-      if (last && prev) {
-        currentPrice = last.c;
-        changePct24h = ((last.c - prev.c) / prev.c) * 100;
-      }
-    }
-
-    if (currentPrice === null && daily.length === 0) {
+    // ── Data fetch + snapshot (compartido con /api/agents/run) ──
+    const built = await buildMarketSnapshot(ticker);
+    if (!built.ok) {
       return {
         ok: false,
         error: 'market_data_unavailable',
         detail: `Sin datos de mercado para ${ticker}`,
       };
     }
-
-    const snapshot: MarketSnapshot = {
-      ticker,
-      quote: {
-        current: currentPrice ?? 0,
-        change_pct_24h: changePct24h,
-        change_pct_7d: 0,
-        currency: ov?.currency ?? (q && 'currency' in q ? q.currency : 'USD') ?? 'USD',
-      },
-      fundamentals: {
-        per: ov?.per ?? null,
-        peg: ov?.peg ?? null,
-        ev_ebitda: ov?.ev_ebitda ?? null,
-        fcf_yield_pct: null,
-        dividend_yield_pct: ov?.dividend_yield_pct ?? null,
-        market_cap_usd: ov?.market_cap_usd ?? null,
-      },
-      news,
-      ohlcv_daily: daily.slice(-100),
-      ohlcv_intraday: intraday.slice(-100),
-      macro_snapshot: macro ? { ...macro } : {},
-    };
+    const { snapshot, currentPrice } = built.data;
 
     // ── Pipeline ───────────────────────────────────────────────
     const usages: AgentUsage[] = [];
@@ -119,8 +70,8 @@ export async function runForUser(
     let analysisId: string | null = null;
     try {
       const admin = createSupabaseAdmin();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await (admin.from('analyses_log') as any)
+      const { data: inserted } = await admin
+        .from('analyses_log')
         .insert({
           user_id: userId,
           ticker,
@@ -173,13 +124,12 @@ export async function hasRecentAnalysis(
 ): Promise<boolean> {
   const admin = createSupabaseAdmin();
   const cutoffISO = new Date(Date.now() - withinHours * 3_600_000).toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (admin
+  const { data } = await admin
     .from('analyses_log')
     .select('id')
     .eq('user_id', userId)
     .eq('ticker', ticker)
     .gte('created_at', cutoffISO)
-    .limit(1) as any);
+    .limit(1);
   return !!(data && data.length > 0);
 }

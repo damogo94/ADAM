@@ -11,6 +11,7 @@ import {
   vwap,
   atrLast,
   rsiLast,
+  macdLast,
   detectCrosses,
   classifyVolumeState,
 } from '../indicators';
@@ -95,6 +96,26 @@ describe('rsiLast', () => {
     // technicalindicators puede devolver 50 o NaN. Ambos OK siempre que no
     // sea undefined.
     expect(rsi).not.toBeUndefined();
+  });
+});
+
+describe('macdLast', () => {
+  it('null si <slow+signal velas (35 por defecto)', () => {
+    expect(macdLast(linearUp(30, 100, 1))).toBeNull();
+  });
+
+  it('linearUp → MACD line > 0 (EMA rápida sobre la lenta) con las 3 componentes', () => {
+    const macd = macdLast(linearUp(60, 100, 1));
+    expect(macd).not.toBeNull();
+    expect(macd!.line).toBeGreaterThan(0);
+    expect(typeof macd!.signal).toBe('number');
+    expect(typeof macd!.histograma).toBe('number');
+  });
+
+  it('linearDown → MACD line < 0', () => {
+    const macd = macdLast(linearDown(60, 200, 1));
+    expect(macd).not.toBeNull();
+    expect(macd!.line).toBeLessThan(0);
   });
 });
 

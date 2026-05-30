@@ -16,10 +16,10 @@ import { Redis } from '@upstash/redis';
  *      • prod → throw al primer .limit() (fail-closed, seguridad sobre availability)
  *
  * Quotas (sesión 6d — tightened):
- *  - analysis:      5 / minuto / IP    (POST /api/agents/a4 — caro)
- *  - analysisDaily: 30 / día / IP      (POST /api/agents/a4 — cap diario sin auth)
+ *  - analysis:      5 / minuto / IP    (POST /api/agents/run — caro)
+ *  - analysisDaily: 30 / día / IP      (POST /api/agents/run — cap diario sin auth)
  *  - quote:         60 / minuto / IP   (GET /api/market/* — barato)
- *  - userRuns:      30 / día / user.id (POST /api/agents/a4 — defensa adicional con auth)
+ *  - userRuns:      30 / día / user.id (POST /api/agents/run — defensa adicional con auth)
  */
 
 type RatelimitLike = {

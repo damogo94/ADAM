@@ -19,9 +19,11 @@
  */
 
 import { computeConfluence as computeCanonical, type DebateForConfluence } from '@/agents/a4/compute';
-import type { A1Output } from '@/agents/a1/schema';
-import type { A2Output } from '@/agents/a2/schema';
-import type { A3Output } from '@/agents/a3/schema';
+import type {
+  A1Output_t as A1Output,
+  A2Output_t as A2Output,
+  A3Output_t as A3Output,
+} from '@/agents/shared/types';
 import type { DebateOutput } from '@/agents/debate/schema';
 
 export type ConfluenceLevel = 'baja' | 'media' | 'alta';

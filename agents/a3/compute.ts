@@ -32,6 +32,8 @@ import {
   smaLast,
   vwap,
   atrLast,
+  rsiLast,
+  macdLast,
   detectCrosses,
   classifyVolumeState,
 } from './compute/indicators';
@@ -79,6 +81,10 @@ export function computeTechnical(
   const vwapVal = vwap(ohlcv);
   const atr = atrLast(ohlcv, 14);
   const { golden_cross, death_cross } = detectCrosses(ohlcv);
+
+  // ── Osciladores de momentum (confirmación lateral, no driver) ────
+  const rsi14 = rsiLast(ohlcv, 14);
+  const macd = macdLast(ohlcv);
 
   // ── Tendencia ────────────────────────────────────────────────────
   const trend = detectTrend(ohlcv);
@@ -151,6 +157,7 @@ export function computeTechnical(
     operativa,
     factor_invalidacion,
     mtf,
+    osciladores: { rsi14, macd },
     confidence,
   };
 }

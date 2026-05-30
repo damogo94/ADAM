@@ -52,11 +52,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  // 3) RPC — 1 round-trip
-  // El cliente tipado no conoce `get_watchlist_radar` (no está en el
-  // schema generado), así que casteamos vía `unknown` y validamos con Zod.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc('get_watchlist_radar');
+  // 3) RPC — 1 round-trip. El resultado se valida igualmente con Zod abajo.
+  const { data, error } = await supabase.rpc('get_watchlist_radar');
   if (error) {
     return NextResponse.json(
       { error: 'rpc_failed', detail: error.message },

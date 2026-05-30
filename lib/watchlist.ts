@@ -20,11 +20,9 @@ export async function getOrCreateDefaultWatchlist(userId: string): Promise<Watch
   if (existing) return existing as Watchlist;
 
   // No existe — crear
-  // TODO: cuando regeneremos types con `supabase gen types typescript`, eliminar el cast.
   const { data: created, error } = await supabase
     .from('watchlists')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .insert({ user_id: userId, name: 'Mi Watchlist', is_default: true } as any)
+    .insert({ user_id: userId, name: 'Mi Watchlist', is_default: true })
     .select('*')
     .single();
 

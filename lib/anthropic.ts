@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
+import { extractJson } from '@/agents/shared/parser';
 
 /**
  * Anthropic client + model assignment for A.D.A.M.
@@ -9,9 +10,8 @@ import { z } from 'zod';
  *    A3/A4 narran sobre compute determinista, así que Haiku basta.
  *  - Debate: Sonnet (síntesis A1×A2; downgrade desde Opus por el budget Hobby).
  *  - CMT scanner: Haiku (throughput de batch domina).
- *  - Clients legacy (runA1/A2/A3/A4): Sonnet — hacen razonamiento + narración
- *    en una sola call sin capa compute. Sólo los usan el endpoint legacy
- *    /api/agents/a4 y el per-agent /api/agents/a3.
+ *  - Client legacy (runA3): Sonnet — razonamiento + narración en una sola
+ *    call sin capa compute. Sólo lo usa el endpoint per-agent /api/agents/a3.
  *
  * Si cambias esta asignación, actualiza también el narrate.ts/client.ts
  * correspondiente: el budget de coste y latencia del lambda Hobby la asume.
@@ -46,28 +46,6 @@ export const anthropic = new Anthropic({
   maxRetries: 1,
 });
 
-/**
- * Errores transitorios de Anthropic. Códigos HTTP que NO son culpa del input
- * y se autocuran con backoff: rate-limit, overload, capacity, transient 5xx.
- */
-function isTransientAnthropicError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  // Anthropic SDK levanta APIError con .status numérico
-  const status = (err as { status?: number }).status;
-  if (typeof status === 'number') {
-    if (status === 408 || status === 409 || status === 429) return true;
-    if (status >= 500 && status <= 599) return true;
-  }
-  // Algunos errores de red (DNS, socket reset) no traen status pero traen .name
-  const name = (err as { name?: string }).name;
-  if (name === 'APIConnectionError' || name === 'APIConnectionTimeoutError') return true;
-  return false;
-}
-
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export const MODELS = {
   SONNET: 'claude-sonnet-4-6',
   OPUS: 'claude-opus-4-6',
@@ -76,30 +54,17 @@ export const MODELS = {
 
 export type ModelName = (typeof MODELS)[keyof typeof MODELS];
 
-/**
- * Strip a fenced JSON block out of an LLM response if present, otherwise
- * return the raw string. Tolerates the model occasionally wrapping output
- * in ```json ... ``` despite instructions, AND tolerates a leading fence
- * with no closing fence (which can happen when max_tokens cuts the response).
- */
-function extractJson(text: string): string {
-  // Closed fence first
-  const closed = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (closed?.[1]) return closed[1].trim();
-  // Open fence at the start, no closing — strip the opener
-  const opener = text.match(/^\s*```(?:json)?\s*\n?/);
-  if (opener) return text.slice(opener[0].length).trim();
-  return text.trim();
-}
-
-export interface AgentUsage {
+// `type` (no `interface`) a propósito: un object-type cerrado es asignable a
+// `Json`, de modo que `AgentUsage[]` encaja en columnas jsonb (usage_breakdown)
+// sin cast. Una `interface` no satisface el index signature de `Json`.
+export type AgentUsage = {
   agent: string;
   model: string;
   input_tokens: number;
   output_tokens: number;
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
-}
+};
 
 interface RunAgentArgs<T extends z.ZodTypeAny> {
   systemPrompt: string;

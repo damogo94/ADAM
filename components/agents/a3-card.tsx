@@ -1,4 +1,4 @@
-import type { A3Output } from '@/agents/a3/schema';
+import type { A3Output_t as A3Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { ScanCarousel } from '@/components/scan-carousel';
 import { MiniCandleChart } from '@/components/mini-candle-chart';
@@ -119,6 +119,20 @@ function A3Body({
         {medias.vwap !== null && <KVRow k="VWAP" v={fmtNum(medias.vwap)} />}
       </DataSection>
 
+      {data.osciladores && (data.osciladores.rsi14 !== null || data.osciladores.macd) && (
+        <DataSection label="Osciladores" source="momentum · confirmación">
+          {data.osciladores.rsi14 !== null && (
+            <KVRow k={`RSI 14${rsiZone(data.osciladores.rsi14)}`} v={data.osciladores.rsi14.toFixed(1)} />
+          )}
+          {data.osciladores.macd && (
+            <KVRow
+              k={`MACD 12/26/9${data.osciladores.macd.histograma >= 0 ? ' · alza' : ' · baja'}`}
+              v={`${data.osciladores.macd.line.toFixed(2)} / ${data.osciladores.macd.signal.toFixed(2)}`}
+            />
+          )}
+        </DataSection>
+      )}
+
       <SignalBox tone={sigCls}>
         <div
           className={cn(
@@ -168,4 +182,10 @@ function forceFromN(n: number): string {
   if (n >= 4) return 'fuerte';
   if (n >= 3) return 'moderada';
   return 'débil';
+}
+
+function rsiZone(rsi: number): string {
+  if (rsi >= 70) return ' · sobrecompra';
+  if (rsi <= 30) return ' · sobreventa';
+  return '';
 }

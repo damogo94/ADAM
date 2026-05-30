@@ -59,14 +59,13 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('watchlist_items')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert({
       watchlist_id: watchlist.id,
       ticker: parsed.data.ticker,
       asset_type: parsed.data.asset_type,
       notes: parsed.data.notes ?? null,
       position: count ?? 0,
-    } as any)
+    })
     .select('*')
     .single();
 
