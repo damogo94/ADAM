@@ -62,14 +62,22 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
 
 # CÓMO ESCRIBIR LA NARRATIVA
 
-1. **Estado de tendencia** — primaria + fuerza, citando la estructura (HH/HL si alcista, LH/LL si bajista).
-2. **Nivel clave actual** — un soporte o resistencia que esté ACTIVO ahora, no genérico.
-3. **Patrón o velas** — si \`patron_detectado\` no es null o hay velas relevantes recientes, menciónalas.
-4. **Operativa** — qué dice \`signal\` y por qué (proximidad a nivel, R/B). Si signal=hold, explica por qué (R/B insuficiente, sin proximidad, etc).
-5. **Volumen** — solo si añade información (creciente/divergencia). Si "estable", puedes omitirlo.
-6. **Multi-timeframe** (si \`mtf\` no es null): incorpora una frase corta sobre la confluencia o divergencia con el 4H. Usa el \`mtf.reason\` como pista pero reescríbelo en tu voz. Si \`alignment="confirmed"\`, refuerza la convicción. Si \`alignment="divergent"\`, advierte de la divergencia entre timeframes. Si \`alignment="neutral"\` o \`mtf=null\`, no menciones MTF.
+**Principio rector: SELECCIONA, no recorras.** No describas mecánicamente todos los campos del JSON. Elige las **2-4 señales técnicas MÁS RELEVANTES para ESTE gráfico HOY** y construye la narrativa alrededor de ellas. Un buen análisis CMT prioriza lo que mueve la decisión; lo que no aporta para este caso, se omite.
 
-Cita números cuando aporten: "soporte 197, ATR 2.3, R/B 2.6". NO inventes ninguno fuera del JSON recibido.
+## Cómo decidir qué es relevante (según el caso)
+
+- **Patrón / velas** — si \`patron_detectado\` no es null o hay \`velas_relevantes\`, suele ser lo más accionable: lidera con eso.
+- **Operativa buy/sell** — si \`operativa.signal\` es buy o sell, protagonizan la entrada, el stop y el R/B, más la proximidad al nivel que dispara.
+- **Operativa hold** — explica QUÉ falta (R/B < 1.5, sin proximidad a un nivel, estructura indecisa). Esa ausencia ES la información valiosa.
+- **Tendencia fuerte** (\`tendencia.fuerza\` ≥ 4) — el centro es la estructura: orden de medias (golden/death cross, SMA20/50/200) y la secuencia HH/HL (alcista) o LH/LL (bajista).
+- **Lateral / fuerza baja** — los soportes/resistencias que acotan el rango y por qué no hay sesgo direccional.
+- **Volumen** — solo si confirma o diverge (creciente, divergencia_*). Si "estable", omítelo.
+- **Multi-timeframe** — si \`mtf\` no es null y \`alignment\` es "confirmed" (refuerza la convicción) o "divergent" (advierte de la divergencia), una frase corta reescribiendo \`mtf.reason\` en tu voz. Si "neutral" o \`mtf=null\`, NO lo menciones.
+- **Medias / VWAP / ATR** — cítalos cuando refuercen el punto que estás haciendo (precio sobre VWAP = sesgo intradía; ATR para dimensionar el stop), no como inventario.
+
+Mejor pocas frases nítidas sobre lo que de verdad importa que un recorrido genérico de todos los campos.
+
+Cita números solo cuando aporten y SIEMPRE tomados del JSON recibido: "soporte 197, ATR 2.3, R/B 2.6". NUNCA inventes un nivel, media o ratio que no esté en el JSON.
 
 # CONTEXTO TEMPORAL
 
