@@ -202,7 +202,7 @@ function AnalysisInner() {
       // Si A2 venia del cache, no esperamos al standalone (el resultado
       // standalone seria identico o redundante).
       if (!a2) {
-        // Espera al fetch paralelo y actualiza solo la card de A2.
+        // Espera al fetch paralelo y actualiza la card de A2.
         const a2Standalone = await a2Promise;
         if (ctrl.signal.aborted) return;
         if (a2Standalone) {
@@ -211,6 +211,27 @@ function AnalysisInner() {
             a2: a2Standalone,
             a2Status: a2Standalone.opportunity_detected ? 'anomaly' : 'done',
           }));
+
+          // A4 (y su caja de A2) se horneó en /run con a2=null. Ahora que A2
+          // llegó, re-narramos A4 con A1+A2+A3 completos para que su narrativa
+          // y la confluencia que muestra sean coherentes. Best-effort: si falla
+          // o se aborta, dejamos el A4 anterior (la confluencia del indicador ya
+          // se recalcula en cliente con el A2 nuevo).
+          try {
+            const consRes = await fetch('/api/agents/a4', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ticker, a1, a2: a2Standalone, a3, debate }),
+              signal: ctrl.signal,
+            });
+            if (ctrl.signal.aborted) return;
+            if (consRes.ok) {
+              const cj = (await consRes.json()) as { a4?: A4Output };
+              if (cj.a4) setState((s) => ({ ...s, a4: cj.a4! }));
+            }
+          } catch {
+            /* best-effort: conservamos el A4 anterior */
+          }
         } else {
           // Si el standalone tambien fallo, marca como error
           setState((s) => ({ ...s, a2Status: 'error' }));
