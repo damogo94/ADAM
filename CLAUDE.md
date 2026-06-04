@@ -19,7 +19,9 @@ pnpm test agents/a3/__tests__/isolation.test.ts
 pnpm test -t "A3 isolation"
 ```
 
-Engines: Node ≥20 <23. Canonical package manager is **pnpm@9.12.0** (`packageManager` field). On Windows boxes without pnpm, `npm install --legacy-peer-deps` works as a fallback — `eslint@9` vs `eslint-config-next@14`'s peer range otherwise blocks resolution.
+Engines: Node ≥20 <23 (Node 24 works with a benign engine warning). Canonical package manager is **pnpm@9.12.0** (`packageManager` field); if pnpm isn't on PATH, run everything via `corepack pnpm …`. ESLint is wired up (`.eslintrc.json` → `next/core-web-vitals` + `@typescript-eslint` plugin so disable-directives resolve); `pnpm lint` runs clean (only non-blocking warnings). eslint is pinned to **8.57.1** to satisfy `eslint-config-next@14`'s peer — do **not** bump it back to 9 without moving config-next too. **CI** (`.github/workflows/ci.yml`) runs `install --frozen-lockfile → typecheck → lint → test` on every PR and push to `main`.
+
+`feature/estetica` is the working branch; merging it into `main` (and pushing `main`) triggers the Vercel production deploy.
 
 ## Architecture (big picture)
 
@@ -31,7 +33,7 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 
 | Agent | Role | Model | Notes |
 | --- | --- | --- | --- |
-| A1 | Asset micro-snapshot | Sonnet | News + fundamentals + quote |
+| A1 | Asset micro-snapshot | Haiku (narrate) | News + fundamentals + quote |
 | A2 | Macro context | Sonnet | FRED-style series cached in `lib/a2-cache.ts` (Upstash, TTL ~24h) |
 | A3 | **Price action — isolated** | Haiku (narrate) + code (compute) | OHLCV only. See "A3 isolation" below. |
 | Debate | Synthesis A1×A2 | Sonnet | Fires only if A1 or A2 flag a signal — downgraded from Opus to fit Hobby 60s lambda |
@@ -46,7 +48,7 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 
 `runADAM()` orchestrates:
 
-1. **Compute layer** (no LLM) — `agents/a3/compute/*` does deterministic TA: SMA/EMA/VWAP/ATR (via `technicalindicators`), trend (HH/HL + monotonic fallback), levels (pivot clustering), patterns (double top/bottom, flags), operative (R/B ≥ 1.5 enforced in code). `agents/a4/compute.ts` computes confluence math (30/40/30 weighting + alive-count capping).
+1. **Compute layer** (no LLM) — `agents/a3/compute/*` does deterministic TA: SMA/EMA/VWAP/ATR/RSI/MACD (via `technicalindicators`), trend (HH/HL + monotonic fallback), levels (pivot clustering), patterns (double top/bottom, flags), operative (R/B ≥ 1.5 enforced in code). RSI+MACD surface in `A3Output.osciladores` (nullable/optional — confirmation, not driver). `agents/a4/compute.ts` computes confluence math (30/40/30 weighting + alive-count capping).
 2. **Narrate layer** (LLM) — each agent has a `narrate.ts` that turns compute output into narrative-only JSON validated against `A3NarrativeOnly` / `A4NarrativeOnly` in `agents/shared/types.ts`. The code merges back `ticker`, `confluence`, and the **literal `DISCLAIMER_LITERAL`** (U+00B7 separator — a single char drift fails Zod).
 3. **Resilience** — `Promise.allSettled` on A1/A2/A3. Any single failure degrades to partial. All three failing → 503 `all_agents_failed`. A4 failure → 500 (no consolidated output to return).
 4. **Trace ID** — `runADAM` generates or accepts a `traceId` (UUID) and propagates it to every `narrate*` call. Used for log correlation and Sentry tags.
@@ -98,7 +100,9 @@ A3 *does* receive today's date in the user message so it doesn't treat stale can
 
 ## Schemas — `agents/shared/types.ts` is the source of truth
 
-Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `DebateOutput`, `CMTOutput`, `ConfluenceResult`, narrative-only variants, shared enums) live in `agents/shared/types.ts` and use `.strict()`. The legacy per-agent schema files (`agents/a*/schema.ts`) coexist for backward compat; new code should import from `shared/types.ts`. The `DISCLAIMER_LITERAL` constant uses U+00B7 — match it exactly or the schema rejects it.
+Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `DebateOutput`, `CMTOutput`, `ConfluenceResult`, narrative-only variants, shared enums) live in `agents/shared/types.ts` and use `.strict()` — **single source of truth; import schemas/types from here**. The legacy per-agent `agents/a{1,2,4}/schema.ts` were **removed**; only `agents/a3/schema.ts` survives (still consumed by the legacy `runA3` client + A3 isolation tests). The `DISCLAIMER_LITERAL` constant uses U+00B7 — match it exactly or the schema rejects it.
+
+**Supabase DB types are generated, not hand-written.** `types/db/supabase.ts` is the `supabase gen types` output (the source of truth for `createClient<Database>`); `types/db/index.ts` re-exports `Database` + derives domain aliases (`Watchlist`, `AnalysisLog`, …) from it. The whole `src` tree is now **zero `as any`/`as unknown`** — do not reintroduce casts on Supabase calls. After a migration, regenerate: `supabase gen types typescript --project-id qaakauberbibfgxthlro > types/db/supabase.ts`, and keep `@supabase/ssr` aligned with `@supabase/supabase-js` (its peer). For jsonb payloads use `type` (not `interface`) so they're assignable to `Json`.
 
 ## Test layout
 
@@ -106,7 +110,8 @@ Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `Debat
 - `vitest.config.ts` provides the `@/` alias (mirrors `tsconfig.json` paths).
 - Mock `@/lib/anthropic` (specifically `runAgent` / `runWithParseRetry`) when testing agent clients — otherwise tests need `ANTHROPIC_API_KEY` and burn tokens. See `__tests__/agents/a3-isolation.test.ts` and `__tests__/lib/anthropic-retry.test.ts` for the pattern (`vi.importActual` + spread, or `vi.fn()` for `callOnce`).
 - Pipeline tests (`agents/__tests__/pipeline.test.ts`) inject mock agent implementations via `options.agents` — no SDK calls, no network.
-- Playwright config under `tests-e2e/` (excluded from vitest).
+- **Route handler tests** use the harness in `test/helpers/route.ts`: `makeRequest` (builds a `NextRequest`), `makeBuilder` (chainable + thenable postgrest-style query builder), `makeSupabaseMock`. Pattern: `vi.mock` factories return bare `vi.fn()`s and get configured per-test in `beforeEach` via `vi.mocked(...)` — avoids vitest's hoisting TDZ. Examples: `app/api/agents/{run,a4}/__tests__/route.test.ts`, `app/api/watchlist/__tests__/route.test.ts`.
+- `pnpm test:e2e` (Playwright) is declared in `package.json` but there is **no config or e2e suite yet** — it's effectively a no-op.
 
 ## Dev-time gotchas
 
@@ -122,3 +127,5 @@ Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `Debat
 - `lib/ratelimit.ts` lazy-init pattern — eager init has bitten this codebase before.
 - `DEFAULT_TIMEOUT_MS = 25_000` without recalculating the worst-case lambda budget (see the in-file comment about the 30s revert).
 - The literal `DISCLAIMER_LITERAL` string (separator is U+00B7).
+- The generated `types/db/supabase.ts` — don't hand-edit it or reintroduce `as any` casts on Supabase calls; regenerate after migrations instead.
+- `eslint` pinned to 8.x (peer of `eslint-config-next@14`) — bumping to 9 needs `eslint-config-next` to move too.
