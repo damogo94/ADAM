@@ -42,7 +42,7 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 
 ### Pipeline shape — `runADAM()` is the primary path
 
-`app/analysis/page.tsx` hits **`/api/agents/run`** (the pipeline via `runADAM()` in `agents/pipeline.ts`). The legacy `/api/agents/a4` orchestrator and the `/api/agents/a1` per-agent endpoint were **removed** once `/run` became the live path (along with the `runA1`/`runA2`/`runA4` single-call clients). The remaining per-agent endpoints (`/api/agents/{a2,a3,debate}`) stay for cache-warming and ad-hoc calls. Note `/api/agents/a3` still uses the legacy `runA3` client + `agents/a3/prompt.ts` on purpose — that prompt carries the strong isolation blacklist (see "A3 isolation").
+`app/analysis/page.tsx` hits **`/api/agents/run`** (the pipeline via `runADAM()` in `agents/pipeline.ts`). The legacy `/api/agents/a4` **orchestrator** and the `/api/agents/a1` per-agent endpoint were **removed** once `/run` became the live path (along with the `runA1`/`runA2`/`runA4` single-call clients). `/api/agents/a4` was later **re-created as a pure consolidator** (not an orchestrator): it takes already-computed `a1/a2/a3` (+ optional debate) and runs `computeConfluence` + `narrateA4` only — used to re-narrate A4 once the late A2 arrives (see "A2 caching pattern"). The remaining per-agent endpoints (`/api/agents/{a2,a3,debate}`) stay for cache-warming and ad-hoc calls. Note `/api/agents/a3` still uses the legacy `runA3` client + `agents/a3/prompt.ts` on purpose — that prompt carries the strong isolation blacklist (see "A3 isolation").
 
 `runADAM()` orchestrates:
 
@@ -56,6 +56,8 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 ### A2 caching pattern — `skipA2Narrate`
 
 `/api/agents/run` passes `skipA2Narrate: true` to `runADAM`. A2 is read from the Upstash cache only; if missing, A2 stays `null` and the pipeline degrades gracefully. The frontend (`app/analysis/page.tsx`) fires `/api/agents/a2` in **parallel** to warm the cache in its own lambda — splitting load away from the 60s budget of `/run`. Tests and legacy callers that omit `skipA2Narrate` get the inline narrate behaviour. If you add a new caller, decide consciously which mode applies.
+
+**First-run A2 gap + re-narrate.** On a ticker's first analysis the A2 cache is cold, so `/run` returns `a2: null` and A4 is baked with "A2 unavailable" + degraded confluence. When the parallel `/api/agents/a2` resolves, the frontend updates the A2 card (the confluence indicator recomputes client-side via `lib/confluence`) **and** calls the `/api/agents/a4` consolidator to re-narrate A4 with the now-complete `a1/a2/a3` (best-effort — on failure the prior A4 stays). Note: this does **not** update the already-persisted `analyses_log` row (it still holds the a2-null A4) — a known follow-up.
 
 ### Market data — Yahoo + Finnhub + FRED (macro)
 
