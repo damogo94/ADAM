@@ -100,13 +100,21 @@ export async function GET(req: NextRequest) {
   const skipped: { analysis_id: string; reason: string }[] = [];
   let pendingCount = 0;
 
-  // Candidatos: analyses con timestamp de inicio. Orden ascendente → atacamos
-  // primero los más antiguos (los más cerca de resolver). Los ya resueltos se
-  // descartan abajo cruzando con trade_outcomes.
+  // Candidatos: SOLO análisis accionables (signal buy|sell, horizonte
+  // swing|posicional), filtrados en la propia query vía jsonb path. Esto es
+  // clave para que el cron escale: el ~94% de análisis son 'hold' y, sin este
+  // filtro, una vez el total supere CANDIDATE_LIMIT el orden ascendente
+  // serviría holds viejos (que nunca generan fila en trade_outcomes y por
+  // tanto reaparecen siempre) antes de llegar a los trades nuevos.
+  // Orden ascendente → atacamos primero los más antiguos (los más cerca de
+  // resolver). Los ya resueltos se descartan abajo cruzando con trade_outcomes.
+  // extractPlan() vuelve a validar todo en memoria (defensa en profundidad).
   const { data: candidates, error: candErr } = await admin
     .from('analyses_log')
     .select('id, ticker, initial_price_at, a3_output')
     .not('initial_price_at', 'is', null)
+    .in('a3_output->operativa->>signal', ['buy', 'sell'])
+    .in('a3_output->operativa->>horizonte', ['swing', 'posicional'])
     .order('initial_price_at', { ascending: true })
     .limit(CANDIDATE_LIMIT);
 

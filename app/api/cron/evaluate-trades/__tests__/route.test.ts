@@ -130,6 +130,17 @@ describe('evaluate-trades · resolución', () => {
   });
 });
 
+describe('evaluate-trades · escalabilidad', () => {
+  it('filtra accionables EN LA QUERY (jsonb path) — no arrastra holds del servidor', async () => {
+    const { analyses } = mountAdmin({ candidates: [] });
+    await GET(req());
+    // Sin estos filtros, una vez total > CANDIDATE_LIMIT el cron serviría holds
+    // viejos antes que los trades nuevos y dejaría de evaluar silenciosamente.
+    expect(analyses.in).toHaveBeenCalledWith('a3_output->operativa->>signal', ['buy', 'sell']);
+    expect(analyses.in).toHaveBeenCalledWith('a3_output->operativa->>horizonte', ['swing', 'posicional']);
+  });
+});
+
 describe('evaluate-trades · descartes', () => {
   it('salta análisis hold (no es un trade) — sin insert', async () => {
     const { trades } = mountAdmin({
