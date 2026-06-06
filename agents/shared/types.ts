@@ -372,6 +372,10 @@ export const A3Output = z
         atr_actual: z.number().nullable(),
         ratio_riesgo_beneficio: z.number().nullable(),
         horizonte: TradingHorizon,
+        // Tipo de entrada del plan (ADR-002 fase 2): 'market' (ya pegado al
+        // nivel), 'limit' (esperar retroceso/rebote al nivel), null (hold).
+        // nullable+optional para back-compat con runs anteriores.
+        entry_type: z.enum(['market', 'limit']).nullable().optional(),
       })
       .strict(),
     factor_invalidacion: z.string().max(1000),

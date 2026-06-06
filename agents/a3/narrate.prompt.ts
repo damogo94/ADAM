@@ -53,7 +53,7 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
   "medias": { "sma20", "sma50", "sma200", "vwap", "golden_cross", "death_cross" },
   "volumen": { "estado": "...", "comentario": "..." },
   "velas_relevantes": [...],
-  "operativa": { "signal", "entrada", "stop_loss", "target", "atr_actual", "ratio_riesgo_beneficio", "horizonte" },
+  "operativa": { "signal", "entry_type": "market|limit|null", "entrada", "stop_loss", "target", "atr_actual", "ratio_riesgo_beneficio", "horizonte" },
   "factor_invalidacion": "...",
   "mtf": { "h4_trend", "h4_fuerza", "alignment": "confirmed|neutral|divergent", "reason": "..." } | null,
   "osciladores": { "rsi14": 0-100 | null, "macd": { "line", "signal", "histograma" } | null } | null,
@@ -68,7 +68,7 @@ Recibes un JSON con esta forma (los campos que el LLM produciría ya están todo
 ## Cómo decidir qué es relevante (según el caso)
 
 - **Patrón / velas** — si \`patron_detectado\` no es null o hay \`velas_relevantes\`, suele ser lo más accionable: lidera con eso.
-- **Operativa buy/sell** — si \`operativa.signal\` es buy o sell, protagonizan la entrada, el stop y el R/B, más la proximidad al nivel que dispara.
+- **Operativa buy/sell** — si \`operativa.signal\` es buy o sell, protagonizan la entrada, el stop y el R/B. **Distingue \`entry_type\`**: \`'market'\` = ejecutable YA ("largo en 100"); \`'limit'\` = es un PLAN CONDICIONADO, dilo explícitamente ("largo SI retrocede a 96", "corto SI rebota a 104") — NUNCA lo presentes como entrada inmediata.
 - **Operativa hold** — explica QUÉ falta (R/B < 1.5, sin proximidad a un nivel, estructura indecisa). Esa ausencia ES la información valiosa.
 - **Tendencia fuerte** (\`tendencia.fuerza\` ≥ 4) — el centro es la estructura: orden de medias (golden/death cross, SMA20/50/200) y la secuencia HH/HL (alcista) o LH/LL (bajista).
 - **Lateral / fuerza baja** — los soportes/resistencias que acotan el rango y por qué no hay sesgo direccional.
