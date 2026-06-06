@@ -457,9 +457,17 @@ export async function fallbackQuote(symbol: string): Promise<{
 
 /**
  * Daily candles. Yahoo /v8/chart 3mo/1d — sin auth, sin cuota práctica.
+ *
+ * `range` por defecto '3mo' (suficiente para el análisis vivo). El backtest
+ * path-dependent (cron evaluate-trades) necesita más historia para cubrir la
+ * ventana posicional (~120 días) → pasa '1y'. Yahoo acepta 1d/5d/1mo/3mo/6mo/
+ * 1y/2y/5y/max.
  */
-export async function fallbackDaily(symbol: string): Promise<NormalizedCandle[]> {
-  return yahooDaily(symbol, '3mo');
+export async function fallbackDaily(
+  symbol: string,
+  range = '3mo'
+): Promise<NormalizedCandle[]> {
+  return yahooDaily(symbol, range);
 }
 
 /** Intraday 60min candles. Yahoo /v8/chart 5d/60m. */

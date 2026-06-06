@@ -147,7 +147,18 @@ describe('profileFor — devuelve el profile con valores plausibles', () => {
       expect(p.proximity_pct).toBeGreaterThan(0);
       expect(p.atr_fallback_pct).toBeGreaterThan(0);
       expect(p.min_rb_ratio).toBeGreaterThan(0);
+      expect(p.level_tolerance_pct).toBeGreaterThan(0);
     }
+  });
+
+  it('level_tolerance_pct escala con la volatilidad de la clase (ADR-002)', () => {
+    // cripto (vol alta) tolera más spread entre toques que forex/bonos.
+    expect(profileFor('BTC').level_tolerance_pct).toBeGreaterThan(
+      profileFor('EUR/USD').level_tolerance_pct
+    );
+    expect(profileFor('AAPL').level_tolerance_pct).toBeGreaterThan(
+      profileFor('TLT').level_tolerance_pct
+    );
   });
 });
 

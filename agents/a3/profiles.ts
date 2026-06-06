@@ -61,6 +61,15 @@ export interface AssetProfile {
    * redondeaba a 1.09 → niveles inútiles.
    */
   round_decimals: 2 | 4 | 5;
+  /**
+   * Tolerancia % para CLUSTERING de pivots en detectLevels (ADR-002, fase 1).
+   * Dos swings dentro de esta banda se consideran el MISMO nivel. El default
+   * histórico de detectLevels (0.5%) es demasiado fino para activos volátiles
+   * → casi nunca formaba clusters de 2 toques → A3 sin niveles → 94% hold.
+   * Escala con la volatilidad de la clase (cripto ancho, forex/bonos fino).
+   * v1 conservadora — se recalibra con outcomes.
+   */
+  level_tolerance_pct: number;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -84,6 +93,7 @@ const PROFILES: Record<AssetClass, AssetProfile> = {
     atr_fallback_pct: 0.4,
     min_rb_ratio: 1.5,
     round_decimals: 5,
+    level_tolerance_pct: 0.3, // pares mayores: niveles finos, ~30 pips
   },
 
   /**
@@ -104,6 +114,7 @@ const PROFILES: Record<AssetClass, AssetProfile> = {
     atr_fallback_pct: 3,
     min_rb_ratio: 2.0,
     round_decimals: 2,
+    level_tolerance_pct: 1.5, // ±5% diario: 0.5% no agrupaba nada
   },
 
   /**
@@ -123,6 +134,7 @@ const PROFILES: Record<AssetClass, AssetProfile> = {
     atr_fallback_pct: 1,
     min_rb_ratio: 1.5,
     round_decimals: 2,
+    level_tolerance_pct: 1.0, // acciones individuales: vol media
   },
 
   /**
@@ -141,6 +153,7 @@ const PROFILES: Record<AssetClass, AssetProfile> = {
     atr_fallback_pct: 1.5,
     min_rb_ratio: 1.5,
     round_decimals: 2,
+    level_tolerance_pct: 0.7,
   },
 
   /**
@@ -159,6 +172,7 @@ const PROFILES: Record<AssetClass, AssetProfile> = {
     atr_fallback_pct: 0.8,
     min_rb_ratio: 1.5,
     round_decimals: 2,
+    level_tolerance_pct: 0.5, // índices broad: menos volátiles
   },
 
   /**
@@ -176,6 +190,7 @@ const PROFILES: Record<AssetClass, AssetProfile> = {
     atr_fallback_pct: 0.4,
     min_rb_ratio: 1.2,
     round_decimals: 2,
+    level_tolerance_pct: 0.3, // bonos: moves en décimas
   },
 };
 

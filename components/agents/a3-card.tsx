@@ -99,7 +99,11 @@ function A3Body({
 
       <div className="grid grid-cols-2 gap-1.5 mb-2">
         {/* Color semántico: stop=rose, target=emerald (convención trading global). */}
-        <TechBox label={`ENTRADA · ${currency}`} value={px(operativa.entrada)} valueCls="text-white" />
+        <TechBox
+          label={`ENTRADA${operativa.entry_type === 'limit' ? ' LÍMITE' : ''} · ${currency}`}
+          value={px(operativa.entrada)}
+          valueCls="text-white"
+        />
         <TechBox label={`▼ STOP · ${currency}`} value={px(operativa.stop_loss)} valueCls="text-rose" />
         <TechBox label={`▲ OBJETIVO · ${currency}`} value={px(operativa.target)} valueCls="text-emerald" />
         <TechBox

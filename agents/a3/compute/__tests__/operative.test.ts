@@ -99,6 +99,66 @@ describe('computeOperativa — caso SELL', () => {
   });
 });
 
+describe('computeOperativa — plan limit/market (ADR-002 fase 2)', () => {
+  it('soporte alcanzable pero fuera de proximidad → buy LÍMITE en el nivel', () => {
+    // soporte 96 (4% abajo): >3% proximidad pero <5·ATR → entrada límite EN 96
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'alcista',
+      levels: { soportes: [96], resistencias: [110] },
+      atr: 1,
+    });
+    expect(r.signal).toBe('buy');
+    expect(r.entry_type).toBe('limit');
+    expect(r.entrada).toBe(96);
+  });
+
+  it('precio pegado al soporte → buy MARKET (entrada = precio actual)', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'alcista',
+      levels: { soportes: [98], resistencias: [110] },
+      atr: 1,
+    });
+    expect(r.signal).toBe('buy');
+    expect(r.entry_type).toBe('market');
+    expect(r.entrada).toBe(100);
+  });
+
+  it('nivel no alcanzable (>REACH_ATR_MULT·ATR) → hold', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'alcista',
+      levels: { soportes: [90], resistencias: [110] }, // 10·ATR > 5 → fantasía
+      atr: 1,
+    });
+    expect(r.signal).toBe('hold');
+    expect(r.entry_type).toBeNull();
+  });
+
+  it('sell: resistencia alcanzable fuera de proximidad → sell LÍMITE en el nivel', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'bajista',
+      levels: { soportes: [90], resistencias: [104] },
+      atr: 1,
+    });
+    expect(r.signal).toBe('sell');
+    expect(r.entry_type).toBe('limit');
+    expect(r.entrada).toBe(104);
+  });
+
+  it('hold tiene entry_type null', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'lateral',
+      levels: { soportes: [98], resistencias: [102] },
+      atr: 1,
+    });
+    expect(r.entry_type).toBeNull();
+  });
+});
+
 describe('computeOperativa — tendencia lateral', () => {
   it('lateral → hold (no toma sesgo)', () => {
     const r = computeOperativa({

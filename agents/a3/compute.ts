@@ -74,6 +74,10 @@ export function computeTechnical(
 ): ComputeTechnicalOutput {
   const { ticker, ohlcv, timeframe, intraday } = input;
 
+  // Profile por clase de activo (derivado del ticker, no del LLM) —
+  // parametriza niveles (ADR-002) + proximity/ATR/RB de la operativa.
+  const profile = profileFor(ticker);
+
   // ── Indicadores ──────────────────────────────────────────────────
   const sma20 = smaLast(ohlcv, 20);
   const sma50 = smaLast(ohlcv, 50);
@@ -90,7 +94,9 @@ export function computeTechnical(
   const trend = detectTrend(ohlcv);
 
   // ── Niveles ──────────────────────────────────────────────────────
-  const levels = detectLevels(ohlcv);
+  // Tolerancia de clustering por clase (ADR-002 fase 1): el 0.5% genérico
+  // era demasiado fino para activos volátiles → A3 sin niveles → 94% hold.
+  const levels = detectLevels(ohlcv, { tolerancePct: profile.level_tolerance_pct });
 
   // ── Patrón + velas relevantes ────────────────────────────────────
   const { patron_detectado } = detectPattern(ohlcv);
@@ -103,10 +109,9 @@ export function computeTechnical(
   const volumeComment = describeVolume(volumeState, ohlcv);
 
   // ── Operativa ────────────────────────────────────────────────────
-  // PR5: profile derivado del ticker parametriza proximity/ATR/RB por
-  // clase de activo. No entra al LLM (no rompe aislamiento de A3) — solo
-  // ajusta las magnitudes del compute determinístico.
-  const profile = profileFor(ticker);
+  // PR5 + ADR-002: el `profile` (definido arriba) parametriza niveles +
+  // proximity/ATR/RB por clase de activo. No entra al LLM (no rompe el
+  // aislamiento de A3) — solo ajusta las magnitudes del compute determinista.
   const operativa = computeOperativa({
     candles: ohlcv,
     tendencia: trend.primaria,

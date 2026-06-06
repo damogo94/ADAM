@@ -13,13 +13,15 @@
  *   4. Si `ohlcv.length < 20` → signal: "hold", confidence ≤ 30.
  *   5. Si `ohlcv.length < 200` → la SMA200 será null (se hace en indicators.ts).
  *
- * Decisión sobre signal:
- *   - tendencia primaria alcista + precio cerca de soporte → buy
- *   - tendencia primaria bajista + precio cerca de resistencia → sell
- *   - tendencia lateral o falta de nivel cercano → hold
+ * Decisión sobre signal (ADR-002 fase 2 — modelo de PLAN, no "operar ya"):
+ *   - alcista + soporte+resistencia presentes + soporte alcanzable → buy
+ *   - bajista + resistencia+soporte presentes + resistencia alcanzable → sell
+ *   - lateral, falta un nivel, no alcanzable, o R/B < min → hold
  *
- * "Cerca de" = dentro del primer 3% sobre el nivel relevante. Esto refleja
- * la idea de "entrar en el rebote", no "entrar a mitad del movimiento".
+ * Entrada (`entry_type`):
+ *   - 'market': el precio ya está pegado al nivel (≤ proximity_pct) → entrar ya.
+ *   - 'limit':  esperar el retroceso/rebote al nivel (entrada = el propio nivel),
+ *     siempre que esté a ≤ REACH_ATR_MULT·ATR (alcanzable dentro del horizonte).
  */
 
 import type {
@@ -39,6 +41,13 @@ export interface OperativaResult {
   atr_actual: number | null;
   ratio_riesgo_beneficio: number | null;
   horizonte: TradingHorizon_t;
+  /**
+   * Tipo de entrada del plan (ADR-002 fase 2):
+   *   - 'market': el precio ya está pegado al nivel → entrar ya.
+   *   - 'limit':  esperar el retroceso al nivel (entrada = el propio nivel).
+   *   - null:     hold (no hay plan).
+   */
+  entry_type: 'market' | 'limit' | null;
 }
 
 export interface OperativaInput {
@@ -58,10 +67,16 @@ export interface OperativaInput {
 export const MIN_RB_RATIO = 1.5;
 /** Datos insuficientes para emitir setup. */
 export const MIN_CANDLES_FOR_SIGNAL = 20;
-/** Proximidad al nivel para considerar "entrada limpia" (default histórico). */
+/** Proximidad al nivel para entrada a MERCADO ("ya está pegado"). */
 const DEFAULT_PROXIMITY_PCT = 3;
 /** Fallback de ATR como % del precio actual (default histórico). */
 const DEFAULT_ATR_FALLBACK_PCT = 1;
+/**
+ * Alcanzabilidad de un nivel-disparador como múltiplo de ATR (ADR-002 fase 2).
+ * Si el nivel está a más de REACH_ATR_MULT·ATR, el retroceso/avance hasta él es
+ * fantasía dentro del horizonte → hold. Escala con la volatilidad vía ATR.
+ */
+export const REACH_ATR_MULT = 5;
 
 export function computeOperativa(input: OperativaInput): OperativaResult {
   const { candles, tendencia, levels, atr, profile } = input;
@@ -86,74 +101,96 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
       atr_actual: atr,
       ratio_riesgo_beneficio: null,
       horizonte: fallbackHorizonte,
+      entry_type: null,
     };
   }
 
   const currentPrice = candles[candles.length - 1]!.c;
+  const effectiveATR = atr ?? currentPrice * (atrFallbackPct / 100);
 
-  // Caso BUY: tendencia alcista + precio cerca de un soporte ABAJO
+  // Caso BUY (alcista): plan largo en el soporte de abajo, target en la
+  // resistencia. Entrada a MERCADO si el precio ya está pegado al soporte;
+  // si no, LÍMITE en el soporte (esperar el retroceso) siempre que sea
+  // alcanzable (≤ REACH_ATR_MULT·ATR). ADR-002 fase 2.
   if (tendencia === 'alcista' && levels.soportes.length > 0 && levels.resistencias.length > 0) {
-    const nearestSupport = levels.soportes[0]!; // ya ordenado por relevancia + cercanía
-    const nearestResistance = levels.resistencias[0]!;
-    const proximityToSupport = ((currentPrice - nearestSupport) / currentPrice) * 100;
+    const support = levels.soportes[0]!;
+    const resistance = levels.resistencias[0]!;
+    const distToSupport = currentPrice - support; // soporte abajo → > 0
 
-    // "Cerca" = dentro del proximityPct sobre el soporte (por profile)
-    if (proximityToSupport >= 0 && proximityToSupport <= proximityPct) {
-      const entrada = currentPrice;
-      const stop_loss = round(nearestSupport - (atr ?? currentPrice * (atrFallbackPct / 100)));
-      const target = round(nearestResistance);
-      const riesgo = entrada - stop_loss;
-      const beneficio = target - entrada;
+    if (distToSupport > 0 && resistance > currentPrice) {
+      const proximityAbs = currentPrice * (proximityPct / 100);
+      const reachAbs = REACH_ATR_MULT * effectiveATR;
 
-      if (riesgo > 0 && beneficio > 0) {
-        const ratio = beneficio / riesgo;
-        if (ratio >= minRbRatio) {
-          return {
-            signal: 'buy',
-            entrada: round(entrada),
-            stop_loss,
-            target,
-            atr_actual: atr,
-            ratio_riesgo_beneficio: round(ratio),
-            horizonte: fallbackHorizonte,
-          };
+      if (distToSupport <= reachAbs) {
+        const entry_type: 'market' | 'limit' =
+          distToSupport <= proximityAbs ? 'market' : 'limit';
+        const entrada = entry_type === 'market' ? currentPrice : support;
+        const stop_loss = round(support - effectiveATR);
+        const target = round(resistance);
+        const riesgo = entrada - stop_loss;
+        const beneficio = target - entrada;
+
+        if (riesgo > 0 && beneficio > 0) {
+          const ratio = beneficio / riesgo;
+          if (ratio >= minRbRatio) {
+            return {
+              signal: 'buy',
+              entrada: round(entrada),
+              stop_loss,
+              target,
+              atr_actual: atr,
+              ratio_riesgo_beneficio: round(ratio),
+              horizonte: fallbackHorizonte,
+              entry_type,
+            };
+          }
         }
       }
     }
   }
 
-  // Caso SELL: tendencia bajista + precio cerca de una resistencia ARRIBA
+  // Caso SELL (bajista): plan corto en la resistencia de arriba, target en el
+  // soporte. Mercado si el precio ya está pegado; si no, LÍMITE en la
+  // resistencia (esperar el rebote) si es alcanzable. ADR-002 fase 2.
   if (tendencia === 'bajista' && levels.resistencias.length > 0 && levels.soportes.length > 0) {
-    const nearestResistance = levels.resistencias[0]!;
-    const nearestSupport = levels.soportes[0]!;
-    const proximityToResistance = ((nearestResistance - currentPrice) / currentPrice) * 100;
+    const resistance = levels.resistencias[0]!;
+    const support = levels.soportes[0]!;
+    const distToResistance = resistance - currentPrice; // resistencia arriba → > 0
 
-    if (proximityToResistance >= 0 && proximityToResistance <= proximityPct) {
-      const entrada = currentPrice;
-      const stop_loss = round(nearestResistance + (atr ?? currentPrice * (atrFallbackPct / 100)));
-      const target = round(nearestSupport);
-      const riesgo = stop_loss - entrada;
-      const beneficio = entrada - target;
+    if (distToResistance > 0 && support < currentPrice) {
+      const proximityAbs = currentPrice * (proximityPct / 100);
+      const reachAbs = REACH_ATR_MULT * effectiveATR;
 
-      if (riesgo > 0 && beneficio > 0) {
-        const ratio = beneficio / riesgo;
-        if (ratio >= minRbRatio) {
-          return {
-            signal: 'sell',
-            entrada: round(entrada),
-            stop_loss,
-            target,
-            atr_actual: atr,
-            ratio_riesgo_beneficio: round(ratio),
-            horizonte: fallbackHorizonte,
-          };
+      if (distToResistance <= reachAbs) {
+        const entry_type: 'market' | 'limit' =
+          distToResistance <= proximityAbs ? 'market' : 'limit';
+        const entrada = entry_type === 'market' ? currentPrice : resistance;
+        const stop_loss = round(resistance + effectiveATR);
+        const target = round(support);
+        const riesgo = stop_loss - entrada;
+        const beneficio = entrada - target;
+
+        if (riesgo > 0 && beneficio > 0) {
+          const ratio = beneficio / riesgo;
+          if (ratio >= minRbRatio) {
+            return {
+              signal: 'sell',
+              entrada: round(entrada),
+              stop_loss,
+              target,
+              atr_actual: atr,
+              ratio_riesgo_beneficio: round(ratio),
+              horizonte: fallbackHorizonte,
+              entry_type,
+            };
+          }
         }
       }
     }
   }
 
-  // Default: HOLD con niveles null (R/B no cumple, o lateral, o no hay
-  // proximidad a un nivel técnico)
+  // Default: HOLD con niveles null (lateral, falta un nivel, R/B insuficiente,
+  // o el nivel-disparador no es alcanzable dentro del horizonte).
   return {
     signal: 'hold',
     entrada: null,
@@ -162,6 +199,7 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
     atr_actual: atr,
     ratio_riesgo_beneficio: null,
     horizonte: fallbackHorizonte,
+    entry_type: null,
   };
 }
 

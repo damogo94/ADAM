@@ -234,6 +234,65 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_outcomes: {
+        Row: {
+          analysis_id: string
+          direction: string
+          entry: number | null
+          entry_type: string
+          evaluated_at: string
+          exit_price: number | null
+          horizonte: string
+          outcome: string
+          r_multiple: number | null
+          rb_ratio: number | null
+          resolved_days: number | null
+          return_pct: number | null
+          stop_loss: number | null
+          target: number | null
+        }
+        Insert: {
+          analysis_id: string
+          direction: string
+          entry?: number | null
+          entry_type: string
+          evaluated_at?: string
+          exit_price?: number | null
+          horizonte: string
+          outcome: string
+          r_multiple?: number | null
+          rb_ratio?: number | null
+          resolved_days?: number | null
+          return_pct?: number | null
+          stop_loss?: number | null
+          target?: number | null
+        }
+        Update: {
+          analysis_id?: string
+          direction?: string
+          entry?: number | null
+          entry_type?: string
+          evaluated_at?: string
+          exit_price?: number | null
+          horizonte?: string
+          outcome?: string
+          r_multiple?: number | null
+          rb_ratio?: number | null
+          resolved_days?: number | null
+          return_pct?: number | null
+          stop_loss?: number | null
+          target?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_outcomes_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: true
+            referencedRelation: "analyses_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watchlist_items: {
         Row: {
           added_at: string
