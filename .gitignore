@@ -45,7 +45,12 @@ dev.log
 tsconfig.tsbuildinfo
 
 # Claude Code local settings (NEVER commit — may contain secrets in allowlists)
-.claude/
+# Ignora todo .claude/ EXCEPTO los skills compartidos del proyecto (markdown,
+# sin secretos). settings.local.json / launch.json / worktrees siguen ignorados.
+.claude/*
+!.claude/skills/
+# El workspace de evaluación de skills es scratch (runs, benchmark, .skill).
+.claude/skills/*-workspace/
 
 # Supabase
 **/supabase/.branches

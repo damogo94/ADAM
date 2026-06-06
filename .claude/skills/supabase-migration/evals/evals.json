@@ -1,0 +1,48 @@
+{
+  "skill_name": "supabase-migration",
+  "evals": [
+    {
+      "id": 0,
+      "name": "add-column-prepare-only",
+      "prompt": "necesito añadir una columna a signal_outcomes para anotar a mano por qué marqué un outcome (un text nullable, manual_note o como se llame). prepárame la migración pero no la apliques todavía que quiero leerla antes de tocar prod",
+      "expected_output": "Un fichero de migración 0012 con ALTER TABLE ... ADD COLUMN (text nullable) y comentario; sin aplicar a prod; reconoce que una columna no necesita alias nuevo en index.ts.",
+      "files": [],
+      "expectations": [
+        "Crea un fichero de migración en supabase/migrations/ con el siguiente número secuencial correcto (0012) y nombre snake_case descriptivo",
+        "La migración contiene un ALTER TABLE public.signal_outcomes ADD COLUMN para una columna de texto nullable",
+        "La migración incluye un comentario-cabecera explicando el porqué del cambio",
+        "NO aplica la migración a producción (no llama a apply_migration ni ejecuta DDL contra prod), respetando 'no apliques todavía'",
+        "Reconoce que añadir una COLUMNA (no una tabla nueva) no requiere un alias nuevo en types/db/index.ts",
+        "Describe el flujo de regeneración de tipos posterior preservando la cabecera de supabase.ts sin editar el cuerpo a mano"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "new-cron-table-full-wiring",
+      "prompt": "quiero cachear el coste por modelo en una tabla nueva tipo model_pricing — model (texto, pk), input_per_mtok y output_per_mtok numéricos, y un updated_at. la rellena solo el cron, el usuario no la lee nunca. prepara la migración y explícame cómo quedan los tipos. no apliques nada a prod aún",
+      "expected_output": "Migración 0012 con CREATE TABLE model_pricing (PK model, numéricos, updated_at), RLS sin policies (cron-only), alias en index.ts, preservar cabecera de supabase.ts, sin aplicar a prod.",
+      "files": [],
+      "expectations": [
+        "Crea un fichero de migración con número secuencial correcto (0012) y nombre descriptivo, con CREATE TABLE public.model_pricing y las columnas pedidas (model text primary key, input_per_mtok/output_per_mtok numéricos, updated_at timestamptz default now())",
+        "Aplica 'enable row level security' a la tabla SIN crear policies, por ser una tabla que solo escribe el cron (service_role)",
+        "Indica que hay que añadir un alias de dominio en types/db/index.ts del tipo Database['public']['Tables']['model_pricing']['Row']",
+        "Menciona explícitamente preservar la cabecera de types/db/supabase.ts al regenerar/sobrescribir",
+        "NO aplica nada a producción",
+        "Incluye comentario-cabecera en la migración explicando el porqué"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "regenerate-types-header",
+      "prompt": "creo que types/db/supabase.ts se quedó desincronizado en algún momento, regenérame los tipos de supabase y verifica que no rompe el typecheck",
+      "expected_output": "Regenera los tipos preservando la cabecera 'A.D.A.M. — Tipos generados', verifica typecheck, sin casts ni edición manual del cuerpo.",
+      "files": [],
+      "expectations": [
+        "Regenera los tipos desde el esquema (vía el MCP generate_typescript_types o el CLI supabase gen types), no los escribe a mano",
+        "El types/db/supabase.ts resultante conserva la cabecera de comentario 'A.D.A.M. — Tipos generados' (no la elimina al volcar el output del generador)",
+        "Verifica con un typecheck (corepack pnpm typecheck) o indica claramente que hay que ejecutarlo",
+        "No introduce casts as any/as unknown ni edita el cuerpo generado a mano"
+      ]
+    }
+  ]
+}
