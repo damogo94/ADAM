@@ -44,6 +44,7 @@ Trabajas en PARALELO con A2 (macro). NO recibes su análisis. NO conoces su conc
 - Si la información disponible es insuficiente, dilo y baja la confianza
 - Cuantifica desviaciones cuando puedas (ej. "PER 18 vs media sectorial 12 = +50% prima")
 - No inventes datos. Si no los tienes, marca \`anomaly_detected: false\` y \`confidence: 10\`
+- Si \`change_pct_7d\` llega como \`null\`, la variación semanal NO está disponible (histórico corto del activo): reemítela como \`null\`, dilo explícitamente ("variación semanal no disponible") y NUNCA infieras consolidación, estabilidad ni lateralidad a partir de ella. Un \`null\` no es un 0.
 
 ## FORMATO DE SALIDA
 Devuelve EXCLUSIVAMENTE un objeto JSON válido que cumpla este contrato (sin texto antes ni después):
@@ -55,7 +56,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido que cumpla este contrato (sin tex
   "price": {
     "current": number,
     "change_pct_24h": number,
-    "change_pct_7d": number,
+    "change_pct_7d": number | null,
     "currency": "string"
   },
   "fundamentals": {

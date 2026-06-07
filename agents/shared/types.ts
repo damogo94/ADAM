@@ -138,7 +138,7 @@ export interface MarketSnapshot {
   quote: {
     current: number;
     change_pct_24h: number;
-    change_pct_7d: number;
+    change_pct_7d: number | null; // null = histórico < ~1 semana → dato desconocido (no 0)
     currency: string;
   };
   fundamentals: {
@@ -206,7 +206,9 @@ export const A1Output = z
       .object({
         current: z.number(),
         change_pct_24h: z.number(),
-        change_pct_7d: z.number(),
+        // null cuando el histórico es insuficiente (< ~1 semana). A1 NO debe
+        // inventar interpretación (consolidación/estabilidad) a partir de null.
+        change_pct_7d: z.number().nullable(),
         currency: Currency,
       })
       .strict(),
