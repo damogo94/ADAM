@@ -65,8 +65,14 @@ function A1Body({ data }: { data: A1Output }) {
         <KV k="24h" v={fmtPct(price.change_pct_24h)} cls={pos ? 'text-emerald' : 'text-rose'} />
         <KV
           k="7d"
-          v={fmtPct(price.change_pct_7d)}
-          cls={price.change_pct_7d >= 0 ? 'text-emerald' : 'text-rose'}
+          v={price.change_pct_7d === null ? 'n/d' : fmtPct(price.change_pct_7d)}
+          cls={
+            price.change_pct_7d === null
+              ? 'text-white/40'
+              : price.change_pct_7d >= 0
+                ? 'text-emerald'
+                : 'text-rose'
+          }
         />
         {fundamentals.per !== null && <KV k="P/E" v={fundamentals.per.toFixed(2)} />}
         {fundamentals.ev_ebitda !== null && <KV k="EV/EBITDA" v={fundamentals.ev_ebitda.toFixed(2)} />}
