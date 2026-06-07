@@ -1,6 +1,7 @@
 import type { A4Output_t as A4Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { cn } from '@/lib/utils';
+import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { SignalBox } from './a1-card';
 
 interface A4CardProps {
@@ -20,8 +21,15 @@ interface A4CardProps {
  *   - "A3 alineado" → outline blanco firme (cuando aplica)
  */
 export function A4Card({ status, data, aligned = false }: A4CardProps) {
+  const hasData = data != null && status === 'done';
   return (
-    <AgentCardShell accent="slate" badge="A4" title="Sistema · Ensamblado final" status={status}>
+    <AgentCardShell
+      accent="slate"
+      badge="A4"
+      title="Sistema · Ensamblado final"
+      status={status}
+      summary={hasData ? <A4Summary data={data} /> : undefined}
+    >
       {status === 'idle' && <IdleState label="esperando agentes..." />}
       {status === 'scanning' && (
         <div className="font-mono text-[10px] text-white/55 py-2 text-center">ensamblando...</div>
@@ -103,5 +111,20 @@ function ResumenBlock({ badge, text }: { badge: string; text: string }) {
       </div>
       <div className="font-mono text-[9px] leading-snug text-white/85">{text}</div>
     </div>
+  );
+}
+
+/** Fila-veredicto de A4: dirección consolidada + confluencia% + confianza. */
+function A4Summary({ data }: { data: A4Output }) {
+  const dirLabel =
+    data.direccion === 'positivo' ? 'ALCISTA' : data.direccion === 'negativo' ? 'BAJISTA' : 'NEUTRAL';
+  return (
+    <>
+      <DirectionBadge dir={data.direccion} />
+      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold tracking-wider text-white">
+        {dirLabel} · {data.confluence.score_total_pct}%
+      </span>
+      <ConfidenceChip value={data.confianza} showBar />
+    </>
   );
 }

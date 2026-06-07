@@ -2,6 +2,7 @@ import type { A2Output_t as A2Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { ScanCarousel } from '@/components/scan-carousel';
 import { cn } from '@/lib/utils';
+import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { DataSection, SignalBox } from './a1-card';
 
 interface A2CardProps {
@@ -11,8 +12,17 @@ interface A2CardProps {
 }
 
 export function A2Card({ status, data, failureMessage }: A2CardProps) {
+  const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
-    <AgentCardShell accent="cyan" badge="A2" title="Macro" status={status} source="Bloomberg · Fed">
+    <AgentCardShell
+      accent="cyan"
+      badge="A2"
+      title="Macro"
+      status={status}
+      source="Bloomberg · Fed"
+      summary={hasData ? <A2Summary data={data} /> : undefined}
+      defaultOpen={data?.opportunity_detected ?? false}
+    >
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
         <ScanCarousel
@@ -57,20 +67,10 @@ function A2Body({ data }: { data: A2Output }) {
       {factores_clave.length > 0 && (
         <DataSection label="Factores clave" source="IMF · BCs">
           {factores_clave.slice(0, 4).map((f, i) => (
-            <div key={i} className="flex items-center gap-1 border-b border-white/5 py-0.5 last:border-b-0">
+            <div key={i} className="flex items-center gap-1.5 border-b border-white/5 py-0.5 last:border-b-0">
               <span className="font-mono text-[10px] flex-1 text-white/65">{f.factor}</span>
-              <span className="font-mono text-[10px] font-medium text-white">{f.magnitud}/5</span>
-              <span
-                className={cn(
-                  'text-[11px]',
-                  f.impacto === 'positivo' && 'text-emerald',
-                  f.impacto === 'negativo' && 'text-rose',
-                  f.impacto === 'neutral' && 'text-white/45'
-                )}
-                aria-label={f.impacto}
-              >
-                {f.impacto === 'positivo' ? '↑' : f.impacto === 'negativo' ? '↓' : '→'}
-              </span>
+              <SegmentBar value={f.magnitud} />
+              <DirectionBadge dir={f.impacto} />
             </div>
           ))}
         </DataSection>
@@ -96,6 +96,23 @@ function A2Body({ data }: { data: A2Output }) {
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/90">{narrative}</div>
       </SignalBox>
+    </>
+  );
+}
+
+/** Fila-veredicto de A2: régimen macro + dirección + confianza. */
+function A2Summary({ data }: { data: A2Output }) {
+  const m = data.macro_context;
+  // regime_outlook es nullable/optional; fallback documentado en el schema:
+  // sin él, opportunity_detected → alcista, resto → neutral.
+  const dir = data.regime_outlook ?? (data.opportunity_detected ? 'risk_on' : 'neutral');
+  return (
+    <>
+      <DirectionBadge dir={dir} />
+      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-medium text-white">
+        {m.ciclo_economico} · {m.regimen_tipos} · {m.inflacion_trend}
+      </span>
+      <ConfidenceChip value={data.confidence} showBar />
     </>
   );
 }
