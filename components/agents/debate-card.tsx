@@ -1,5 +1,6 @@
 import type { DebateOutput } from '@/agents/debate/schema';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
+import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 
 interface DebateCardProps {
   status: AgentStatus;
@@ -12,8 +13,17 @@ interface DebateCardProps {
  * BADGE prefix ("A1 →" / "A2 →" / "⚖"), y INTENSIDAD del border.
  */
 export function DebateCard({ status, data }: DebateCardProps) {
+  const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
-    <AgentCardShell accent="violet" badge="A1×A2" title="Contraste · Validación" status={status} dashed>
+    <AgentCardShell
+      accent="violet"
+      badge="A1×A2"
+      title="Contraste · Validación"
+      status={status}
+      dashed
+      summary={hasData ? <DebateSummary data={data} /> : undefined}
+      defaultOpen={data?.oportunidad_validada ?? false}
+    >
       {status === 'idle' && <IdleState label="esperando anomalía..." />}
       {status === 'scanning' && (
         <div className="font-mono text-[10px] text-white/55 py-2 text-center">procesando debate...</div>
@@ -48,5 +58,18 @@ export function DebateCard({ status, data }: DebateCardProps) {
         </>
       )}
     </AgentCardShell>
+  );
+}
+
+/** Fila-veredicto del debate: dirección + validación + convergencia (como confianza). */
+function DebateSummary({ data }: { data: DebateOutput }) {
+  return (
+    <>
+      <DirectionBadge dir={data.direccion} />
+      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-medium text-white">
+        {data.oportunidad_validada ? 'VALIDADA' : 'INVALIDADA'}
+      </span>
+      <ConfidenceChip value={data.convergence_score} showBar />
+    </>
   );
 }

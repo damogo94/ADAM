@@ -1,6 +1,7 @@
 import type { A1Output_t as A1Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { ScanCarousel } from '@/components/scan-carousel';
+import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { cn, fmtPct } from '@/lib/utils';
 
 interface A1CardProps {
@@ -11,6 +12,7 @@ interface A1CardProps {
 }
 
 export function A1Card({ status, data, failureMessage }: A1CardProps) {
+  const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
     <AgentCardShell
       accent="blue"
@@ -18,6 +20,8 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
       title="Activos"
       status={status}
       source="Investing.com"
+      summary={hasData ? <A1Summary data={data} /> : undefined}
+      defaultOpen={data?.anomaly_detected ?? false}
     >
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
@@ -110,6 +114,21 @@ function A1Body({ data }: { data: A1Output }) {
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/90">{narrative}</div>
       </SignalBox>
+    </>
+  );
+}
+
+/** Fila-veredicto de A1: dirección de la anomalía + titular + confianza. */
+function A1Summary({ data }: { data: A1Output }) {
+  const titular = data.anomaly_detected ? (data.anomaly_type ?? 'anomalía') : 'sin señal micro';
+  const dir = data.anomaly_detected ? data.anomaly_type : null;
+  return (
+    <>
+      <DirectionBadge dir={dir} />
+      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-medium capitalize text-white">
+        {titular}
+      </span>
+      <ConfidenceChip value={data.confidence} showBar />
     </>
   );
 }

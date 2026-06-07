@@ -2,6 +2,7 @@ import type { A3Output_t as A3Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { ScanCarousel } from '@/components/scan-carousel';
 import { MiniCandleChart } from '@/components/mini-candle-chart';
+import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
 
@@ -23,6 +24,7 @@ interface A3CardProps {
 export function A3Card({ status, data, dailyCandles, currency, failureMessage }: A3CardProps) {
   // A3 is "siempre activo" — once we have data, the dot stays as 'live'
   const dotStatus = data ? 'live' : status;
+  const hasData = data != null && (status === 'done' || status === 'anomaly' || status === 'live');
   return (
     <AgentCardShell
       accent="amber"
@@ -31,6 +33,7 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
       status={dotStatus}
       source="TradingView"
       subline="usuario · único comandante · solo gráfico"
+      summary={hasData ? <A3Summary data={data} /> : undefined}
     >
       {status === 'idle' && <IdleState label="esperando activo..." />}
       {status === 'scanning' && (
@@ -66,6 +69,21 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
   );
 }
 
+/** Fila-veredicto de A3: tendencia (dirección) + señal operativa + confianza. */
+function A3Summary({ data }: { data: A3Output }) {
+  const sig = data.operativa.signal;
+  const sigLabel = sig === 'buy' ? 'COMPRA' : sig === 'sell' ? 'VENTA' : 'HOLD';
+  return (
+    <>
+      <DirectionBadge dir={data.tendencia.primaria} />
+      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-medium text-white">
+        {sigLabel} · {data.tendencia.primaria}
+      </span>
+      <ConfidenceChip value={data.confidence} showBar />
+    </>
+  );
+}
+
 function A3Body({
   data,
   dailyCandles,
@@ -82,6 +100,12 @@ function A3Body({
   // Helper inline para mostrar precio con moneda — null/undef → guion
   const px = (v: number | null | undefined) =>
     v === null || v === undefined || Number.isNaN(v) ? '—' : `${v.toFixed(2)} ${currency}`;
+  // Empty state explícito (no `—` sueltos): en hold o sin niveles no hay operativa.
+  const noSetup =
+    operativa.signal === 'hold' ||
+    operativa.entrada === null ||
+    operativa.stop_loss === null ||
+    operativa.target === null;
 
   return (
     <>
@@ -97,21 +121,32 @@ function A3Body({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1.5 mb-2">
-        {/* Color semántico: stop=rose, target=emerald (convención trading global). */}
-        <TechBox
-          label={`ENTRADA${operativa.entry_type === 'limit' ? ' LÍMITE' : ''} · ${currency}`}
-          value={px(operativa.entrada)}
-          valueCls="text-white"
-        />
-        <TechBox label={`▼ STOP · ${currency}`} value={px(operativa.stop_loss)} valueCls="text-rose" />
-        <TechBox label={`▲ OBJETIVO · ${currency}`} value={px(operativa.target)} valueCls="text-emerald" />
-        <TechBox
-          label="R/B RATIO"
-          value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
-          valueCls="text-amber"
-        />
-      </div>
+      {noSetup ? (
+        <div className="mb-2 rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-center">
+          <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-white/70">
+            sin setup · hold
+          </div>
+          <div className="mt-0.5 font-mono text-[9px] leading-snug text-white/45">
+            sin operativa con R/B suficiente ni proximidad a un nivel ahora mismo
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-1.5 mb-2">
+          {/* Color semántico: stop=rose, target=emerald (convención trading global). */}
+          <TechBox
+            label={`ENTRADA${operativa.entry_type === 'limit' ? ' LÍMITE' : ''} · ${currency}`}
+            value={px(operativa.entrada)}
+            valueCls="text-white"
+          />
+          <TechBox label={`▼ STOP · ${currency}`} value={px(operativa.stop_loss)} valueCls="text-rose" />
+          <TechBox label={`▲ OBJETIVO · ${currency}`} value={px(operativa.target)} valueCls="text-emerald" />
+          <TechBox
+            label="R/B RATIO"
+            value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
+            valueCls="text-amber"
+          />
+        </div>
+      )}
 
       <DataSection label={`Medias · ${currency}`} source={`TradingView · ${data.timeframes_analizados.join(' · ')}`}>
         <KVRow k="MA 20" v={fmtNum(medias.sma20)} />
@@ -140,13 +175,18 @@ function A3Body({
       <SignalBox tone={sigCls}>
         <div
           className={cn(
-            'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            'flex items-center gap-1 font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
             sigCls === 'bull' && 'text-emerald',
             sigCls === 'bear' && 'text-rose',
             sigCls === 'neut' && 'text-white/55'
           )}
         >
-          señal: {sigLabel} · {tendencia.primaria} {forceFromN(tendencia.fuerza)} · confianza {confidence}%
+          <span>
+            señal: {sigLabel} · {tendencia.primaria}
+          </span>
+          {/* fuerza de tendencia como barra de segmentos (no texto "fuerte/moderada/débil"). */}
+          <SegmentBar value={tendencia.fuerza} className="mx-0.5" />
+          <span>· confianza {confidence}%</span>
         </div>
         <div className="font-mono text-[10px] leading-snug text-white/90">
           {patron_detectado && <span className="text-amber font-medium">{patron_detectado}</span>}
@@ -180,12 +220,6 @@ function KVRow({ k, v }: { k: string; v: string }) {
 function fmtNum(n: number | null): string {
   if (n === null || Number.isNaN(n)) return '—';
   return n.toFixed(2);
-}
-
-function forceFromN(n: number): string {
-  if (n >= 4) return 'fuerte';
-  if (n >= 3) return 'moderada';
-  return 'débil';
 }
 
 function rsiZone(rsi: number): string {

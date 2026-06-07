@@ -11,6 +11,7 @@ import { A3Card } from '@/components/agents/a3-card';
 import { DebateCard } from '@/components/agents/debate-card';
 import { A4Card } from '@/components/agents/a4-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
+import { VerdictBar } from '@/components/verdict-bar';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
 import { resolveTicker } from '@/lib/catalog/assets';
@@ -267,10 +268,15 @@ function AnalysisInner() {
     state.a3 || state.a1 ? computeConfluence(state.a1, state.a2, state.a3, state.debate) : null;
 
   return (
-    <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
+    <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-3xl lg:max-w-6xl xl:max-w-7xl">
       <Header status={headerStatus} />
 
       <AssetInput onSubmit={handleRun} disabled={isLoading} />
+
+      {/* Barra de veredicto — lo primero que ve el usuario en cuanto A4 está listo. */}
+      {state.a4 && state.a4Status === 'done' && (
+        <VerdictBar a4={state.a4} confluence={confluence} aligned={confluence?.aligned ?? false} />
+      )}
 
       {state.error && (
         <div
@@ -313,60 +319,70 @@ function AnalysisInner() {
         </div>
       )}
 
-      {/* A1 + A2 parallel grid */}
-      <SectionLabel>agentes paralelos</SectionLabel>
-      <div className="grid grid-cols-2 gap-2 px-4">
-        <A1Card
-          status={state.a1Status}
-          data={state.a1}
-          failureMessage={state.failures.find((f) => f.agent === 'A1')?.message}
-        />
-        <A2Card
-          status={state.a2Status}
-          data={state.a2}
-          failureMessage={state.failures.find((f) => f.agent === 'A2')?.message}
-        />
-      </div>
-
-      {/* Debate (conditional) */}
-      {state.debate && (
-        <>
-          <FlowArrow>↓ anomalía detectada</FlowArrow>
-          <SectionLabel>debate A1 × A2</SectionLabel>
-          <div className="px-4">
-            <DebateCard status={state.debateStatus} data={state.debate} />
+      {/* Desktop: 2 columnas — agentes (8) | rail de síntesis (4). Móvil: stack. */}
+      <div className="lg:grid lg:grid-cols-12 lg:gap-2 lg:items-start">
+        {/* Columna principal: agentes */}
+        <div className="lg:col-span-8">
+          {/* A1 + A2 parallel grid */}
+          <SectionLabel>agentes paralelos</SectionLabel>
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2 px-4">
+            <A1Card
+              status={state.a1Status}
+              data={state.a1}
+              failureMessage={state.failures.find((f) => f.agent === 'A1')?.message}
+            />
+            <A2Card
+              status={state.a2Status}
+              data={state.a2}
+              failureMessage={state.failures.find((f) => f.agent === 'A2')?.message}
+            />
           </div>
-        </>
-      )}
 
-      {/* A3 always visible */}
-      <SectionLabel>motor técnico autónomo</SectionLabel>
-      <div className="px-4">
-        <A3Card
-          status={state.a3Status}
-          data={state.a3}
-          dailyCandles={state.dailyCandles}
-          currency={state.a1?.price?.currency ?? getCurrencyFromTicker(state.ticker ?? '')}
-          failureMessage={state.failures.find((f) => f.agent === 'A3')?.message}
-        />
-      </div>
+          {/* Debate (conditional) */}
+          {state.debate && (
+            <>
+              <FlowArrow>↓ anomalía detectada</FlowArrow>
+              <SectionLabel>debate A1 × A2</SectionLabel>
+              <div className="px-4">
+                <DebateCard status={state.debateStatus} data={state.debate} />
+              </div>
+            </>
+          )}
 
-      {/* Confluence */}
-      <SectionLabel>indicador de confluencia</SectionLabel>
-      <div className="px-4">
-        <ConfluenceIndicator data={confluence} />
-      </div>
-
-      {/* A4 final output */}
-      {state.a4 && (
-        <>
-          <FlowArrow>↓ output al usuario</FlowArrow>
-          <SectionLabel>sistema · A4</SectionLabel>
+          {/* A3 always visible */}
+          <SectionLabel>motor técnico autónomo</SectionLabel>
           <div className="px-4">
-            <A4Card status={state.a4Status} data={state.a4} aligned={confluence?.aligned ?? false} />
+            <A3Card
+              status={state.a3Status}
+              data={state.a3}
+              dailyCandles={state.dailyCandles}
+              currency={state.a1?.price?.currency ?? getCurrencyFromTicker(state.ticker ?? '')}
+              failureMessage={state.failures.find((f) => f.agent === 'A3')?.message}
+            />
           </div>
-        </>
-      )}
+        </div>
+
+        {/* Rail de síntesis: confluencia + A4. En lg sube arriba a la derecha
+            (sticky) en vez de quedar al final del scroll. */}
+        <aside className="lg:col-span-4 lg:sticky lg:top-3">
+          {/* Confluence */}
+          <SectionLabel>indicador de confluencia</SectionLabel>
+          <div className="px-4">
+            <ConfluenceIndicator data={confluence} />
+          </div>
+
+          {/* A4 final output */}
+          {state.a4 && (
+            <>
+              <FlowArrow>↓ output al usuario</FlowArrow>
+              <SectionLabel>sistema · A4</SectionLabel>
+              <div className="px-4">
+                <A4Card status={state.a4Status} data={state.a4} aligned={confluence?.aligned ?? false} />
+              </div>
+            </>
+          )}
+        </aside>
+      </div>
 
       {/* Disclaimer */}
       <footer className="px-5 pt-6 text-center font-mono text-[8px] text-slate opacity-60 leading-relaxed">

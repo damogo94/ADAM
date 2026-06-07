@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export type AgentAccent = 'blue' | 'cyan' | 'amber' | 'violet' | 'slate';
@@ -42,6 +45,15 @@ interface AgentCardShellProps {
   dashed?: boolean;
   /** Subtítulo bajo el header (ej. para A3 el comando del usuario) */
   subline?: string;
+  /**
+   * Fila-veredicto SIEMPRE visible cuando hay datos (rediseño verdict-first).
+   * Debe incluir dirección + titular + confianza. Si se pasa, la card es
+   * COLAPSABLE: el cuerpo (`children`) solo aparece al expandir. Si se omite
+   * (idle/scanning/error), la card se comporta como antes (cuerpo siempre visible).
+   */
+  summary?: React.ReactNode;
+  /** Abrir expandido por defecto (ej. auto-open cuando hay señal). Default: false. */
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }
 
@@ -53,34 +65,94 @@ export function AgentCardShell({
   source,
   dashed,
   subline,
+  summary,
+  defaultOpen = false,
   children,
 }: AgentCardShellProps) {
   const isScanning = status === 'scanning';
-  return (
-    <div
+  const collapsible = summary != null;
+  const [open, setOpen] = useState(defaultOpen);
+
+  const cardCls = cn(
+    'relative overflow-hidden rounded-[15px] border bg-surface-2 transition-[border-color,box-shadow] duration-300',
+    dashed ? 'border-dashed' : 'border-solid',
+    isScanning ? ACCENT_SCAN[accent] : 'border-white/5'
+  );
+
+  const badgeEl = (
+    <span
       className={cn(
-        'relative overflow-hidden rounded-[15px] border bg-surface-2 transition-[border-color,box-shadow] duration-300',
-        dashed ? 'border-dashed' : 'border-solid',
-        isScanning ? ACCENT_SCAN[accent] : 'border-white/5'
+        'font-orbitron text-[8px] font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0',
+        ACCENT_BADGE[accent]
       )}
     >
-      {/* sweep animation removed — el carrusel de tareas (ScanCarousel) en el
-          children comunica el estado de scanning de forma textual. */}
+      {badge}
+    </span>
+  );
 
-      <header className={cn('flex items-center gap-1.5 border-b border-white/5 px-2.5 py-2', ACCENT_BG[accent])}>
-        <span className={cn('font-orbitron text-[8px] font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0', ACCENT_BADGE[accent])}>
-          {badge}
-        </span>
-        <span className="flex-1 font-mono text-[10px] font-medium text-white">{title}</span>
-        {source && <span className="font-mono text-[7px] text-slate flex-shrink-0">{source}</span>}
+  // ── Modo legacy (sin summary): header estático + cuerpo siempre visible ──
+  // Lo usan los estados idle / scanning / error, que deben mostrar su
+  // contenido (standby, carrusel, mensaje de error) sin colapsar.
+  if (!collapsible) {
+    return (
+      <div className={cardCls}>
+        <header
+          className={cn('flex items-center gap-1.5 border-b border-white/5 px-2.5 py-2', ACCENT_BG[accent])}
+        >
+          {badgeEl}
+          <span className="flex-1 font-mono text-[10px] font-medium text-white">{title}</span>
+          {source && <span className="font-mono text-[7px] text-slate flex-shrink-0">{source}</span>}
+          <StatusDot status={status} />
+        </header>
+        {subline && (
+          <div className="px-2.5 pt-0.5 pb-1 font-mono text-[8px] tracking-tight text-a3/50">{subline}</div>
+        )}
+        <div className="min-h-[90px] p-2.5">{children}</div>
+      </div>
+    );
+  }
+
+  // ── Modo colapsable (con summary): la fila-veredicto es el toggle ────────
+  return (
+    <div className={cardCls}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(
+          'flex w-full items-center gap-1.5 px-2.5 py-2 text-left min-h-[44px] transition-colors',
+          ACCENT_BG[accent],
+          open ? 'border-b border-white/5' : 'border-b border-transparent'
+        )}
+      >
+        {badgeEl}
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">{summary}</span>
         <StatusDot status={status} />
-      </header>
+        <span
+          className={cn(
+            'font-mono text-[12px] leading-none text-white/40 transition-transform duration-200 flex-shrink-0',
+            open && 'rotate-90'
+          )}
+          aria-hidden="true"
+        >
+          ›
+        </span>
+      </button>
 
-      {subline && (
-        <div className="px-2.5 pt-0.5 pb-1 font-mono text-[8px] tracking-tight text-a3/50">{subline}</div>
+      {open && (
+        <>
+          {(title || source) && (
+            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-[8px] uppercase tracking-wider text-white/40">
+              <span className="font-medium text-white/55">{title}</span>
+              {source && <span className="opacity-70">· {source}</span>}
+            </div>
+          )}
+          {subline && (
+            <div className="px-2.5 pt-0.5 font-mono text-[8px] tracking-tight text-a3/50">{subline}</div>
+          )}
+          <div className="p-2.5 pt-1.5">{children}</div>
+        </>
       )}
-
-      <div className="min-h-[90px] p-2.5">{children}</div>
     </div>
   );
 }
@@ -99,7 +171,7 @@ export function AgentCardShell({
 function StatusDot({ status }: { status: AgentStatus }) {
   if (status === 'live') {
     return (
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 flex-shrink-0">
         <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
         <span className="font-mono text-[8px] font-medium text-white tracking-wider">LIVE</span>
       </div>
@@ -117,7 +189,7 @@ function StatusDot({ status }: { status: AgentStatus }) {
             : status === 'error'
               ? 'bg-rose animate-urg-pulse'
               : 'bg-white/30';
-  return <span className={cn('h-1.5 w-1.5 rounded-full transition-all', cls)} />;
+  return <span className={cn('h-1.5 w-1.5 rounded-full transition-all flex-shrink-0', cls)} />;
 }
 
 export function IdleState({ label = 'standby' }: { label?: string }) {
