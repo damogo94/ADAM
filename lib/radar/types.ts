@@ -173,6 +173,43 @@ export const RadarSignal = z
   .strict();
 export type RadarSignal_t = z.infer<typeof RadarSignal>;
 
+/** Dirección normalizada de un agente (para los ejes de desacuerdo). */
+export const RadarLean = z.enum(['up', 'down', 'flat']);
+export type RadarLean_t = z.infer<typeof RadarLean>;
+
+/**
+ * Desacuerdo entre agentes — DOS EJES SEPARADOS, nunca fundidos en un escalar
+ * (fundirlos rompe el aislamiento de A3 y tira lo que hace especial al sistema):
+ *   - narrative: divergencia entre los dos narrativos (A1 ↔ A2).
+ *   - technical: (des)alineación del A3 AISLADO vs el consenso narrativo
+ *     (A1+A2, NO A4 — A4 ya incluye A3). A3 se mantiene separado también en UI.
+ * Con agentes faltantes el eje es 'unavailable' (NUNCA "alineado": el desacuerdo
+ * no existe con 2 de 3).
+ */
+export const RadarDivergence = z
+  .object({
+    agents_alive: z.object({ a1: z.boolean(), a2: z.boolean(), a3: z.boolean() }).strict(),
+    alive_count: z.number().int().min(0).max(3),
+    narrative: z
+      .object({
+        state: z.enum(['aligned', 'divergent', 'mixed', 'unavailable']),
+        a1: RadarLean.nullable(),
+        a2: RadarLean.nullable(),
+        /** Refuerzo del debate cuando existió (0-100). null si no hubo debate. */
+        debate_convergence: z.number().nullable(),
+      })
+      .strict(),
+    technical: z
+      .object({
+        state: z.enum(['aligned', 'divergent', 'neutral', 'unavailable']),
+        a3: RadarLean.nullable(),
+        narrative_consensus: RadarLean.nullable(),
+      })
+      .strict(),
+  })
+  .strict();
+export type RadarDivergence_t = z.infer<typeof RadarDivergence>;
+
 /** Fila final del radar — lo que consume el componente UI. */
 export const RadarRow = z
   .object({
@@ -189,6 +226,9 @@ export const RadarRow = z
     delta: RadarDelta,
     distances: RadarDistances.nullable(),
     signal: RadarSignal.nullable(),
+    // Opcional en el contrato (back-compat con mocks/clientes previos); en la
+    // práctica buildRow SIEMPRE lo provee. La UI guarda el undefined.
+    divergence: RadarDivergence.optional(),
     is_stale: z.boolean(),
   })
   .strict();

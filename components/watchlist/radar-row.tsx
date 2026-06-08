@@ -44,7 +44,7 @@ export function RadarRow({
   onTogglePin,
   highlighted,
 }: RadarRowProps) {
-  const { ticker, asset_type, quote, latest, delta, distances, signal, is_stale, is_pinned } = row;
+  const { ticker, asset_type, quote, latest, delta, distances, signal, divergence, is_stale, is_pinned } = row;
   const currency = quote?.currency ?? getCurrencyFromTicker(ticker);
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   const hasAnalysis = latest !== null;
@@ -140,6 +140,9 @@ export function RadarRow({
           </p>
         )}
       </div>
+
+      {/* ───── 2b. DESACUERDO — dos ejes separados (A3 aislado) ───── */}
+      {hasAnalysis && <DivergenceBlock divergence={divergence} />}
 
       {/* ───── 3. Dictamen + DELTA + FRESCURA ───── */}
       <div className="mt-2 grid grid-cols-3 gap-2 border-t border-white/5 px-3 py-2">
@@ -374,4 +377,110 @@ function timeAgo(iso: string): string {
   if (hr < 24) return `${hr}h`;
   const d = Math.floor(hr / 24);
   return `${d}d`;
+}
+
+// ─── Desacuerdo en dos ejes ──────────────────────────────────────────
+// Dos ejes SEPARADOS (nunca fundidos): narrativa A1↔A2 · técnico A3 (aislado).
+// Lenguaje visual con ejes separados (REGLA DE FRAMING):
+//   - DIRECCIÓN de cada agente = glifo + color (▲ verde / ▼ rojo / ■ slate).
+//   - ESTADO de (des)acuerdo = INTENSIDAD (ámbar = divergen, dim = alineados/n-d),
+//     NUNCA verde/rojo: "divergen" no es "compra/venta".
+
+type Lean = 'up' | 'down' | 'flat' | null;
+
+function LeanGlyph({ lean }: { lean: Lean }) {
+  if (lean === 'up') return <span className="text-emerald" aria-label="alza">▲</span>;
+  if (lean === 'down') return <span className="text-rose" aria-label="baja">▼</span>;
+  if (lean === 'flat') return <span className="text-slate" aria-label="plano">■</span>;
+  return <span className="text-white/25" aria-label="no disponible">—</span>;
+}
+
+function divStateMeta(state: string): { word: string; cls: string; border: string } {
+  switch (state) {
+    case 'divergent':
+      return { word: 'divergen', cls: 'text-amber', border: 'border-amber/30' };
+    case 'aligned':
+      return { word: 'alineados', cls: 'text-white/55', border: 'border-white/10' };
+    case 'mixed':
+      return { word: 'mixto', cls: 'text-white/45', border: 'border-white/8' };
+    case 'neutral':
+      return { word: 'neutro', cls: 'text-white/45', border: 'border-white/8' };
+    default: // unavailable
+      return { word: 'n/d', cls: 'text-white/30', border: 'border-white/8' };
+  }
+}
+
+function AxisCell({
+  label,
+  leftTag,
+  leftLean,
+  rightTag,
+  rightLean,
+  state,
+  isolated,
+}: {
+  label: string;
+  leftTag: string;
+  leftLean: Lean;
+  rightTag: string;
+  rightLean: Lean;
+  state: string;
+  isolated?: boolean;
+}) {
+  const m = divStateMeta(state);
+  return (
+    <div className={cn('rounded border px-1.5 py-1', m.border, isolated && 'border-dashed')}>
+      <div className="mb-0.5 font-mono text-[7px] uppercase tracking-wider text-white/35">{label}</div>
+      <div className="flex items-center gap-1 font-mono text-[9px]">
+        <span className="text-white/45">{leftTag}</span>
+        <LeanGlyph lean={leftLean} />
+        <span className="text-white/25">·</span>
+        <span className="text-white/45">{rightTag}</span>
+        <LeanGlyph lean={rightLean} />
+        <span className={cn('ml-auto font-medium uppercase tracking-wider', m.cls)}>{m.word}</span>
+      </div>
+    </div>
+  );
+}
+
+function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] }) {
+  if (!divergence) return null; // back-compat: filas sin el campo (no debería pasar con datos reales)
+  const { alive_count, narrative, technical } = divergence;
+  const partial = alive_count < 3;
+  return (
+    <div className="mx-3 mt-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5">
+      <div className="mb-1 flex items-center gap-1.5">
+        <Glossed term="confluencia">
+          <span className="font-mono text-[7px] uppercase tracking-wider text-white/40">Desacuerdo</span>
+        </Glossed>
+        {partial && (
+          <span
+            className="rounded border border-amber/30 bg-amber/[0.06] px-1 py-px font-mono text-[7px] font-medium uppercase tracking-wider text-amber/90"
+            title="Análisis incompleto — el (des)acuerdo no es fiable con agentes faltantes"
+          >
+            {alive_count}/3 agentes
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <AxisCell
+          label="Narrativa · A1↔A2"
+          leftTag="A1"
+          leftLean={narrative.a1}
+          rightTag="A2"
+          rightLean={narrative.a2}
+          state={narrative.state}
+        />
+        <AxisCell
+          label="Técnico · A3 aislado"
+          leftTag="A3"
+          leftLean={technical.a3}
+          rightTag="narr"
+          rightLean={technical.narrative_consensus}
+          state={technical.state}
+          isolated
+        />
+      </div>
+    </div>
+  );
 }
