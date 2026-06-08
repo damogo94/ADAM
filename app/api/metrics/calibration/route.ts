@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { requireSystemApi } from '@/lib/auth/system-access';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
@@ -31,14 +31,11 @@ function confluenceBucket(pct: number): '0-30' | '31-60' | '61-100' {
 }
 
 export async function GET() {
-  // Solo usuarios autenticados pueden ver metricas internas
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  // Barrera real en servidor: auth + allowlist (default-deny). Estas métricas
+  // son cross-user (service-role bypassa RLS) → SOLO usuarios de la allowlist.
+  // Aplica aunque se llame directamente sin pasar por la página /system.
+  const gate = await requireSystemApi();
+  if (!gate.ok) return gate.response;
 
   const admin = createSupabaseAdmin();
 

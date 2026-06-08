@@ -234,6 +234,27 @@ export type Database = {
         }
         Relationships: []
       }
+      system_access: {
+        Row: {
+          created_at: string
+          email: string
+          note: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          note?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          note?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       trade_outcomes: {
         Row: {
           analysis_id: string
@@ -386,6 +407,7 @@ export type Database = {
           watchlist_id: string
         }[]
       }
+      is_system_authorized: { Args: never; Returns: boolean }
     }
     Enums: {
       asset_type: "equity" | "etf" | "crypto" | "forex" | "commodity" | "bond"

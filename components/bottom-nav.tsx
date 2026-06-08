@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { cn } from '@/lib/utils';
 import { AnomalyLoop, SplitA, Observer, Monogram } from './symbols';
 
@@ -27,9 +27,28 @@ const ITEMS: NavItem[] = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  // SOLO UX: ocultamos "SISTEMA" salvo que el usuario esté en la allowlist.
+  // Default oculto (no revela que /system existe); aparece si el check da true.
+  // La seguridad real vive en servidor (layout + APIs), no aquí.
+  const [systemAllowed, setSystemAllowed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/system/access')
+      .then((r) => (r.ok ? r.json() : { authorized: false }))
+      .then((j: { authorized?: boolean }) => {
+        if (alive) setSystemAllowed(j?.authorized === true);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const items = ITEMS.filter((it) => it.href !== '/system' || systemAllowed);
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-void/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-1 pb-2">
-      {ITEMS.map((it) => {
+      {items.map((it) => {
         const active = pathname?.startsWith(it.href);
         return (
           <Link

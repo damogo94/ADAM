@@ -29,3 +29,4 @@ export type SignalHistory = Database['public']['Tables']['signals_history']['Row
 export type AnalysisLog = Database['public']['Tables']['analyses_log']['Row'];
 export type SignalOutcome = Database['public']['Tables']['signal_outcomes']['Row'];
 export type TradeOutcome = Database['public']['Tables']['trade_outcomes']['Row'];
+export type SystemAccess = Database['public']['Tables']['system_access']['Row'];
