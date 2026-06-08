@@ -5,6 +5,8 @@ import { AnomalyBadge } from './anomaly-badge';
 import { DictamenSparkline } from './dictamen-sparkline';
 import { PinButton } from './pin-button';
 import { Glossed } from '@/components/lens/glossed';
+import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
+import { priceMoved } from '@/lib/radar/compute-freshness';
 import type { RadarRow_t } from '@/lib/radar/types';
 
 /**
@@ -44,7 +46,7 @@ export function RadarRow({
   onTogglePin,
   highlighted,
 }: RadarRowProps) {
-  const { ticker, asset_type, quote, latest, delta, distances, signal, is_stale, is_pinned } = row;
+  const { ticker, asset_type, quote, latest, delta, distances, signal, divergence, is_stale, is_pinned, price_drift_pct } = row;
   const currency = quote?.currency ?? getCurrencyFromTicker(ticker);
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   const hasAnalysis = latest !== null;
@@ -141,33 +143,25 @@ export function RadarRow({
         )}
       </div>
 
+      {/* ───── 2b. DESACUERDO — dos ejes separados (A3 aislado) ───── */}
+      {hasAnalysis && <DivergenceBlock divergence={divergence} />}
+
       {/* ───── 3. Dictamen + DELTA + FRESCURA ───── */}
       <div className="mt-2 grid grid-cols-3 gap-2 border-t border-white/5 px-3 py-2">
         {/* Dictamen + confluencia */}
         <DataCell label={<Glossed term="dictamen">Dictamen</Glossed>}>
           {hasAnalysis ? (
-            <span className="flex items-baseline gap-1.5">
-              <DirectionGlyph direction={latest!.direction} />
+            // Dos ejes SEPARADOS (regla de framing): dirección = glifo/color,
+            // convicción = intensidad (slate/amber/emerald). La confluencia A4
+            // pasa a dato secundario (ya no es el número-rey).
+            <span className="flex items-center gap-1.5">
+              <DirectionBadge dir={latest!.direction} />
+              <ConfidenceChip value={latest!.confidence} />
               <Glossed term="confluencia">
-                <span
-                  className={cn(
-                    'font-orbitron text-[12px] font-bold',
-                    is_stale ? 'text-white/45' : 'text-white'
-                  )}
-                >
+                <span className="font-mono text-[8px] text-white/35 tabular-nums">
                   {latest!.confluence_pct}%
                 </span>
               </Glossed>
-              {is_stale && (
-                <Glossed term="stale">
-                  <span
-                    className="font-mono text-[7px] uppercase tracking-wider text-amber/80"
-                    title="Análisis con más de 24h. Vuelve a correrlo para refresh."
-                  >
-                    stale
-                  </span>
-                </Glossed>
-              )}
             </span>
           ) : (
             <span className="font-mono text-[10px] text-white/30">—</span>
@@ -179,17 +173,32 @@ export function RadarRow({
           <DeltaCell delta={delta} />
         </DataCell>
 
-        {/* Frescura */}
+        {/* Frescura — DOS relojes (umbral por reloj): veredicto + precio */}
         <DataCell label="Frescura">
           {hasAnalysis ? (
-            <span
-              className={cn(
-                'font-mono text-[10px]',
-                is_stale ? 'text-amber/80' : 'text-white/65'
+            <span className="flex flex-col leading-tight">
+              {/* reloj 1 · edad del veredicto */}
+              <span
+                className={cn('font-mono text-[10px]', is_stale ? 'text-amber/80' : 'text-white/65')}
+                title={`Veredicto · ${new Date(latest!.created_at).toLocaleString()}`}
+              >
+                {timeAgo(latest!.created_at)}
+              </span>
+              {/* reloj 2 · cuánto se movió el precio desde el veredicto */}
+              {price_drift_pct === null || price_drift_pct === undefined ? (
+                <span className="font-mono text-[8px] text-white/25">px —</span>
+              ) : (
+                <span
+                  className={cn(
+                    'font-mono text-[8px]',
+                    priceMoved(price_drift_pct) ? 'text-amber/80' : 'text-white/40'
+                  )}
+                  title="Movimiento del precio desde que se emitió el veredicto"
+                >
+                  px {price_drift_pct >= 0 ? '+' : ''}
+                  {price_drift_pct.toFixed(1)}%
+                </span>
               )}
-              title={new Date(latest!.created_at).toLocaleString()}
-            >
-              {timeAgo(latest!.created_at)}
             </span>
           ) : (
             <span className="font-mono text-[10px] text-white/30">—</span>
@@ -353,16 +362,6 @@ function DistanceBlock({
   );
 }
 
-function DirectionGlyph({ direction }: { direction: 'positivo' | 'negativo' | 'neutral' }) {
-  if (direction === 'positivo') {
-    return <span className="text-emerald text-[11px]" aria-label="alcista">▲</span>;
-  }
-  if (direction === 'negativo') {
-    return <span className="text-rose text-[11px]" aria-label="bajista">▼</span>;
-  }
-  return <span className="text-white/45 text-[11px]" aria-label="neutral">◆</span>;
-}
-
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   if (!Number.isFinite(ms) || ms < 0) return '—';
@@ -374,4 +373,110 @@ function timeAgo(iso: string): string {
   if (hr < 24) return `${hr}h`;
   const d = Math.floor(hr / 24);
   return `${d}d`;
+}
+
+// ─── Desacuerdo en dos ejes ──────────────────────────────────────────
+// Dos ejes SEPARADOS (nunca fundidos): narrativa A1↔A2 · técnico A3 (aislado).
+// Lenguaje visual con ejes separados (REGLA DE FRAMING):
+//   - DIRECCIÓN de cada agente = glifo + color (▲ verde / ▼ rojo / ■ slate).
+//   - ESTADO de (des)acuerdo = INTENSIDAD (ámbar = divergen, dim = alineados/n-d),
+//     NUNCA verde/rojo: "divergen" no es "compra/venta".
+
+type Lean = 'up' | 'down' | 'flat' | null;
+
+function LeanGlyph({ lean }: { lean: Lean }) {
+  if (lean === 'up') return <span className="text-emerald" aria-label="alza">▲</span>;
+  if (lean === 'down') return <span className="text-rose" aria-label="baja">▼</span>;
+  if (lean === 'flat') return <span className="text-slate" aria-label="plano">■</span>;
+  return <span className="text-white/25" aria-label="no disponible">—</span>;
+}
+
+function divStateMeta(state: string): { word: string; cls: string; border: string } {
+  switch (state) {
+    case 'divergent':
+      return { word: 'divergen', cls: 'text-amber', border: 'border-amber/30' };
+    case 'aligned':
+      return { word: 'alineados', cls: 'text-white/55', border: 'border-white/10' };
+    case 'mixed':
+      return { word: 'mixto', cls: 'text-white/45', border: 'border-white/8' };
+    case 'neutral':
+      return { word: 'neutro', cls: 'text-white/45', border: 'border-white/8' };
+    default: // unavailable
+      return { word: 'n/d', cls: 'text-white/30', border: 'border-white/8' };
+  }
+}
+
+function AxisCell({
+  label,
+  leftTag,
+  leftLean,
+  rightTag,
+  rightLean,
+  state,
+  isolated,
+}: {
+  label: string;
+  leftTag: string;
+  leftLean: Lean;
+  rightTag: string;
+  rightLean: Lean;
+  state: string;
+  isolated?: boolean;
+}) {
+  const m = divStateMeta(state);
+  return (
+    <div className={cn('rounded border px-1.5 py-1', m.border, isolated && 'border-dashed')}>
+      <div className="mb-0.5 font-mono text-[7px] uppercase tracking-wider text-white/35">{label}</div>
+      <div className="flex items-center gap-1 font-mono text-[9px]">
+        <span className="text-white/45">{leftTag}</span>
+        <LeanGlyph lean={leftLean} />
+        <span className="text-white/25">·</span>
+        <span className="text-white/45">{rightTag}</span>
+        <LeanGlyph lean={rightLean} />
+        <span className={cn('ml-auto font-medium uppercase tracking-wider', m.cls)}>{m.word}</span>
+      </div>
+    </div>
+  );
+}
+
+function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] }) {
+  if (!divergence) return null; // back-compat: filas sin el campo (no debería pasar con datos reales)
+  const { alive_count, narrative, technical } = divergence;
+  const partial = alive_count < 3;
+  return (
+    <div className="mx-3 mt-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5">
+      <div className="mb-1 flex items-center gap-1.5">
+        <Glossed term="confluencia">
+          <span className="font-mono text-[7px] uppercase tracking-wider text-white/40">Desacuerdo</span>
+        </Glossed>
+        {partial && (
+          <span
+            className="rounded border border-amber/30 bg-amber/[0.06] px-1 py-px font-mono text-[7px] font-medium uppercase tracking-wider text-amber/90"
+            title="Análisis incompleto — el (des)acuerdo no es fiable con agentes faltantes"
+          >
+            {alive_count}/3 agentes
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <AxisCell
+          label="Narrativa · A1↔A2"
+          leftTag="A1"
+          leftLean={narrative.a1}
+          rightTag="A2"
+          rightLean={narrative.a2}
+          state={narrative.state}
+        />
+        <AxisCell
+          label="Técnico · A3 aislado"
+          leftTag="A3"
+          leftLean={technical.a3}
+          rightTag="narr"
+          rightLean={technical.narrative_consensus}
+          state={technical.state}
+          isolated
+        />
+      </div>
+    </div>
+  );
 }

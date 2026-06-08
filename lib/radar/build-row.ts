@@ -9,6 +9,8 @@
 import { computeDelta } from './compute-delta';
 import { computeDistances } from './compute-distances';
 import { computeStale } from './compute-stale';
+import { computeDivergence } from './compute-divergence';
+import { computePriceDrift } from './compute-freshness';
 import { normalizeAnalysis } from './normalize';
 import { normalizeSignal } from './normalize-signal';
 import type { RadarQuote_t, RadarRow_t, RpcRadarRow_t } from './types';
@@ -25,6 +27,12 @@ export function buildRow(
   const delta = computeDelta(latest, previous);
   const distances = latest ? computeDistances(latest, quote?.current ?? null) : null;
   const isStale = computeStale(latest?.created_at, now);
+  // Desacuerdo en dos ejes — derivado de los intermedios crudos (a1/a2/a3/debate)
+  // del propio análisis, no del snapshot. Con latest null → todos los ejes
+  // 'unavailable' (no hay agentes que comparar).
+  const divergence = computeDivergence(rpcRow.latest_analysis);
+  // Reloj 2: drift de precio desde el veredicto (initial_price vs quote).
+  const priceDriftPct = computePriceDrift(rpcRow.latest_analysis, quote?.current ?? null);
 
   return {
     item_id: rpcRow.item_id,
@@ -40,6 +48,8 @@ export function buildRow(
     delta,
     distances,
     signal,
+    divergence,
     is_stale: isStale,
+    price_drift_pct: priceDriftPct,
   };
 }
