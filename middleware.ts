@@ -20,16 +20,37 @@ const AUTH_ROUTES = ['/login', '/signup'];
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  const { response, user } = await updateSupabaseSession(req);
+  const { response, user, supabase } = await updateSupabaseSession(req);
 
   const isAppRoute = APP_ROUTES.some((r) => path === r || path.startsWith(r + '/'));
   const isAuthRoute = AUTH_ROUTES.some((r) => path === r);
+  const isSystemRoute = path === '/system' || path.startsWith('/system/');
 
   if (isAppRoute && !user) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('next', path);
     return NextResponse.redirect(url);
+  }
+
+  // Allowlist de /system — PRIMER filtro (UX). La barrera REAL vive en servidor
+  // (app/system/layout.tsx + las APIs internas). Default-deny: ante cualquier
+  // fallo del RPC, redirigimos. Redirect silencioso a /analysis (no revela que
+  // /system existe). El caso !user ya lo cubre el redirect a /login de arriba.
+  if (isSystemRoute && user) {
+    let allowed = false;
+    try {
+      const { data } = await supabase.rpc('is_system_authorized');
+      allowed = data === true;
+    } catch {
+      allowed = false;
+    }
+    if (!allowed) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/analysis';
+      url.searchParams.delete('next');
+      return NextResponse.redirect(url);
+    }
   }
 
   if (isAuthRoute && user) {

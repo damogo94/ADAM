@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { requireSystemApi } from '@/lib/auth/system-access';
 import { summarize, type UsageRow, type AgentAggregate } from '@/lib/cost';
 
 export const runtime = 'nodejs';
@@ -29,9 +29,11 @@ const FALLBACK_BLENDED_USD_PER_MTOK = 0.7 * (3 + 15) / 2 + 0.3 * (15 + 75) / 2;
  * GET /api/system → métricas agregadas del usuario autenticado.
  */
 export async function GET() {
-  const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  // Barrera real en servidor: auth + allowlist (default-deny). Aplica aunque se
+  // llame directamente a la API sin pasar por la página /system.
+  const gate = await requireSystemApi();
+  if (!gate.ok) return gate.response;
+  const { supabase, userId } = gate;
 
   const [analysesRes, signalsRes, watchlistsRes] = await Promise.all([
     supabase
@@ -49,13 +51,13 @@ export async function GET() {
     supabase
       .from('signals_history')
       .select('level')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .limit(500)
       .returns<{ level: string }[]>(),
     supabase
       .from('watchlists')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('is_default', true)
       .maybeSingle<{ id: string }>(),
   ]);
