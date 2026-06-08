@@ -230,6 +230,9 @@ export const RadarRow = z
     // práctica buildRow SIEMPRE lo provee. La UI guarda el undefined.
     divergence: RadarDivergence.optional(),
     is_stale: z.boolean(),
+    // Reloj 2 de frescura (QW2): % que se ha movido el precio desde el veredicto
+    // (initial_price vs quote). null = no calculable. Opcional por back-compat.
+    price_drift_pct: z.number().nullable().optional(),
   })
   .strict();
 export type RadarRow_t = z.infer<typeof RadarRow>;

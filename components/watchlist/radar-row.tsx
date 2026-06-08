@@ -5,6 +5,8 @@ import { AnomalyBadge } from './anomaly-badge';
 import { DictamenSparkline } from './dictamen-sparkline';
 import { PinButton } from './pin-button';
 import { Glossed } from '@/components/lens/glossed';
+import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
+import { priceMoved } from '@/lib/radar/compute-freshness';
 import type { RadarRow_t } from '@/lib/radar/types';
 
 /**
@@ -44,7 +46,7 @@ export function RadarRow({
   onTogglePin,
   highlighted,
 }: RadarRowProps) {
-  const { ticker, asset_type, quote, latest, delta, distances, signal, divergence, is_stale, is_pinned } = row;
+  const { ticker, asset_type, quote, latest, delta, distances, signal, divergence, is_stale, is_pinned, price_drift_pct } = row;
   const currency = quote?.currency ?? getCurrencyFromTicker(ticker);
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   const hasAnalysis = latest !== null;
@@ -149,28 +151,17 @@ export function RadarRow({
         {/* Dictamen + confluencia */}
         <DataCell label={<Glossed term="dictamen">Dictamen</Glossed>}>
           {hasAnalysis ? (
-            <span className="flex items-baseline gap-1.5">
-              <DirectionGlyph direction={latest!.direction} />
+            // Dos ejes SEPARADOS (regla de framing): dirección = glifo/color,
+            // convicción = intensidad (slate/amber/emerald). La confluencia A4
+            // pasa a dato secundario (ya no es el número-rey).
+            <span className="flex items-center gap-1.5">
+              <DirectionBadge dir={latest!.direction} />
+              <ConfidenceChip value={latest!.confidence} />
               <Glossed term="confluencia">
-                <span
-                  className={cn(
-                    'font-orbitron text-[12px] font-bold',
-                    is_stale ? 'text-white/45' : 'text-white'
-                  )}
-                >
+                <span className="font-mono text-[8px] text-white/35 tabular-nums">
                   {latest!.confluence_pct}%
                 </span>
               </Glossed>
-              {is_stale && (
-                <Glossed term="stale">
-                  <span
-                    className="font-mono text-[7px] uppercase tracking-wider text-amber/80"
-                    title="Análisis con más de 24h. Vuelve a correrlo para refresh."
-                  >
-                    stale
-                  </span>
-                </Glossed>
-              )}
             </span>
           ) : (
             <span className="font-mono text-[10px] text-white/30">—</span>
@@ -182,17 +173,32 @@ export function RadarRow({
           <DeltaCell delta={delta} />
         </DataCell>
 
-        {/* Frescura */}
+        {/* Frescura — DOS relojes (umbral por reloj): veredicto + precio */}
         <DataCell label="Frescura">
           {hasAnalysis ? (
-            <span
-              className={cn(
-                'font-mono text-[10px]',
-                is_stale ? 'text-amber/80' : 'text-white/65'
+            <span className="flex flex-col leading-tight">
+              {/* reloj 1 · edad del veredicto */}
+              <span
+                className={cn('font-mono text-[10px]', is_stale ? 'text-amber/80' : 'text-white/65')}
+                title={`Veredicto · ${new Date(latest!.created_at).toLocaleString()}`}
+              >
+                {timeAgo(latest!.created_at)}
+              </span>
+              {/* reloj 2 · cuánto se movió el precio desde el veredicto */}
+              {price_drift_pct === null || price_drift_pct === undefined ? (
+                <span className="font-mono text-[8px] text-white/25">px —</span>
+              ) : (
+                <span
+                  className={cn(
+                    'font-mono text-[8px]',
+                    priceMoved(price_drift_pct) ? 'text-amber/80' : 'text-white/40'
+                  )}
+                  title="Movimiento del precio desde que se emitió el veredicto"
+                >
+                  px {price_drift_pct >= 0 ? '+' : ''}
+                  {price_drift_pct.toFixed(1)}%
+                </span>
               )}
-              title={new Date(latest!.created_at).toLocaleString()}
-            >
-              {timeAgo(latest!.created_at)}
             </span>
           ) : (
             <span className="font-mono text-[10px] text-white/30">—</span>
@@ -354,16 +360,6 @@ function DistanceBlock({
       </div>
     </div>
   );
-}
-
-function DirectionGlyph({ direction }: { direction: 'positivo' | 'negativo' | 'neutral' }) {
-  if (direction === 'positivo') {
-    return <span className="text-emerald text-[11px]" aria-label="alcista">▲</span>;
-  }
-  if (direction === 'negativo') {
-    return <span className="text-rose text-[11px]" aria-label="bajista">▼</span>;
-  }
-  return <span className="text-white/45 text-[11px]" aria-label="neutral">◆</span>;
 }
 
 function timeAgo(iso: string): string {
