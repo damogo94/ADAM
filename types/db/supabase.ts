@@ -390,6 +390,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_activity: { Args: { target_user: string }; Returns: Json }
+      get_users_overview: {
+        Args: never
+        Returns: {
+          analyses_count: number
+          display_name: string
+          distinct_tickers: number
+          email: string
+          last_analysis_at: string
+          registered_at: string
+          signals_count: number
+          user_id: string
+        }[]
+      }
       get_watchlist_radar: {
         Args: never
         Returns: {
