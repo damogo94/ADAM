@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
-import type { SignalHistory, SignalLevel, WatchlistItem } from '@/types/db';
+import type { SignalHistory, SignalLevel, WatchlistItem, SignalTradeOutcome } from '@/types/db';
+
+/** Señal + outcome de trade (null = en seguimiento / no seguida). */
+type SignalWithOutcome = SignalHistory & { outcome: SignalTradeOutcome | null };
 
 interface Stats {
   urgente: number;
@@ -18,9 +21,63 @@ const MAX_SELECTABLE = 5;
 type LevelFilter = 'all' | SignalLevel;
 type AckFilter = 'all' | 'unread' | 'acknowledged';
 
+// ── Clasificación de seguimiento ─────────────────────────────────────────────
+// Resuelta = el cron evaluó el trade a una barrera (win/loss/timeout) o la orden
+// no entró (no_fill). En seguimiento = 1D con niveles, aún sin resolver. No
+// seguida = intradía, sin niveles, o no evaluable (geometría degenerada).
+type TrackStatus = 'resolved' | 'tracking' | 'unfollowed';
+const RESOLVED_OUTCOMES = new Set(['win', 'loss', 'timeout', 'no_fill']);
+
+function trackStatus(s: SignalWithOutcome): TrackStatus {
+  const o = s.outcome?.outcome;
+  if (o && RESOLVED_OUTCOMES.has(o)) return 'resolved';
+  const trackable =
+    s.timeframe === '1D' && s.entry_price != null && s.stop_loss != null && s.target_price != null;
+  if (!s.outcome && trackable) return 'tracking';
+  return 'unfollowed'; // not_evaluable, 1H intradía, o sin niveles
+}
+
+interface TrackRecord {
+  win: number;
+  loss: number;
+  timeout: number;
+  noFill: number;
+  denom: number; // win+loss+timeout (base del hit-rate; no_fill no entra)
+  hitRate: number | null;
+  avgR: number | null;
+}
+
+function computeTrackRecord(signals: SignalWithOutcome[]): TrackRecord {
+  let win = 0;
+  let loss = 0;
+  let timeout = 0;
+  let noFill = 0;
+  const rs: number[] = [];
+  for (const s of signals) {
+    const o = s.outcome?.outcome;
+    if (o === 'win') win++;
+    else if (o === 'loss') loss++;
+    else if (o === 'timeout') timeout++;
+    else if (o === 'no_fill') noFill++;
+    if ((o === 'win' || o === 'loss' || o === 'timeout') && s.outcome?.r_multiple != null) {
+      rs.push(s.outcome.r_multiple);
+    }
+  }
+  const denom = win + loss + timeout;
+  return {
+    win,
+    loss,
+    timeout,
+    noFill,
+    denom,
+    hitRate: denom > 0 ? Math.round((win / denom) * 100) : null,
+    avgR: rs.length > 0 ? rs.reduce((a, b) => a + b, 0) / rs.length : null,
+  };
+}
+
 export default function SignalsScreen() {
   const router = useRouter();
-  const [signals, setSignals] = useState<SignalHistory[]>([]);
+  const [signals, setSignals] = useState<SignalWithOutcome[]>([]);
   const [stats, setStats] = useState<Stats>({ urgente: 0, atencion: 0, monitorear: 0 });
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -45,6 +102,13 @@ export default function SignalsScreen() {
     return true;
   });
 
+  // Track-record sobre TODAS las señales (no las filtradas): es un histórico estable.
+  const track = computeTrackRecord(signals);
+
+  // Agrupado de la lista filtrada por estado de seguimiento.
+  const grouped = { tracking: [] as SignalWithOutcome[], resolved: [] as SignalWithOutcome[], unfollowed: [] as SignalWithOutcome[] };
+  for (const s of filteredSignals) grouped[trackStatus(s)].push(s);
+
   useEffect(() => {
     void load();
     void loadWatchlist();
@@ -61,7 +125,7 @@ export default function SignalsScreen() {
         }
         throw new Error('fetch failed');
       }
-      const data = (await r.json()) as { signals: SignalHistory[]; stats: Stats };
+      const data = (await r.json()) as { signals: SignalWithOutcome[]; stats: Stats };
       setSignals(data.signals);
       setStats(data.stats);
     } catch (e) {
@@ -126,6 +190,18 @@ export default function SignalsScreen() {
     }
   }
 
+  function renderCard(s: SignalWithOutcome) {
+    return (
+      <SignalCard
+        key={s.id}
+        signal={s}
+        expanded={expandedId === s.id}
+        onToggle={() => setExpandedId((cur) => (cur === s.id ? null : s.id))}
+        onAck={() => onAck(s.id)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
       <Header status={loading ? 'running' : stats.urgente > 0 ? 'error' : 'ok'} />
@@ -137,6 +213,13 @@ export default function SignalsScreen() {
         <CountBox label="MONITOREAR" value={stats.monitorear} tone="monitorear" />
       </div>
 
+      {/* Track record — hit-rate REAL de las señales resueltas. Estado vacío
+          honesto: sin resueltas → "—", nunca un 0% fantasma. */}
+      <SectionLabel>rendimiento · señales resueltas</SectionLabel>
+      <div className="px-4">
+        <TrackRecordPanel track={track} />
+      </div>
+
       {/* Selección de activos a escanear (máx 5). Sin selección → toda la
           watchlist (comportamiento previo). */}
       {watchlistItems.length > 0 && (
@@ -144,7 +227,7 @@ export default function SignalsScreen() {
           <SectionLabel>
             seleccionar activos · {selectedTickers.length}/{MAX_SELECTABLE}
             {selectedTickers.length === 0 && (
-              <span className="ml-1 text-white/30 normal-case">— vacío = toda la watchlist</span>
+              <span className="ml-1 text-white/45 normal-case">— vacío = toda la watchlist</span>
             )}
           </SectionLabel>
           <div className="px-4">
@@ -164,7 +247,7 @@ export default function SignalsScreen() {
                       active
                         ? 'border-white bg-white text-black'
                         : disabled
-                          ? 'border-white/5 bg-surface-2 text-white/20 cursor-not-allowed'
+                          ? 'border-white/5 bg-surface-2 text-white/25 cursor-not-allowed'
                           : 'border-white/15 bg-surface-2 text-white/75 hover:border-white/40 hover:text-white'
                     )}
                   >
@@ -175,7 +258,7 @@ export default function SignalsScreen() {
               {selectedTickers.length > 0 && (
                 <button
                   onClick={() => setSelectedTickers([])}
-                  className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-white/45 hover:border-white/30 hover:text-white/80 transition"
+                  className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-white/55 hover:border-white/30 hover:text-white/80 transition"
                   aria-label="Limpiar selección"
                 >
                   limpiar
@@ -198,7 +281,7 @@ export default function SignalsScreen() {
               ? `EJECUTAR SCAN · ${selectedTickers.length} ACTIVO${selectedTickers.length > 1 ? 'S' : ''} ▶`
               : 'EJECUTAR SCAN CMT ▶'}
         </button>
-        <p className="mt-1.5 font-mono text-[8px] text-white/40 text-center">
+        <p className="mt-1.5 font-mono text-[10px] text-white/55 text-center">
           {selectedTickers.length > 0
             ? `escaneando solo: ${selectedTickers.join(' · ')}`
             : 'escanea tus tickers · usa Haiku (rápido)'}
@@ -206,7 +289,7 @@ export default function SignalsScreen() {
       </div>
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg border border-rose/40 bg-rose/[0.08] px-3 py-2 font-mono text-[10px] text-rose animate-urg-pulse">
+        <div className="mx-4 mt-3 rounded-lg border border-rose/40 bg-rose/[0.08] px-3 py-2 font-mono text-[11px] text-rose animate-urg-pulse">
           {error}
         </div>
       )}
@@ -219,7 +302,7 @@ export default function SignalsScreen() {
               key={lv}
               onClick={() => setFilterLevel(lv)}
               className={cn(
-                'flex-1 rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
+                'flex-1 rounded-lg border px-2 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
                 // Filter activo: color del nivel correspondiente. Inactivo: B&W dim.
                 filterLevel === lv
                   ? lv === 'urgente'
@@ -229,7 +312,7 @@ export default function SignalsScreen() {
                       : lv === 'monitorear'
                         ? 'border-emerald/45 bg-emerald/[0.08] text-emerald'
                         : 'border-white/35 bg-white/[0.06] text-white'
-                  : 'border-white/8 bg-surface-2 text-white/45 hover:border-white/20'
+                  : 'border-white/8 bg-surface-2 text-white/55 hover:border-white/20'
               )}
             >
               {lv === 'all' ? 'todas' : lv}
@@ -242,17 +325,17 @@ export default function SignalsScreen() {
             value={filterTicker}
             onChange={(e) => setFilterTicker(e.target.value)}
             placeholder="ticker..."
-            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 font-mono text-[10px] uppercase text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 font-mono text-[11px] uppercase text-white placeholder-white/45 focus:border-white/40 focus:outline-none"
           />
           {(['all', 'unread', 'acknowledged'] as const).map((a) => (
             <button
               key={a}
               onClick={() => setFilterAck(a)}
               className={cn(
-                'rounded-lg border px-2 py-1.5 font-mono text-[9px] uppercase tracking-wider transition',
+                'rounded-lg border px-2 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
                 filterAck === a
                   ? 'border-white/40 bg-white/[0.06] text-white'
-                  : 'border-white/8 bg-surface-2 text-white/45 hover:border-white/20'
+                  : 'border-white/8 bg-surface-2 text-white/55 hover:border-white/20'
               )}
             >
               {a === 'all' ? 'todas' : a === 'unread' ? 'no leídas' : 'leídas'}
@@ -265,36 +348,132 @@ export default function SignalsScreen() {
         historial · {filteredSignals.length === signals.length ? signals.length : `${filteredSignals.length} de ${signals.length}`}
       </SectionLabel>
       {loading ? (
-        <div className="px-4 py-8 text-center font-mono text-[10px] text-slate">cargando señales…</div>
+        <div className="px-4 py-8 text-center font-mono text-[11px] text-white/70">cargando señales…</div>
       ) : signals.length === 0 ? (
         <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">⚡</div>
-          <div className="font-mono text-[10px] text-slate mb-1">sin señales</div>
-          <div className="font-mono text-[8px] text-slate">
+          <div className="font-mono text-[11px] text-white/70 mb-1">sin señales</div>
+          <div className="font-mono text-[10px] text-white/55">
             añade activos a tu watchlist y ejecuta un scan
           </div>
         </div>
       ) : filteredSignals.length === 0 ? (
         <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-6 text-center">
-          <div className="font-mono text-[10px] text-slate">ninguna señal cumple los filtros</div>
+          <div className="font-mono text-[11px] text-white/70">ninguna señal cumple los filtros</div>
         </div>
       ) : (
-        <div className="px-4 space-y-1.5">
-          {filteredSignals.map((s) => (
-            <SignalCard
-              key={s.id}
-              signal={s}
-              expanded={expandedId === s.id}
-              onToggle={() => setExpandedId((cur) => (cur === s.id ? null : s.id))}
-              onAck={() => onAck(s.id)}
-            />
-          ))}
+        <div className="space-y-3">
+          {grouped.tracking.length > 0 && (
+            <GroupSection label="en seguimiento" count={grouped.tracking.length}>
+              {grouped.tracking.map(renderCard)}
+            </GroupSection>
+          )}
+          {grouped.resolved.length > 0 && (
+            <GroupSection label="resueltas" count={grouped.resolved.length}>
+              {grouped.resolved.map(renderCard)}
+            </GroupSection>
+          )}
+          {grouped.unfollowed.length > 0 && (
+            <GroupSection label="no seguidas" count={grouped.unfollowed.length} muted>
+              {grouped.unfollowed.map(renderCard)}
+            </GroupSection>
+          )}
         </div>
       )}
 
-      <footer className="px-5 pt-6 text-center font-mono text-[8px] text-slate opacity-60 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[10px] text-white/45 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
+    </div>
+  );
+}
+
+// ── Track record (resumen hit-rate) ──────────────────────────────────────────
+function TrackRecordPanel({ track }: { track: TrackRecord }) {
+  const empty = track.denom === 0;
+  return (
+    <div className="rounded-[15px] border border-white/8 bg-surface-2 px-3.5 py-3">
+      <div className="flex items-center gap-4">
+        {/* Hit-rate */}
+        <div className="flex flex-col items-center">
+          <div className={cn('font-orbitron text-[28px] font-black leading-none', empty ? 'text-white/45' : 'text-white')}>
+            {empty ? '—' : `${track.hitRate}%`}
+          </div>
+          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-white/55">hit-rate</div>
+        </div>
+
+        {/* Detalle */}
+        <div className="flex-1">
+          {empty ? (
+            <div className="font-mono text-[11px] leading-snug text-white/55">
+              sin señales resueltas todavía — el seguimiento corre cada noche y
+              clasificará las señales 1D al tocar target o stop.
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                <OutcomeChip label="win" n={track.win} cls="text-emerald border-emerald/35 bg-emerald/[0.07]" />
+                <OutcomeChip label="loss" n={track.loss} cls="text-rose border-rose/35 bg-rose/[0.07]" />
+                <OutcomeChip label="timeout" n={track.timeout} cls="text-amber border-amber/30 bg-amber/[0.06]" />
+                {track.noFill > 0 && (
+                  <OutcomeChip label="no fill" n={track.noFill} cls="text-white/55 border-white/12 bg-white/[0.02]" />
+                )}
+              </div>
+              <div className="mt-1.5 font-mono text-[11px] text-white/55">
+                {track.denom} resuelta{track.denom > 1 ? 's' : ''}
+                {track.avgR != null && (
+                  <>
+                    {' · R medio '}
+                    <span className={cn('font-medium', track.avgR >= 0 ? 'text-emerald' : 'text-rose')}>
+                      {track.avgR >= 0 ? '+' : ''}
+                      {track.avgR.toFixed(2)}
+                    </span>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OutcomeChip({ label, n, cls }: { label: string; n: number; cls: string }) {
+  return (
+    <span className={cn('rounded border px-1.5 py-0.5 font-mono text-[11px] tabular-nums', cls)}>
+      {n} <span className="uppercase tracking-wider opacity-80">{label}</span>
+    </span>
+  );
+}
+
+// ── Grupo de la lista (en seguimiento / resueltas / no seguidas) ──────────────
+function GroupSection({
+  label,
+  count,
+  muted,
+  children,
+}: {
+  label: string;
+  count: number;
+  muted?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-4 pt-1 pb-1.5">
+        <span
+          className={cn(
+            'font-mono text-[11px] font-medium uppercase tracking-[0.12em]',
+            muted ? 'text-white/45' : 'text-white/70'
+          )}
+        >
+          {label}
+        </span>
+        <span className="font-mono text-[11px] tabular-nums text-white/45">{count}</span>
+        <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+      </div>
+      <div className={cn('px-4 space-y-1.5', muted && 'opacity-75')}>{children}</div>
     </div>
   );
 }
@@ -319,7 +498,7 @@ function CountBox({ label, value, tone }: { label: string; value: number; tone: 
   return (
     <div className={cn('rounded-[15px] border px-2 py-2.5 text-center transition-all', cls)}>
       <div className="font-orbitron text-[20px] font-black">{value}</div>
-      <div className="font-mono text-[7px] tracking-wider opacity-80 mt-0.5">{label}</div>
+      <div className="font-mono text-[11px] tracking-wider opacity-80 mt-0.5">{label}</div>
     </div>
   );
 }
@@ -335,7 +514,26 @@ function levelMeta(level: SignalLevel) {
   if (level === 'urgente') return { band: 'bg-rose', text: 'text-rose', label: 'URGENTE', pulse: true };
   if (level === 'atencion') return { band: 'bg-amber', text: 'text-amber', label: 'ATENCIÓN', pulse: false };
   if (level === 'monitorear') return { band: 'bg-emerald', text: 'text-emerald', label: 'MONITOREAR', pulse: false };
-  return { band: 'bg-white/20', text: 'text-white/40', label: 'SIN SEÑAL', pulse: false };
+  return { band: 'bg-white/20', text: 'text-white/55', label: 'SIN SEÑAL', pulse: false };
+}
+
+/**
+ * outcomeMeta — color SEMÁNTICO del resultado del trade (no decorativo):
+ *   win→emerald · loss→rose · timeout→amber · no_fill/not_evaluable→neutro.
+ */
+function outcomeMeta(outcome: string): { label: string; cls: string } {
+  switch (outcome) {
+    case 'win':
+      return { label: 'WIN', cls: 'text-emerald border-emerald/40 bg-emerald/[0.08]' };
+    case 'loss':
+      return { label: 'LOSS', cls: 'text-rose border-rose/40 bg-rose/[0.08]' };
+    case 'timeout':
+      return { label: 'TIMEOUT', cls: 'text-amber border-amber/35 bg-amber/[0.07]' };
+    case 'no_fill':
+      return { label: 'NO FILL', cls: 'text-white/55 border-white/15 bg-white/[0.03]' };
+    default:
+      return { label: 'NO EVALUABLE', cls: 'text-white/45 border-white/10 bg-white/[0.02]' };
+  }
 }
 
 function SignalCard({
@@ -344,7 +542,7 @@ function SignalCard({
   onToggle,
   onAck,
 }: {
-  signal: SignalHistory;
+  signal: SignalWithOutcome;
   expanded: boolean;
   onToggle: () => void;
   onAck: () => void;
@@ -354,6 +552,8 @@ function SignalCard({
   const emitted = new Date(signal.emitted_at);
   const indicators = (signal.indicators ?? {}) as Record<string, string>;
   const ccy = getCurrencyFromTicker(signal.ticker);
+  const out = signal.outcome;
+  const isResolved = out != null && RESOLVED_OUTCOMES.has(out.outcome);
   const fmtPx = (v: number | null | undefined) =>
     v === null || v === undefined ? '—' : `${v} ${ccy}`;
 
@@ -381,22 +581,25 @@ function SignalCard({
       <button onClick={onToggle} className="block w-full px-3 pl-4 py-2.5 text-left">
         <div className="flex items-center gap-2">
           <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-orbitron text-[13px] font-bold tracking-wider text-white">{signal.ticker}</span>
-              <span className={cn('font-mono text-[8px] font-medium uppercase tracking-wider', meta.text)}>
+              <span className={cn('font-mono text-[11px] font-medium uppercase tracking-wider', meta.text)}>
                 {meta.label}
               </span>
-              <span className="font-mono text-[8px] text-slate">· {signal.timeframe}</span>
+              <span className="rounded border border-white/15 bg-white/[0.03] px-1.5 py-px font-mono text-[10px] tracking-wider text-white/70">
+                {signal.timeframe}
+              </span>
             </div>
             <div className="font-mono text-[10px] text-slate-l mt-0.5 line-clamp-1">
               {signal.setup_detected}
             </div>
           </div>
-          <div className="text-right">
+          <div className="flex flex-col items-end gap-0.5">
+            {out && <OutcomeBadge outcome={out} />}
             <div className={cn('font-orbitron text-[14px] font-bold', meta.text)}>
               {signal.confidence_pct}%
             </div>
-            <div className="font-mono text-[7px] text-slate">{emitted.toLocaleTimeString().slice(0, 5)}</div>
+            <div className="font-mono text-[9px] text-white/55">{emitted.toLocaleTimeString().slice(0, 5)}</div>
           </div>
           <span className="font-mono text-[14px] text-slate-l opacity-50">{expanded ? '▾' : '▸'}</span>
         </div>
@@ -404,6 +607,37 @@ function SignalCard({
 
       {expanded && (
         <div className="border-t border-white/5 px-3 pl-4 py-2.5">
+          {/* Resultado del trade (si ya se evaluó) */}
+          {out && (
+            <div className="mb-2">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-white/55 mb-1">Resultado</div>
+              {isResolved ? (
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                  <OutcomeBadge outcome={out} />
+                  {out.r_multiple != null && (
+                    <span className={cn('font-medium', out.r_multiple >= 0 ? 'text-emerald' : 'text-rose')}>
+                      {out.r_multiple >= 0 ? '+' : ''}
+                      {out.r_multiple.toFixed(2)}R
+                    </span>
+                  )}
+                  {out.return_pct != null && (
+                    <span className="text-white/70">
+                      {out.return_pct >= 0 ? '+' : ''}
+                      {out.return_pct.toFixed(1)}%
+                    </span>
+                  )}
+                  {out.resolved_days != null && (
+                    <span className="text-white/55">· {out.resolved_days}d hasta resolución</span>
+                  )}
+                </div>
+              ) : (
+                <div className="font-mono text-[11px] text-white/55">
+                  no evaluable — geometría de niveles degenerada (no se pudo inferir dirección).
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2 mb-2">
             <KV label={`ENTRADA · ${ccy}`} value={fmtPx(signal.entry_price)} />
             <KV label={`▼ STOP · ${ccy}`} value={fmtPx(signal.stop_loss)} cls="text-rose" />
@@ -413,7 +647,7 @@ function SignalCard({
 
           {Object.keys(indicators).length > 0 && (
             <div className="mt-2">
-              <div className="font-mono text-[8px] uppercase tracking-wider text-white/45 mb-1">Indicadores</div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-white/55 mb-1">Indicadores</div>
               <div className="space-y-1">
                 {Object.entries(indicators).map(([k, v]) => (
                   <div key={k} className="font-mono text-[10px]">
@@ -426,21 +660,21 @@ function SignalCard({
           )}
 
           <div className="mt-2 border-t border-white/5 pt-2">
-            <div className="font-mono text-[8px] uppercase tracking-wider text-rose mb-0.5">Invalida si</div>
+            <div className="font-mono text-[11px] uppercase tracking-wider text-rose mb-0.5">Invalida si</div>
             <div className="font-mono text-[10px] text-white/90">{signal.invalidation_factor}</div>
           </div>
 
           <div className="mt-3 flex gap-1.5">
             <button
               onClick={copyReport}
-              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[10px] text-white/55 hover:border-white/35 hover:text-white transition"
+              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[11px] text-white/55 hover:border-white/35 hover:text-white transition"
             >
               copiar reporte
             </button>
             {!acknowledged && (
               <button
                 onClick={onAck}
-                className="flex-1 rounded-lg border border-emerald/25 bg-emerald/[0.04] px-2 py-1.5 font-mono text-[10px] text-emerald hover:bg-emerald/[0.08] hover:border-emerald/40 transition"
+                className="flex-1 rounded-lg border border-emerald/25 bg-emerald/[0.04] px-2 py-1.5 font-mono text-[11px] text-emerald hover:bg-emerald/[0.08] hover:border-emerald/40 transition"
               >
                 marcar leído
               </button>
@@ -452,10 +686,27 @@ function SignalCard({
   );
 }
 
+/** Badge compacto del outcome del trade. Muestra ±R si está resuelto con R. */
+function OutcomeBadge({ outcome }: { outcome: SignalTradeOutcome }) {
+  const m = outcomeMeta(outcome.outcome);
+  const showR = RESOLVED_OUTCOMES.has(outcome.outcome) && outcome.outcome !== 'no_fill' && outcome.r_multiple != null;
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded border px-1.5 py-px font-mono text-[11px] font-medium uppercase tracking-wider', m.cls)}>
+      {m.label}
+      {showR && (
+        <span className="tabular-nums opacity-90">
+          {outcome.r_multiple! >= 0 ? '+' : ''}
+          {outcome.r_multiple!.toFixed(1)}R
+        </span>
+      )}
+    </span>
+  );
+}
+
 function KV({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
     <div className="rounded-lg border border-white/5 bg-black/30 px-2 py-1.5">
-      <div className="font-mono text-[7px] uppercase tracking-wider text-slate mb-0.5">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-white/55 mb-0.5">{label}</div>
       <div className={cn('font-mono text-[11px] font-medium text-white', cls)}>{value}</div>
     </div>
   );
