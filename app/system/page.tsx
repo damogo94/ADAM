@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
 import { ArchitectureDiagram } from '@/components/architecture-diagram';
+import { UsersConsole } from '@/components/system/users-console';
 import { cn } from '@/lib/utils';
 
 interface AgentAggregate {
@@ -137,6 +138,9 @@ export default function SystemScreen() {
           sub="acumulado del período"
         />
       </div>
+
+      <SectionLabel>usuarios</SectionLabel>
+      <UsersConsole />
 
       <SectionLabel>coste por agente · últimos 100 runs</SectionLabel>
       <AgentCostBreakdown
