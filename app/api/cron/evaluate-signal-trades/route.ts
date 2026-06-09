@@ -15,9 +15,10 @@
  *   3. corre evaluateTrade() — función pura (lib/backtest/trade-eval, reutilizada).
  *   4. si resuelve → persiste; si sigue 'pending' → reintenta mañana.
  *
- * Las señales '1H' (intradía) se SALTAN deliberadamente: con velas diarias no se
- * puede resolver el orden TP/SL intradía y la ventana de 30d sería errónea. El
- * scanner puede emitir 1H (pasa 1D+1H a runCMT), aunque en la práctica es raro.
+ * Las señales '1H' (intradía) se SALTAN: con velas diarias no se puede resolver
+ * el orden TP/SL intradía y la ventana de 30d sería errónea. El scanner CMT
+ * determinista (buildCMTSignal) ya solo emite '1D' — el intraday alimenta el MTF,
+ * no genera señales 1H — así que el filtro queda como back-compat defensivo.
  *
  * entry_type siempre 'market': CMT no expone tipo de entrada → asumimos entrada
  * al entry_price en la emisión.

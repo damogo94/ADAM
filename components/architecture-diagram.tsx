@@ -189,7 +189,7 @@ export function ArchitectureDiagram() {
         <div className="flex flex-wrap items-center gap-1.5">
           <Node kind="data" title="cron · watchlist-scan" sub="programado" className="flex-1 min-w-[7rem]" />
           <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
-          <Node kind="agent" accent="slate" title="CMT scanner" sub="Haiku" className="flex-1 min-w-[6rem]" />
+          <Node kind="compute" title="CMT scanner" sub="computeTechnical · sin LLM" className="flex-1 min-w-[6rem]" />
           <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
           <Node kind="persist" title="signals_history" className="flex-1 min-w-[6rem]" />
         </div>
