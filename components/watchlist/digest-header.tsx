@@ -34,12 +34,12 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
   return (
     <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <div className="font-orbitron text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+        <div className="font-orbitron text-[12px] font-bold uppercase tracking-[0.12em] text-white">
           3 cosas que mirar hoy
         </div>
         {generatedAt && (
           <div
-            className="font-mono text-[8px] text-white/35"
+            className="font-mono text-[10px] text-white/55"
             title={new Date(generatedAt).toLocaleString()}
           >
             {timeAgo(generatedAt)}
@@ -48,8 +48,8 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
       </div>
 
       {isEmpty ? (
-        <div className="flex items-center gap-1.5 py-1 font-mono text-[10px] text-white/40">
-          <span className="h-1 w-1 rounded-full bg-white/30 animate-blink-slow" />
+        <div className="flex items-center gap-1.5 py-1 font-mono text-[11px] text-white/55">
+          <span className="h-1 w-1 rounded-full bg-white/45 animate-blink-slow" />
           <span>radar limpio · sin alertas ni cambios relevantes</span>
         </div>
       ) : (
@@ -62,8 +62,8 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
                 <span className={cn('font-orbitron text-[11px] font-bold tracking-wider', meta.text)}>
                   {e.ticker}
                 </span>
-                <span className="font-mono text-[9px] text-white/75 truncate">{e.reason}</span>
-                <span className="ml-auto font-mono text-[8px] uppercase tracking-wider text-white/30">
+                <span className="font-mono text-[10px] text-white/75 truncate">{e.reason}</span>
+                <span className="ml-auto font-mono text-[11px] uppercase tracking-wider text-white/55">
                   {e.source === 'signal' ? 'CMT' : 'Δ'}
                 </span>
               </div>

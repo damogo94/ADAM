@@ -21,12 +21,10 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
-import { SectionLabel } from '@/components/section-label';
 import { AssetPicker } from '@/components/asset-picker';
 import { RadarRow } from '@/components/watchlist/radar-row';
 import { DigestHeader } from '@/components/watchlist/digest-header';
 import { SkeletonRow } from '@/components/watchlist/skeleton-row';
-import { LensToggle } from '@/components/lens/lens-toggle';
 import { cn } from '@/lib/utils';
 import { RadarResponse, type RadarResponse_t } from '@/lib/radar/types';
 import { SparklinesResponse, type SparklineRange_t } from '@/lib/sparkline/types';
@@ -241,12 +239,18 @@ export default function WatchlistScreen() {
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
       <Header status={loading ? 'running' : rows.length ? 'ok' : 'offline'} />
 
-      {/* Lens toggle + label */}
-      <div className="mx-4 mt-2 flex items-center justify-between">
-        <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-white/35">radar</span>
-        <LensToggle />
+      {/* "Se aprende aquí": indicador discreto de que los términos técnicos
+          son explicables al tocarlos. La palabra "subrayados" lleva el mismo
+          subrayado dashed que el affordance real → telegrafía qué buscar. */}
+      <div className="mx-4 mt-2 flex items-center gap-1.5 font-mono text-[11px] leading-snug text-white/55">
+        <span aria-hidden="true" className="text-[13px] leading-none text-white/70">ⓘ</span>
+        <span>
+          Los términos{' '}
+          <span className="border-b border-dashed border-white/45 text-white/75">subrayados</span>{' '}
+          se explican al tocarlos
+        </span>
       </div>
-      <div className="mt-2" />
+      <div className="mt-2.5" />
       <DigestHeader entries={digest} onSelect={onDigestSelect} generatedAt={generatedAt} />
 
       {/* Form alta */}
@@ -313,7 +317,7 @@ export default function WatchlistScreen() {
 
       {/* Toggle de rango del sparkline */}
       <div className="mx-4 mt-3 flex items-center justify-between">
-        <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-white/35">
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/55">
           activos en radar · {rows.length}
         </span>
         <div
@@ -329,7 +333,7 @@ export default function WatchlistScreen() {
               aria-checked={sparkRange === r}
               onClick={() => setSparkRange(r)}
               className={cn(
-                'rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider transition',
+                'rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider transition',
                 sparkRange === r ? 'bg-white text-black' : 'text-white/55 hover:text-white'
               )}
             >
@@ -352,8 +356,8 @@ export default function WatchlistScreen() {
           <div className="font-orbitron text-[11px] tracking-wider text-white/80 mb-1">
             sin activos en radar
           </div>
-          <div className="font-mono text-[10px] text-white/40 leading-relaxed">
-            añade tu primer activo con <span className="text-white/70">⊞ catálogo</span> o
+          <div className="font-mono text-[11px] text-white/55 leading-relaxed">
+            añade tu primer activo con <span className="text-white/75">⊞ catálogo</span> o
             <br />
             escribiendo un ticker arriba (AAPL · BTC · EUR/USD…)
           </div>
@@ -418,7 +422,7 @@ export default function WatchlistScreen() {
         </div>
       )}
 
-      <footer className="px-5 pt-6 text-center font-mono text-[8px] text-slate opacity-60 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[10px] text-white/45 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>

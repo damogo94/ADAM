@@ -40,12 +40,12 @@ export function AnomalyBadge({ type, description, detected }: AnomalyBadgeProps)
       title={description ?? meta.label}
       className={cn(
         'inline-flex items-center gap-1 rounded border px-1.5 py-0.5',
-        'font-mono text-[8px] font-bold uppercase tracking-wider',
+        'font-mono text-[11px] font-bold uppercase tracking-wider',
         meta.cls
       )}
       aria-label={`Anomalía A1: ${meta.label}${description ? `. ${description}` : ''}`}
     >
-      <span aria-hidden="true" className="text-[9px] leading-none">
+      <span aria-hidden="true" className="text-[11px] leading-none">
         {meta.icon}
       </span>
       <span>{meta.label}</span>
