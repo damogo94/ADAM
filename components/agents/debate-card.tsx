@@ -49,7 +49,7 @@ export function DebateCard({ status, data }: DebateCardProps) {
             )}
           </div>
           <div className="rounded-lg border border-white/30 bg-white/[0.06] px-2.5 py-1.5">
-            <div className="font-mono text-[8px] font-medium text-white mb-0.5 uppercase tracking-wider">
+            <div className="font-mono text-[11px] font-medium text-white mb-0.5 uppercase tracking-wider">
               {data.oportunidad_validada ? 'oportunidad validada' : 'oportunidad invalidada'} · convergencia{' '}
               {data.convergence_score}% · {data.direccion}
             </div>

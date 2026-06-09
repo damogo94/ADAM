@@ -10,7 +10,9 @@ interface HeaderProps {
 }
 
 const STATUS_LABEL: Record<Status, string> = {
-  offline: 'OFFLINE',
+  // 'offline' = estado IDLE (sin análisis), NO un fallo. "EN ESPERA" lo comunica
+  // sin que se lea como "roto".
+  offline: 'EN ESPERA',
   running: 'RUNNING',
   ok: 'OK',
   error: 'ERROR',
@@ -18,13 +20,13 @@ const STATUS_LABEL: Record<Status, string> = {
 
 /**
  * Status como INTENSIDAD de blanco, no color.
- * - offline   = baja (40%)
+ * - offline   = neutro dim (en espera, sin análisis)
  * - running   = blink animation a 100%
  * - ok        = blanco firme (90%)
  * - error     = stroke marcado + slight pulse
  */
 const STATUS_CLS: Record<Status, string> = {
-  offline: 'bg-white/[0.04] text-white/40 border-white/10',
+  offline: 'bg-white/[0.04] text-white/55 border-white/10',
   running: 'bg-white/[0.06] text-white/80 border-white/20 animate-blink-slow',
   ok: 'bg-white/[0.06] text-white/90 border-white/25',
   error: 'bg-white/[0.10] text-white border-white/40 animate-urg-pulse',
@@ -41,12 +43,12 @@ export function Header({
         <div className="font-orbitron text-lg font-black tracking-[0.18em] text-white">
           A.D.A.M.
         </div>
-        <div className="font-mono text-[8px] tracking-wider text-white/40 mt-px">{tagline}</div>
+        <div className="font-mono text-[9px] tracking-wider text-white/55 mt-px">{tagline}</div>
       </div>
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            'font-mono text-[9px] font-medium tracking-wider px-2.5 py-1 rounded border transition-all duration-300',
+            'font-mono text-[11px] font-medium tracking-wider px-2.5 py-1 rounded border transition-all duration-300',
             STATUS_CLS[status]
           )}
         >

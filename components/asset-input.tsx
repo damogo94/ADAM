@@ -42,32 +42,11 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
         {/* top-edge whisper line */}
         <div className="absolute inset-x-[10%] top-px h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-        <div className="mb-2 flex items-center gap-2">
-          {/* Botón catálogo: ahora a la IZQUIERDA y cuadrado (icon-only).
-              Handler intacto (setPickerOpen). Esquinas mantienen el radio
-              del sistema (rounded-[11px], igual que el input + botón ▶).
-              Accesibilidad: aria-label + title (tooltip nativo) porque
-              perdió la etiqueta textual al pasar a icon-only. */}
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            disabled={disabled}
-            className={cn(
-              'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[11px] border border-white/15 bg-white/[0.04]',
-              'text-[12px] leading-none text-white/70 transition-all',
-              'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
-              'disabled:opacity-30 disabled:cursor-not-allowed'
-            )}
-            aria-label="Catálogo"
-            title="Catálogo"
-          >
-            <span aria-hidden="true">⊞</span>
-          </button>
-          <p className="flex items-center gap-1 font-mono text-[8px] font-medium uppercase tracking-[0.12em] text-white/65">
-            <span className="text-[8px]">▸</span>
-            activo — jerarquía superior · inicializa todos los agentes
-          </p>
-        </div>
+        {/* Instrucción real (no jerga): qué escribir y cómo abrir el catálogo. */}
+        <p className="mb-2 font-mono text-[11px] tracking-[0.04em] text-white/70">
+          Escribe un ticker — <span className="text-white/90">AAPL · BTC · OIL</span> — o pulsa{' '}
+          <span className="text-white/90">⊞ Catálogo</span>
+        </p>
 
         <form onSubmit={handleSubmit} className="flex gap-2 mb-2.5">
           <input
@@ -85,7 +64,7 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
               'flex-1 rounded-[11px] border border-white/10 bg-black/40 px-3.5 py-2.5',
               'font-orbitron text-[22px] font-bold uppercase tracking-[0.12em] text-white',
               'caret-white outline-none transition-[border-color,box-shadow]',
-              'placeholder:font-mono placeholder:text-[10px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-white/30',
+              'placeholder:font-mono placeholder:text-[14px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-white/45',
               'focus:border-white/40 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.06)]',
               'disabled:opacity-30'
             )}
@@ -94,24 +73,38 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
             type="submit"
             disabled={disabled || !value.trim()}
             className={cn(
-              'flex h-[50px] w-[50px] flex-shrink-0 items-center justify-center rounded-xl text-[17px] transition-all',
+              'flex h-[50px] w-[50px] flex-shrink-0 items-center justify-center rounded-xl transition-all md:w-auto md:px-5',
               'border border-white bg-white text-black font-bold',
               'hover:bg-white/85 active:scale-95',
               'disabled:opacity-30 disabled:cursor-not-allowed disabled:bg-white/40 disabled:border-white/40'
             )}
             aria-label="Iniciar análisis"
           >
-            ▶
+            {/* móvil: icono · ≥md: etiqueta explícita */}
+            <span className="text-[17px] md:hidden" aria-hidden="true">▶</span>
+            <span className="hidden font-orbitron text-[12px] font-bold uppercase tracking-[0.1em] md:inline">
+              Analizar →
+            </span>
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-1.5 font-mono text-[8px] text-white/55">
-          <span className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5">Investing.com</span>
-          <span className="text-[9px] text-white/30">·</span>
-          <span className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5">Bloomberg</span>
-          <span className="text-[9px] text-white/30">·</span>
-          <span className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5">TradingView</span>
-        </div>
+        {/* Catálogo: botón VISIBLE y etiquetado (descubrible sin depender del tooltip). */}
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          disabled={disabled}
+          className={cn(
+            'inline-flex h-8 items-center gap-1.5 rounded-[11px] border border-white/15 bg-white/[0.04] px-3',
+            'font-mono text-[11px] text-white/70 transition-all',
+            'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
+            'disabled:opacity-30 disabled:cursor-not-allowed'
+          )}
+          aria-label="Abrir catálogo de activos"
+          title="Catálogo de activos"
+        >
+          <span aria-hidden="true" className="text-[13px] leading-none">⊞</span>
+          Catálogo
+        </button>
       </section>
 
       <AssetPicker

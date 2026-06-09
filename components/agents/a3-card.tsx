@@ -31,7 +31,7 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
       badge="A3"
       title="Trading · Price Action"
       status={dotStatus}
-      source="TradingView"
+      source="Yahoo · OHLCV"
       subline="usuario · único comandante · solo gráfico"
       summary={hasData ? <A3Summary data={data} /> : undefined}
     >
@@ -123,7 +123,7 @@ function A3Body({
 
       {noSetup ? (
         <div className="mb-2 rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-center">
-          <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-white/70">
+          <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/70">
             sin setup · hold
           </div>
           <div className="mt-0.5 font-mono text-[9px] leading-snug text-white/45">
@@ -148,7 +148,7 @@ function A3Body({
         </div>
       )}
 
-      <DataSection label={`Medias · ${currency}`} source={`TradingView · ${data.timeframes_analizados.join(' · ')}`}>
+      <DataSection label={`Medias · ${currency}`} source={`Yahoo · ${data.timeframes_analizados.join(' · ')}`}>
         <KVRow k="MA 20" v={fmtNum(medias.sma20)} />
         <KVRow k="MA 50" v={fmtNum(medias.sma50)} />
         <KVRow
@@ -175,7 +175,7 @@ function A3Body({
       <SignalBox tone={sigCls}>
         <div
           className={cn(
-            'flex items-center gap-1 font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            'flex items-center gap-1 font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
             sigCls === 'bull' && 'text-emerald',
             sigCls === 'bear' && 'text-rose',
             sigCls === 'neut' && 'text-white/55'
@@ -202,7 +202,7 @@ function A3Body({
 function TechBox({ label, value, valueCls }: { label: string; value: string; valueCls?: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5">
-      <div className="font-mono text-[7px] uppercase tracking-wider text-white/50 mb-0.5">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-white/50 mb-0.5">{label}</div>
       <div className={cn('font-mono text-[12px] font-medium', valueCls)}>{value}</div>
     </div>
   );

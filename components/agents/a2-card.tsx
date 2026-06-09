@@ -19,7 +19,7 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
       badge="A2"
       title="Macro"
       status={status}
-      source="Bloomberg · Fed"
+      source="FRED"
       summary={hasData ? <A2Summary data={data} /> : undefined}
       defaultOpen={data?.opportunity_detected ?? false}
     >
@@ -58,14 +58,14 @@ function A2Body({ data }: { data: A2Output }) {
   const { macro_context, factores_clave, opportunity_detected, opportunity_description, confidence, narrative } = data;
   return (
     <>
-      <DataSection label="Régimen" source="Bloomberg">
+      <DataSection label="Régimen" source="FRED">
         <div className="font-mono text-[10px] leading-snug text-white/90 py-0.5">
           {macro_context.ciclo_economico} · tipos {macro_context.regimen_tipos} · inflación {macro_context.inflacion_trend}
         </div>
       </DataSection>
 
       {factores_clave.length > 0 && (
-        <DataSection label="Factores clave" source="IMF · BCs">
+        <DataSection label="Factores clave" source="FRED">
           {factores_clave.slice(0, 4).map((f, i) => (
             <div key={i} className="flex items-center gap-1.5 border-b border-white/5 py-0.5 last:border-b-0">
               <span className="font-mono text-[10px] flex-1 text-white/65">{f.factor}</span>
@@ -78,7 +78,7 @@ function A2Body({ data }: { data: A2Output }) {
 
       {opportunity_detected && opportunity_description && (
         <SignalBox tone="bull">
-          <div className="font-mono text-[8px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
+          <div className="font-mono text-[11px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ oportunidad macro detectada
           </div>
           <div className="font-mono text-[10px] leading-snug text-white/95">{opportunity_description}</div>
@@ -88,7 +88,7 @@ function A2Body({ data }: { data: A2Output }) {
       <SignalBox tone={confidence >= 61 ? 'bull' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
             confidence >= 61 ? 'text-white' : 'text-white/55'
           )}
         >

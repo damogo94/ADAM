@@ -267,6 +267,9 @@ function AnalysisInner() {
   const confluence: ConfluenceResult | null =
     state.a3 || state.a1 ? computeConfluence(state.a1, state.a2, state.a3, state.debate) : null;
 
+  // Idle = aún no se ha lanzado ningún análisis y no hay error → onboarding.
+  const isIdle = state.ticker === null && !state.error;
+
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-3xl lg:max-w-6xl xl:max-w-7xl">
       <Header status={headerStatus} />
@@ -318,6 +321,9 @@ function AnalysisInner() {
           </div>
         </div>
       )}
+
+      {/* Onboarding — solo en idle (sin análisis, sin error). Rellena el hueco. */}
+      {isIdle && <OnboardingCard />}
 
       {/* Desktop: 2 columnas — agentes (8) | rail de síntesis (4). Móvil: stack. */}
       <div className="lg:grid lg:grid-cols-12 lg:gap-2 lg:items-start">
@@ -385,9 +391,58 @@ function AnalysisInner() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="px-5 pt-6 text-center font-mono text-[8px] text-slate opacity-60 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[10px] text-white/45 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
+  );
+}
+
+/**
+ * Onboarding — se muestra SOLO en idle (sin análisis lanzado, sin error).
+ * Rellena el hueco vacío de la pantalla en desktop y explica el flujo en
+ * 3 pasos sin jerga ni color decorativo (terminal B&W puro).
+ */
+function OnboardingCard() {
+  const steps: { n: string; t: string; d: string }[] = [
+    { n: '1', t: 'Escribe un ticker', d: 'AAPL · BTC · OIL — o elígelo del catálogo ⊞' },
+    {
+      n: '2',
+      t: 'Los agentes lo analizan',
+      d: '5 agentes en paralelo — micro · macro · técnico aislado · síntesis',
+    },
+    {
+      n: '3',
+      t: 'Lees el veredicto',
+      d: 'dirección + confianza consolidadas, con la confluencia entre agentes',
+    },
+  ];
+
+  return (
+    <section className="mx-4 mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-surface-2 px-4 py-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="font-orbitron text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
+          cómo funciona
+        </span>
+        <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        {steps.map((s) => (
+          <div
+            key={s.n}
+            className="flex gap-2.5 rounded-[12px] border border-white/5 bg-white/[0.015] px-3 py-2.5"
+          >
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-white/15 font-orbitron text-[12px] font-bold text-white/80">
+              {s.n}
+            </span>
+            <div className="min-w-0">
+              <div className="font-mono text-[12px] font-medium leading-tight text-white/85">{s.t}</div>
+              <div className="mt-0.5 font-mono text-[11px] leading-snug text-white/55">{s.d}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

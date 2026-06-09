@@ -42,7 +42,7 @@ export function VerdictBar({
         <span className={cn('font-orbitron text-[14px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
 
         <span className="ml-auto flex items-center gap-2">
-          <span className="hidden font-mono text-[9px] uppercase tracking-wider text-white/40 sm:inline">
+          <span className="hidden font-mono text-[11px] uppercase tracking-wider text-white/55 sm:inline">
             confluencia
           </span>
           <span className="font-orbitron text-[14px] font-bold tabular-nums text-white">{pct}%</span>

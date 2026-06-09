@@ -101,7 +101,7 @@ export function AgentCardShell({
         >
           {badgeEl}
           <span className="flex-1 font-mono text-[10px] font-medium text-white">{title}</span>
-          {source && <span className="font-mono text-[7px] text-slate flex-shrink-0">{source}</span>}
+          {source && <span className="font-mono text-[9px] text-white/50 flex-shrink-0">{source}</span>}
           <StatusDot status={status} />
         </header>
         {subline && (
@@ -130,7 +130,7 @@ export function AgentCardShell({
         <StatusDot status={status} />
         <span
           className={cn(
-            'font-mono text-[12px] leading-none text-white/40 transition-transform duration-200 flex-shrink-0',
+            'font-mono text-[12px] leading-none text-white/55 transition-transform duration-200 flex-shrink-0',
             open && 'rotate-90'
           )}
           aria-hidden="true"
@@ -142,9 +142,9 @@ export function AgentCardShell({
       {open && (
         <>
           {(title || source) && (
-            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-[8px] uppercase tracking-wider text-white/40">
-              <span className="font-medium text-white/55">{title}</span>
-              {source && <span className="opacity-70">· {source}</span>}
+            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-[11px] uppercase tracking-wider text-white/55">
+              <span className="font-medium text-white/70">{title}</span>
+              {source && <span className="opacity-80">· {source}</span>}
             </div>
           )}
           {subline && (
@@ -195,8 +195,8 @@ function StatusDot({ status }: { status: AgentStatus }) {
 export function IdleState({ label = 'standby' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-4">
-      <div className="text-xl text-white/10">◎</div>
-      <div className="font-mono text-[9px] tracking-wider text-white/40">{label}</div>
+      <div className="text-xl text-white/15">◎</div>
+      <div className="font-mono text-[11px] tracking-wider text-white/55">{label}</div>
     </div>
   );
 }
