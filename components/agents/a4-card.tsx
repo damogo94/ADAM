@@ -66,14 +66,14 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
         <span className={cn('font-orbitron text-[16px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
         <span
           className={cn(
-            'rounded border px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wider',
+            'rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider',
             confCls
           )}
         >
           {confianza} · {confluence.score_total_pct}%
         </span>
         {aligned && (
-          <span className="rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[9px] text-emerald tracking-wider">
+          <span className="rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[11px] text-emerald tracking-wider">
             A3 alineado
           </span>
         )}
@@ -88,7 +88,7 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
       <SignalBox tone={confluence.score_total_pct >= 67 ? 'bull' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
             confluence.score_total_pct >= 67 ? 'text-emerald' : 'text-white/55'
           )}
         >
@@ -106,7 +106,7 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
 function ResumenBlock({ badge, text }: { badge: string; text: string }) {
   return (
     <div className="rounded-lg border border-white/8 bg-black/30 px-2 py-1.5">
-      <div className="mb-0.5 font-mono text-[8px] font-medium uppercase tracking-wider text-white">
+      <div className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-white">
         {badge}
       </div>
       <div className="font-mono text-[9px] leading-snug text-white/85">{text}</div>

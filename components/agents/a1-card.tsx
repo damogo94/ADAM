@@ -19,7 +19,7 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
       badge="A1"
       title="Activos"
       status={status}
-      source="Investing.com"
+      source="Yahoo · Finnhub"
       summary={hasData ? <A1Summary data={data} /> : undefined}
       defaultOpen={data?.anomaly_detected ?? false}
     >
@@ -27,12 +27,12 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
       {status === 'scanning' && (
         <ScanCarousel
           tasks={[
-            'consultando precio · Investing.com',
+            'consultando precio · Yahoo',
             'volumen 24h · cambio porcentual',
             'fundamentales · ratios P/E',
             'EV/EBITDA · market cap',
             'dividendos · payout ratio',
-            'noticias últimas 48h · Bloomberg',
+            'noticias últimas 48h · Finnhub',
             'cruzando sentiment · headlines',
             'momentum 24h / 7d',
             'comparativa sector · peers',
@@ -60,7 +60,7 @@ function A1Body({ data }: { data: A1Output }) {
   const ccy = price.currency || 'USD';
   return (
     <>
-      <DataSection label={`Precio · ${ccy}`} source="Investing.com">
+      <DataSection label={`Precio · ${ccy}`} source="Yahoo">
         <KV k="Actual" v={`${price.current.toFixed(2)} ${ccy}`} />
         <KV k="24h" v={fmtPct(price.change_pct_24h)} cls={pos ? 'text-emerald' : 'text-rose'} />
         <KV
@@ -68,7 +68,7 @@ function A1Body({ data }: { data: A1Output }) {
           v={price.change_pct_7d === null ? 'n/d' : fmtPct(price.change_pct_7d)}
           cls={
             price.change_pct_7d === null
-              ? 'text-white/40'
+              ? 'text-white/55'
               : price.change_pct_7d >= 0
                 ? 'text-emerald'
                 : 'text-rose'
@@ -79,7 +79,7 @@ function A1Body({ data }: { data: A1Output }) {
       </DataSection>
 
       {news.length > 0 && (
-        <DataSection label="Noticias" source="Bloomberg">
+        <DataSection label="Noticias" source="Finnhub">
           {news.slice(0, 3).map((n, i) => (
             <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
               <div className="font-mono text-[10px] leading-snug text-white">{n.headline}</div>
@@ -102,7 +102,7 @@ function A1Body({ data }: { data: A1Output }) {
 
       {anomaly_detected && (
         <SignalBox tone="bull">
-          <div className="font-mono text-[8px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
+          <div className="font-mono text-[11px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ {data.anomaly_type ?? 'anomalía'} detectada
           </div>
           <div className="font-mono text-[10px] leading-snug text-white/95">{anomaly_description}</div>
@@ -112,7 +112,7 @@ function A1Body({ data }: { data: A1Output }) {
       <SignalBox tone={confidence >= 61 ? 'bull' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-[8px] font-medium mb-0.5 uppercase tracking-wider',
+            'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
             confidence >= 61 ? 'text-white' : 'text-white/55'
           )}
         >
@@ -144,9 +144,9 @@ function A1Summary({ data }: { data: A1Output }) {
 export function DataSection({ label, source, children }: { label: string; source?: string; children: React.ReactNode }) {
   return (
     <div className="mb-2">
-      <div className="mb-1 flex items-center gap-1 font-mono text-[8px] font-medium uppercase tracking-wider text-white/45">
+      <div className="mb-1 flex items-center gap-1 font-mono text-[11px] font-medium uppercase tracking-wider text-white/45">
         {label}
-        {source && <span className="font-light opacity-60">· {source}</span>}
+        {source && <span className="font-light opacity-70">· {source}</span>}
       </div>
       {children}
     </div>
