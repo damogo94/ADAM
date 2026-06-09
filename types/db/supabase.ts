@@ -180,6 +180,62 @@ export type Database = {
           },
         ]
       }
+      signal_trade_outcomes: {
+        Row: {
+          direction: string | null
+          entry: number | null
+          entry_type: string | null
+          evaluated_at: string
+          exit_price: number | null
+          outcome: string
+          r_multiple: number | null
+          resolved_days: number | null
+          return_pct: number | null
+          signal_id: string
+          stop_loss: number | null
+          target: number | null
+          timeframe: string | null
+        }
+        Insert: {
+          direction?: string | null
+          entry?: number | null
+          entry_type?: string | null
+          evaluated_at?: string
+          exit_price?: number | null
+          outcome: string
+          r_multiple?: number | null
+          resolved_days?: number | null
+          return_pct?: number | null
+          signal_id: string
+          stop_loss?: number | null
+          target?: number | null
+          timeframe?: string | null
+        }
+        Update: {
+          direction?: string | null
+          entry?: number | null
+          entry_type?: string | null
+          evaluated_at?: string
+          exit_price?: number | null
+          outcome?: string
+          r_multiple?: number | null
+          resolved_days?: number | null
+          return_pct?: number | null
+          signal_id?: string
+          stop_loss?: number | null
+          target?: number | null
+          timeframe?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_trade_outcomes_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: true
+            referencedRelation: "signals_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signals_history: {
         Row: {
           acknowledged_at: string | null
