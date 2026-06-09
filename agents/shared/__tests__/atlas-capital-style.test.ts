@@ -17,7 +17,8 @@ import { A2_SYSTEM_PROMPT } from '@/agents/a2/prompt';
 import { A3_SYSTEM_PROMPT } from '@/agents/a3/prompt';
 import { A4_SYSTEM_PROMPT } from '@/agents/a4/prompt';
 import { DEBATE_SYSTEM_PROMPT } from '@/agents/debate/prompt';
-import { CMT_SYSTEM_PROMPT } from '@/agents/cmt/prompt';
+// CMT ya NO usa LLM/prompt (es 100% determinista: agents/cmt/build-signal.ts),
+// por eso no participa en estas comprobaciones de estilo de prompt.
 
 describe('ATLAS_CAPITAL_STYLE — constante', () => {
   it('contiene las 5 reglas canónicas del plan §1.2', () => {
@@ -44,7 +45,6 @@ describe('Interpolación en prompts — la constante aparece en cada agente', ()
     { name: 'A3', prompt: A3_SYSTEM_PROMPT },
     { name: 'A4', prompt: A4_SYSTEM_PROMPT },
     { name: 'Debate', prompt: DEBATE_SYSTEM_PROMPT },
-    { name: 'CMT', prompt: CMT_SYSTEM_PROMPT },
   ];
 
   it.each(cases)('$name incluye ATLAS_CAPITAL_STYLE textualmente', ({ prompt }) => {
@@ -68,11 +68,10 @@ describe('Anti-regresión: no hay definiciones inline viejas (5 bullets sueltos)
     A3_SYSTEM_PROMPT,
     A4_SYSTEM_PROMPT,
     DEBATE_SYSTEM_PROMPT,
-    CMT_SYSTEM_PROMPT,
   ].join('\n\n---\n\n');
 
   it('"Directo, sin relleno" aparece exactamente el número de veces de los prompts (1 por prompt vía import)', () => {
     const count = (ALL_PROMPTS.match(/Directo, sin relleno/g) ?? []).length;
-    expect(count).toBe(6);
+    expect(count).toBe(5);
   });
 });

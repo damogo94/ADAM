@@ -38,7 +38,7 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 | A3 | **Price action — isolated** | Haiku (narrate) + code (compute) | OHLCV only. See "A3 isolation" below. |
 | Debate | Synthesis A1×A2 | Sonnet | Fires only if A1 or A2 flag a signal — downgraded from Opus to fit Hobby 60s lambda |
 | A4 | System consolidator | Haiku (narrate) + code (confluence) | Final user-facing JSON; cites A3 verbatim |
-| CMT scanner | Watchlist scan | Haiku | Cron-driven via `/api/cron/watchlist-scan` |
+| CMT scanner | Watchlist scan | **code (determinista, sin LLM)** | Reusa `computeTechnical()` vía `agents/cmt/build-signal.ts` (`buildCMTSignal`). Cron-driven via `/api/cron/watchlist-scan`. Señal siempre `1D`; intraday → MTF (no genera 1H). R/B≥1.5 forzado en código. |
 
 **If you change model assignment, update `MODELS` in `lib/anthropic.ts` AND the corresponding `narrate.ts` / `client.ts`. The costs and latency budget assume this allocation.**
 

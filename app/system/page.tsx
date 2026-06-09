@@ -53,7 +53,7 @@ const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'co
   { id: 'A3', label: 'Trading · price action', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
   { id: 'A4', label: 'Sistema · ensamblado', model: 'haiku-4-5 (narrate) + código (confluence)', mode: 'compute' },
   { id: 'DEBATE', label: 'Debate · A1 × A2', model: 'sonnet-4-6', mode: 'narrate' },
-  { id: 'CMT', label: 'Scanner autónomo', model: 'haiku-4-5', mode: 'narrate' },
+  { id: 'CMT', label: 'Scanner autónomo', model: 'código (computeTechnical · sin LLM)', mode: 'compute' },
 ];
 
 export default function SystemScreen() {

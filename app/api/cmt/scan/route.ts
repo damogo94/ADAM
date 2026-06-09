@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
-import { runCMT } from '@/agents/cmt/client';
+import { buildCMTSignal } from '@/agents/cmt/build-signal';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { checkSameOrigin } from '@/lib/api-helpers';
 import type { CMTOutput } from '@/agents/cmt/schema';
@@ -24,6 +24,10 @@ export const maxDuration = 60;
  *   - circuit breaker: 3 fallos consecutivos → break del loop
  *
  * Persiste solo signals NO `sin_senal` para no ruido en /signals.
+ *
+ * El análisis es 100% DETERMINISTA (buildCMTSignal → computeTechnical, el motor
+ * de A3): cero LLM, R/B≥1.5 forzado en código. La señal siempre es '1D'; el
+ * intraday alimenta el MTF (no genera señales 1H, que el cron no evalúa).
  */
 
 // Antes 13s para no quemar AV (5/min). Yahoo no tiene cuota free oficial
@@ -45,18 +49,20 @@ function sleep(ms: number) {
 async function scanTickerForUser(userId: string, ticker: string): Promise<ScanResult> {
   try {
     // Yahoo /v8/chart sirve daily + intraday sin auth ni cuota práctica.
+    // Daily '1y' (~250 velas) → SMA200 computable. Intraday (60m·5d) → MTF.
     const [daily, intraday] = await Promise.all([
-      fallbackDaily(ticker).catch(() => []),
+      fallbackDaily(ticker, '1y').catch(() => []),
       fallbackIntraday(ticker).catch(() => []),
     ]);
-    if (daily.length === 0 && intraday.length === 0) {
+    // La señal sale del compute DIARIO → daily es obligatorio (intraday solo
+    // alimenta el MTF, opcional).
+    if (daily.length === 0) {
       return { ticker, ok: false, error: 'no_market_data' };
     }
-    const ohlcv = [
-      { timeframe: '1D', candles: daily.slice(-100) },
-      { timeframe: '1H', candles: intraday.slice(-100) },
-    ];
-    const signal = await runCMT({ ticker, ohlcv });
+    const ohlcv = daily.map((d) => ({ t: d.t, o: d.o, h: d.h, l: d.l, c: d.c, v: d.v }));
+    const intradayCandles = intraday.map((d) => ({ t: d.t, o: d.o, h: d.h, l: d.l, c: d.c, v: d.v }));
+    // Determinista y síncrono — sin LLM. El intraday NO genera señal 1H; solo MTF.
+    const signal = buildCMTSignal({ ticker, ohlcv, intraday: intradayCandles });
     return { ticker, ok: true, signal };
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
