@@ -126,7 +126,10 @@ function buildSetupDetected(c: ComputeTechnicalOutput, level: CMTLevel): string 
 }
 
 function buildIndicators(c: ComputeTechnicalOutput): Record<string, string> {
-  const fmt = (n: number | null) => (n == null ? 'n/d' : String(n));
+  // Redondeo cosmético: ≤4 decimales sin ceros sobrantes. Sirve a todas las
+  // clases (commodities/equities a 2, forex/crypto con más resolución) sin
+  // arrastrar la cola binaria cruda del float (ej. 4505.02998046875).
+  const fmt = (n: number | null) => (n == null ? 'n/d' : String(Number(n.toFixed(4))));
   const cross = c.medias.golden_cross
     ? ' · golden cross'
     : c.medias.death_cross
