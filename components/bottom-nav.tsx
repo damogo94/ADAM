@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType } from 'react';
 import { cn } from '@/lib/utils';
-import { AnomalyLoop, SplitA, Observer, Monogram } from './symbols';
+import { AnomalyLoop, SplitA, Observer, Monogram, Origin } from './symbols';
 
 interface NavItem {
   href: string;
@@ -19,6 +19,7 @@ interface NavItem {
  * vs. inactiva se controla con `text-white` / `text-white/40` arriba.
  */
 const ITEMS: NavItem[] = [
+  { href: '/inicio', label: 'INICIO', Icon: Origin },
   { href: '/analysis', label: 'ANÁLISIS', Icon: AnomalyLoop },
   { href: '/watchlist', label: 'WATCHLIST', Icon: SplitA },
   { href: '/signals', label: 'SEÑALES', Icon: Observer },
