@@ -75,7 +75,7 @@ export function RadarRow({
                 ◆
               </span>
             )}
-            <span className="font-orbitron text-[13px] font-bold tracking-wider text-white">
+            <span className="font-mono text-[13px] font-bold tracking-wider text-white">
               {ticker}
             </span>
             <span className="font-mono text-[11px] uppercase tracking-wider text-slate-l">
@@ -254,7 +254,7 @@ export function RadarRow({
           <Glossed term="cmt">
             <span
               className={cn(
-                'font-orbitron text-[12px] font-bold uppercase tracking-wider',
+                'font-sans text-[12px] font-bold uppercase tracking-wider',
                 signal.level === 'urgente'
                   ? 'text-rose'
                   : signal.level === 'atencion'
@@ -310,7 +310,7 @@ function DeltaCell({ delta }: { delta: RadarRow_t['delta'] }) {
     return (
       <Glossed term="flip">
         <span
-          className="inline-flex items-center gap-1 rounded border border-amber/40 bg-amber/[0.08] px-1.5 py-0.5 font-orbitron text-[12px] font-bold uppercase tracking-wider text-amber"
+          className="inline-flex items-center gap-1 rounded border border-amber/40 bg-amber/[0.08] px-1.5 py-0.5 font-sans text-[12px] font-bold uppercase tracking-wider text-amber"
           title={delta.direction_flipped ? 'A4 cambió de dirección' : 'A3 cambió de señal'}
         >
           FLIP
@@ -321,7 +321,7 @@ function DeltaCell({ delta }: { delta: RadarRow_t['delta'] }) {
 
   if (delta.anomaly_new) {
     return (
-      <span className="inline-flex items-center gap-1 rounded border border-rose/40 bg-rose/[0.08] px-1.5 py-0.5 font-orbitron text-[12px] font-bold uppercase tracking-wider text-rose">
+      <span className="inline-flex items-center gap-1 rounded border border-rose/40 bg-rose/[0.08] px-1.5 py-0.5 font-sans text-[12px] font-bold uppercase tracking-wider text-rose">
         NUEVO
       </span>
     );

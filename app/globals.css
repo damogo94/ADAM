@@ -14,12 +14,27 @@
     --surface-3: #27272b;
     --bdr: rgba(255, 255, 255, 0.08);
     --bdr-2: rgba(255, 255, 255, 0.14);
+    /* Acento de marca frío (azul-acero). Uso moderado: foco, links, activo. */
+    --accent: #5b8af0;
   }
 
   html,
   body {
     background: var(--void);
     color-scheme: dark;
+  }
+
+  body {
+    /* Body/UI en Inter; interlineado cómodo (1.5). */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+
+  /* Foco visible global con el acento de marca (accesibilidad + identidad). */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
   }
 
   /* Hide scrollbars (matching demo aesthetic) */

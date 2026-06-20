@@ -21,7 +21,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
 
   return (
     <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
-      <div className="font-orbitron text-[11px] font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
+      <div className="font-sans text-[11px] font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
       <div className="font-mono text-[11px] text-white/66 mb-3">alineamiento entre agentes activos</div>
 
       <div className="flex flex-col gap-2 mb-3">
@@ -71,7 +71,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
       >
         <div
           className={cn(
-            'font-orbitron text-[30px] font-black tracking-[0.04em]',
+            'font-mono text-[30px] font-black tracking-[0.04em]',
             level === null
               ? 'text-white/66'
               : level === 'alta'

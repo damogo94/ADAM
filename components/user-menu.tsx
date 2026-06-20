@@ -42,7 +42,7 @@ export function UserMenu() {
         className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2 py-1 transition hover:border-a1/40"
         aria-label="User menu"
       >
-        <span className="font-orbitron text-[12px] font-bold text-a1">{initials}</span>
+        <span className="font-sans text-[12px] font-bold text-a1">{initials}</span>
         <span className="text-[12px] text-slate-l">▾</span>
       </button>
 

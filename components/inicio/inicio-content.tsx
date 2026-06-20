@@ -89,7 +89,7 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
   return (
     <div className="mb-8">
       <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">{eyebrow}</p>
-      <h2 className="mt-2 font-orbitron text-2xl font-bold tracking-wide text-white md:text-3xl">
+      <h2 className="mt-2 font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
         {title}
       </h2>
     </div>
@@ -174,7 +174,7 @@ export function InicioContent() {
                 <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">
                   Cómo se ve un análisis
                 </p>
-                <h2 className="mt-2 font-orbitron text-2xl font-bold tracking-wide text-white md:text-3xl">
+                <h2 className="mt-2 font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
                   Un ticker, tres lecturas, un veredicto
                 </h2>
               </div>
@@ -251,7 +251,7 @@ export function InicioContent() {
                   <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
                     Veredicto
                   </p>
-                  <p className="mt-1 font-orbitron text-2xl font-bold tracking-wide text-emerald">
+                  <p className="mt-1 font-sans text-2xl font-bold tracking-wide text-emerald">
                     ↑ {v.direccion}
                   </p>
                 </div>
@@ -335,7 +335,7 @@ export function InicioContent() {
         {/* ── 6 · CTA final ─────────────────────────────────────────── */}
         <section className="mx-auto max-w-3xl px-5 pt-24 text-center">
           <Reveal>
-            <h2 className="font-orbitron text-2xl font-bold tracking-wide text-white md:text-3xl">
+            <h2 className="font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
               ¿Listo para verlo con tu ticker?
             </h2>
             <Link

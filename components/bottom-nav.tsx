@@ -60,18 +60,18 @@ export function BottomNav() {
               active ? 'opacity-100' : 'opacity-40 hover:opacity-70'
             )}
           >
-            <it.Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-white/66')} title={it.label} />
+            <it.Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-white/66')} title={it.label} />
             <span
               className={cn(
                 'font-mono text-[12px] tracking-wider',
-                active ? 'text-white' : 'text-white/66'
+                active ? 'text-accent' : 'text-white/66'
               )}
             >
               {it.label}
             </span>
             <span
               className={cn(
-                'w-3 h-px transition-opacity bg-white',
+                'w-3 h-px transition-opacity bg-accent',
                 active ? 'opacity-100' : 'opacity-0'
               )}
             />

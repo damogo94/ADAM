@@ -293,7 +293,7 @@ export default function WatchlistScreen() {
           <button
             type="submit"
             disabled={adding}
-            className="rounded-lg border border-white bg-white px-3 py-2 font-orbitron text-[12px] font-bold tracking-[0.12em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded-lg border border-white bg-white px-3 py-2 font-sans text-[12px] font-bold tracking-[0.12em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {adding ? '…' : '+'}
           </button>
@@ -353,7 +353,7 @@ export default function WatchlistScreen() {
       ) : rows.length === 0 ? (
         <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-10 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">◎</div>
-          <div className="font-orbitron text-[11px] tracking-wider text-white/80 mb-1">
+          <div className="font-sans text-[11px] tracking-wider text-white/80 mb-1">
             sin activos en radar
           </div>
           <div className="font-mono text-[11px] text-white/66 leading-relaxed">
@@ -397,7 +397,7 @@ export default function WatchlistScreen() {
             className="rounded-[15px] border border-rose/30 bg-surface-2 px-4 py-3 max-w-xs w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="font-orbitron text-[12px] font-bold tracking-wider text-rose mb-1">
+            <div className="font-sans text-[12px] font-bold tracking-wider text-rose mb-1">
               ¿Quitar de tus favoritos?
             </div>
             <div className="font-mono text-[12px] text-white/65 leading-snug mb-3">

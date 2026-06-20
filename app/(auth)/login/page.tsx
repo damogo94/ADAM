@@ -65,7 +65,7 @@ function LoginInner() {
       </div>
 
       <div className="rounded-[15px] border border-white/10 bg-surface-2 p-5">
-        <h1 className="font-orbitron text-[14px] font-bold tracking-wider text-white mb-1">ACCESO</h1>
+        <h1 className="font-sans text-[14px] font-bold tracking-wider text-white mb-1">ACCESO</h1>
         <p className="font-mono text-[12px] text-white/66 mb-4">Access is earned.</p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
@@ -101,7 +101,7 @@ function LoginInner() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 rounded-lg border border-white bg-white px-3 py-2.5 font-orbitron text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="mt-1 rounded-lg border border-white bg-white px-3 py-2.5 font-sans text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? 'AUTENTICANDO...' : 'ENTRAR ▶'}
           </button>
@@ -110,7 +110,7 @@ function LoginInner() {
         <div className="mt-4 border-t border-white/5 pt-3 text-center">
           <Link
             href="/signup"
-            className="font-mono text-[12px] text-white/66 hover:text-white transition"
+            className="font-mono text-[12px] text-accent transition hover:opacity-80"
           >
             ¿Primera vez? · crear cuenta →
           </Link>

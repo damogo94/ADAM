@@ -82,7 +82,7 @@ export function AgentCardShell({
   const badgeEl = (
     <span
       className={cn(
-        'font-orbitron text-[12px] font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0',
+        'font-sans text-[12px] font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0',
         ACCENT_BADGE[accent]
       )}
     >

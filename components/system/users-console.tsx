@@ -253,7 +253,7 @@ function UserActivityPanel({
           <div className="space-y-1">
             {by_ticker.map((t) => (
               <div key={t.ticker} className="flex items-center gap-2 rounded-md border border-white/5 bg-black/30 px-2 py-1">
-                <span className="font-orbitron text-[12px] font-bold text-white w-16 flex-shrink-0">{t.ticker}</span>
+                <span className="font-mono text-[12px] font-bold text-white w-16 flex-shrink-0">{t.ticker}</span>
                 <DirectionBadge dir={t.last_direction as Dir} />
                 <ConfidenceChip value={normConf(t.last_confidence)} />
                 <span className="font-mono text-[12px] text-white/66">{t.analyses_count}× · {t.avg_confluence_pct ?? '—'}%</span>
@@ -274,7 +274,7 @@ function UserActivityPanel({
               return (
                 <div key={r.id} className="rounded-md border border-white/5 bg-black/30">
                   <button onClick={() => onToggleRun(r.id)} aria-expanded={open} className="flex w-full items-center gap-2 px-2 py-1 text-left">
-                    <span className="font-orbitron text-[12px] font-bold text-white w-16 flex-shrink-0">{r.ticker}</span>
+                    <span className="font-mono text-[12px] font-bold text-white w-16 flex-shrink-0">{r.ticker}</span>
                     <DirectionBadge dir={r.direction} />
                     <ConfidenceChip value={normConf(r.confidence)} />
                     <span className="font-mono text-[12px] text-white/66">{r.confluence_pct}%</span>
@@ -334,7 +334,7 @@ function Box({ children }: { children: React.ReactNode }) {
 function Metric({ n, l, boxed }: { n: number | string; l: string; boxed?: boolean }) {
   return (
     <div className={cn('text-center', boxed && 'rounded-md border border-white/8 bg-black/30 px-2 py-1.5')}>
-      <div className="font-orbitron text-[13px] font-bold text-white tabular-nums">{n}</div>
+      <div className="font-mono text-[13px] font-bold text-white tabular-nums">{n}</div>
       <div className="font-mono text-[7px] uppercase tracking-wider text-white/66">{l}</div>
     </div>
   );

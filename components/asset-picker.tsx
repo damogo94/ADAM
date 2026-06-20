@@ -277,7 +277,7 @@ function AssetTile({
         onClick={onSelect}
         className="w-full px-2.5 py-2 text-left active:scale-[0.98] transition-transform"
       >
-        <div className="font-orbitron text-[13px] font-bold tracking-[0.08em] text-white truncate pr-5">
+        <div className="font-mono text-[13px] font-bold tracking-[0.08em] text-white truncate pr-5">
           {asset.ticker}
         </div>
         <div className="flex items-center justify-between gap-1 mt-0.5">

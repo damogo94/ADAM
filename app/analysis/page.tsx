@@ -296,7 +296,7 @@ function AnalysisInner() {
         >
           <div
             className={cn(
-              'font-orbitron text-[12px] font-bold tracking-wider mb-0.5',
+              'font-sans text-[12px] font-bold tracking-wider mb-0.5',
               state.error.tone === 'auth' && 'text-white/75',
               state.error.tone === 'transient' && 'text-amber',
               state.error.tone === 'rate_limit' && 'text-amber',
@@ -312,7 +312,7 @@ function AnalysisInner() {
 
       {state.partial && state.failures.length > 0 && (
         <div className="mx-4 mt-3 rounded-lg border border-amber/30 bg-amber/[0.06] px-3 py-2">
-          <div className="font-orbitron text-[12px] font-bold tracking-wider text-amber mb-0.5">
+          <div className="font-sans text-[12px] font-bold tracking-wider text-amber mb-0.5">
             ANÁLISIS PARCIAL
           </div>
           <div className="font-mono text-[12px] leading-snug text-white/70">
@@ -421,7 +421,7 @@ function OnboardingCard() {
   return (
     <section className="mx-4 mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-surface-2 px-4 py-4">
       <div className="mb-3 flex items-center gap-2">
-        <span className="font-orbitron text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
+        <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
           cómo funciona
         </span>
         <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
@@ -433,7 +433,7 @@ function OnboardingCard() {
             key={s.n}
             className="flex gap-2.5 rounded-[12px] border border-white/5 bg-white/[0.015] px-3 py-2.5"
           >
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-white/15 font-orbitron text-[12px] font-bold text-white/80">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-white/15 font-sans text-[12px] font-bold text-white/80">
               {s.n}
             </span>
             <div className="min-w-0">

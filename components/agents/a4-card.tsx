@@ -63,7 +63,7 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
   return (
     <>
       <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-        <span className={cn('font-orbitron text-[16px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
+        <span className={cn('font-sans text-[16px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
         <span
           className={cn(
             'rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider',

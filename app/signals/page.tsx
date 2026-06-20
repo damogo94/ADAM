@@ -243,7 +243,7 @@ export default function SignalsScreen() {
                     aria-pressed={active}
                     title={disabled ? `Máximo ${MAX_SELECTABLE} activos` : undefined}
                     className={cn(
-                      'rounded-lg border px-2 py-1 font-orbitron text-[12px] font-bold tracking-wider transition',
+                      'rounded-lg border px-2 py-1 font-sans text-[12px] font-bold tracking-wider transition',
                       active
                         ? 'border-white bg-white text-black'
                         : disabled
@@ -273,7 +273,7 @@ export default function SignalsScreen() {
         <button
           onClick={onScan}
           disabled={scanning}
-          className="w-full rounded-lg border border-white bg-white px-3 py-2.5 font-orbitron text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full rounded-lg border border-white bg-white px-3 py-2.5 font-sans text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {scanning
             ? 'ESCANEANDO…'
@@ -396,7 +396,7 @@ function TrackRecordPanel({ track }: { track: TrackRecord }) {
       <div className="flex items-center gap-4">
         {/* Hit-rate */}
         <div className="flex flex-col items-center">
-          <div className={cn('font-orbitron text-[28px] font-black leading-none', empty ? 'text-white/66' : 'text-white')}>
+          <div className={cn('font-mono text-[28px] font-black leading-none', empty ? 'text-white/66' : 'text-white')}>
             {empty ? '—' : `${track.hitRate}%`}
           </div>
           <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-white/66">hit-rate</div>
@@ -497,7 +497,7 @@ function CountBox({ label, value, tone }: { label: string; value: number; tone: 
           : 'text-emerald/30 border-emerald/12 bg-emerald/[0.02]';
   return (
     <div className={cn('rounded-[15px] border px-2 py-2.5 text-center transition-all', cls)}>
-      <div className="font-orbitron text-[20px] font-black">{value}</div>
+      <div className="font-mono text-[20px] font-black">{value}</div>
       <div className="font-mono text-[11px] tracking-wider opacity-80 mt-0.5">{label}</div>
     </div>
   );
@@ -582,7 +582,7 @@ function SignalCard({
         <div className="flex items-center gap-2">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-orbitron text-[13px] font-bold tracking-wider text-white">{signal.ticker}</span>
+              <span className="font-mono text-[13px] font-bold tracking-wider text-white">{signal.ticker}</span>
               <span className={cn('font-mono text-[11px] font-medium uppercase tracking-wider', meta.text)}>
                 {meta.label}
               </span>
@@ -596,7 +596,7 @@ function SignalCard({
           </div>
           <div className="flex flex-col items-end gap-0.5">
             {out && <OutcomeBadge outcome={out} />}
-            <div className={cn('font-orbitron text-[14px] font-bold', meta.text)}>
+            <div className={cn('font-sans text-[14px] font-bold', meta.text)}>
               {signal.confidence_pct}%
             </div>
             <div className="font-mono text-[12px] text-white/66">{emitted.toLocaleTimeString().slice(0, 5)}</div>

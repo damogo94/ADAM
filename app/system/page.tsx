@@ -231,7 +231,7 @@ export default function SystemScreen() {
             key={a.id}
             className="rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2 flex items-center gap-3"
           >
-            <span className="font-orbitron text-[12px] font-bold tracking-wider text-white w-14">
+            <span className="font-sans text-[12px] font-bold tracking-wider text-white w-14">
               {a.id}
             </span>
             <div className="flex-1 min-w-0">
@@ -329,7 +329,7 @@ function Stat({
         emphasis ? 'border-rose/35 bg-rose/[0.06] animate-urg-pulse' : 'border-white/8'
       )}
     >
-      <div className={cn('font-orbitron text-[20px] font-black', cls ?? 'text-white')}>{n}</div>
+      <div className={cn('font-mono text-[20px] font-black', cls ?? 'text-white')}>{n}</div>
       <div className="mt-0.5 font-mono text-[12px] text-white/66">{l}</div>
       {sub && <div className="mt-px font-mono text-[7px] text-white/45 italic">{sub}</div>}
     </div>
@@ -377,7 +377,7 @@ function AgentCostBreakdown({
             key={r.agent}
             className="flex items-center gap-3 border-b border-white/5 py-1.5 last:border-b-0"
           >
-            <span className="font-orbitron text-[11px] font-bold tracking-wider text-white w-14 flex-shrink-0">
+            <span className="font-sans text-[11px] font-bold tracking-wider text-white w-14 flex-shrink-0">
               {r.agent}
             </span>
             <div className="flex-1 min-w-0">

@@ -34,7 +34,7 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
   return (
     <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <div className="font-orbitron text-[12px] font-bold uppercase tracking-[0.12em] text-white">
+        <div className="font-sans text-[12px] font-bold uppercase tracking-[0.12em] text-white">
           3 cosas que mirar hoy
         </div>
         {generatedAt && (
@@ -59,7 +59,7 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
             const content = (
               <div className="flex items-center gap-2">
                 <span className={cn('h-1.5 w-1.5 flex-shrink-0 rounded-full', meta.dot)} />
-                <span className={cn('font-orbitron text-[11px] font-bold tracking-wider', meta.text)}>
+                <span className={cn('font-sans text-[11px] font-bold tracking-wider', meta.text)}>
                   {e.ticker}
                 </span>
                 <span className="font-mono text-[12px] text-white/75 truncate">{e.reason}</span>
