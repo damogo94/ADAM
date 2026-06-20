@@ -10,43 +10,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // A.D.A.M. — Monochrome identity (re-skin sesión 4)
-        // Identidad por TIPOGRAFÍA y SÍMBOLO, no por color.
-        // Background absoluto + spectrum de blancos.
-        void: '#000000', // negro absoluto, no #020610
-        surface: {
-          DEFAULT: '#070707',
-          2: '#0a0a0a',
-          3: '#101010',
-        },
-        // ─── Per-agent tokens — TODOS BLANCOS ─────────────────────────
-        // Mantenidos por compatibilidad con código existente que usa
-        // text-a1, bg-a3/15, border-a4/30, etc. La diferenciación entre
-        // agentes pasa al BADGE TIPOGRÁFICO (A1/A2/A3/A4) y al SUBLINE,
-        // no al color. Esto NO es deuda técnica — es decisión consciente
-        // del re-skin: la identidad monocromática es load-bearing del
-        // brand system.
-        a1: '#ffffff',
-        a2: '#ffffff',
-        a3: '#ffffff',
-        a4: '#ffffff',
-        // ─── Color semántico (decisión sesión 5b) ─────────────────────
-        // Después del re-skin B&W puro, reintroducimos un palette mínimo de
-        // 3 colores para SIGNIFICADO crítico:
-        //   emerald → alza · positivo · oportunidad · bullish
-        //   rose    → baja · negativo · error · bearish · urgente
-        //   amber   → atención · warning · pendiente confirmación
+        // ───────────────────────────────────────────────────────────────
+        // A.D.A.M. — "Instrumento de precisión" (re-skin 2026)
         //
-        // Reglas de uso:
-        //   1. NUNCA color decorativo. Solo cuando la falta de color
-        //      degrade comprensión del estado (errores, precios, niveles).
-        //   2. Headers, navegación, badges de identidad → siguen B&W.
-        //   3. Estados neutros → white/X opacity (sin color).
-        //   4. mini-candle-chart mantiene emerald/rose nativos (trading convention).
-        emerald: '#10b981',
-        rose: '#f43f5e',
-        amber: '#f59e0b',
-        // ─── Slate spectrum — secundario / disabled ───────────────────
+        // Dirección NUEVA, reemplaza al re-skin "monochrome identity" previo:
+        // el blanco/negro puro confundía a usuarios reales y no era cómodo.
+        // Ahora: neutro oscuro premium + UN acento de marca frío + semántica
+        // de mercado RESERVADA. La identidad ya no es el contraste B&W, sino
+        // jerarquía, aire y materialidad de superficie.
+        //
+        // ⚠️ FUENTE DE VERDAD ÚNICA del color. app/globals.css :root DEBE
+        // coincidir EXACTAMENTE con estos valores (void/surfaces/borders).
+        // ───────────────────────────────────────────────────────────────
+        // Superficies — neutro premium (ni #000 ni azulado)
+        void: '#0B0B0D', // base / fondo de página
+        surface: {
+          DEFAULT: '#161618', // surface-1 — cards
+          2: '#1E1E21', // surface-2 — elevación
+          3: '#27272B', // surface-3 — elevación alta / hover
+        },
+        // Texto — jerarquía por OPACIDAD sobre `ink`. Suelo de legibilidad:
+        // ningún texto informativo por debajo de ink/62 (ver globals.css).
+        //   primary ink · secondary ink/66 · tertiary ink/45 (metadata)
+        ink: '#F5F5F7',
+        // Acento de marca — azul-acero FRÍO, no-mercado. Uso moderado: foco,
+        // links, estado activo, wordmark. NUNCA como relleno decorativo.
+        accent: '#5B8AF0',
+        // ─── Per-agente — NEUTRO (sin hue por agente) ───────────────────
+        // Se conservan por compatibilidad (text-a1, bg-a3/15, border-a4/55…).
+        // La diferenciación entre agentes es TIPOGRÁFICA (badge A1/A2/A3/A4),
+        // no cromática → todos mapean a `ink`.
+        a1: '#F5F5F7',
+        a2: '#F5F5F7',
+        a3: '#F5F5F7',
+        a4: '#F5F5F7',
+        // ─── Semántica de mercado — SIGNIFICADO INTOCABLE ───────────────
+        // SOLO en datos de mercado, niveles, dirección y estado de señal.
+        // JAMÁS en chrome, navegación, badges de identidad ni decoración.
+        //   emerald → alza · bullish · positivo
+        //   rose    → baja · bearish · negativo
+        //   amber   → atención · pendiente de confirmación
+        emerald: '#34D399',
+        rose: '#FB7185',
+        amber: '#FBBF24',
+        // ─── Slate — secundario / disabled ──────────────────────────────
         slate: {
           DEFAULT: '#525252', // neutral-600 — texto secundario
           l: '#a3a3a3', // neutral-400 — texto terciario / labels
