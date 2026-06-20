@@ -326,7 +326,7 @@ function Stat({
     <div
       className={cn(
         'rounded-[15px] border bg-surface-2 px-3 py-2.5 transition-all',
-        emphasis ? 'border-rose/35 bg-rose/[0.06] animate-urg-pulse' : 'border-white/8'
+        emphasis ? 'border-white/30 bg-white/[0.06]' : 'border-white/8'
       )}
     >
       <div className={cn('font-mono text-[20px] font-black', cls ?? 'text-white')}>{n}</div>

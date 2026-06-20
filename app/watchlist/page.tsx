@@ -310,7 +310,7 @@ export default function WatchlistScreen() {
       />
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg border border-rose/35 bg-rose/[0.07] px-3 py-2 font-mono text-[12px] text-rose animate-urg-pulse">
+        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.06] px-3 py-2 font-mono text-[12px] text-white/80">
           {error}
         </div>
       )}

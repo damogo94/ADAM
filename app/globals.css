@@ -37,6 +37,19 @@
     border-radius: 3px;
   }
 
+  /* prefers-reduced-motion: corta animaciones y transiciones de la capa CSS.
+     (framer-motion y el hero 3D ya lo respetan por su cuenta via useReducedMotion.) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Hide scrollbars (matching demo aesthetic) */
   ::-webkit-scrollbar {
     width: 0;

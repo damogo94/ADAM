@@ -96,7 +96,7 @@ export default function SignupPage() {
           </Field>
 
           {error && (
-            <div className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-urg-pulse">
+            <div className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
               {error}
             </div>
           )}

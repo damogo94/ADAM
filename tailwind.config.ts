@@ -74,15 +74,16 @@ const config: Config = {
           '94%': { opacity: '1' },
           '100%': { top: '100%', opacity: '0' },
         },
+        // Pulso "live" SUTIL — atenuado (antes parpadeo rápido 1↔0.15).
         blink: {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.15' },
+          '50%': { opacity: '0.5' },
         },
-        // urgPulse: ahora rose pulsing para señales URGENTE y errores fatal.
-        // El color amplifica la urgencia que el solo pulso no comunica.
+        // urgPulse: halo SUTIL para señales de mercado URGENTE (dato), no chrome.
+        // Atenuado: menor spread/opacidad y más lento. rose nuevo (#FB7185).
         urgPulse: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(244,63,94,0.45)' },
-          '50%': { boxShadow: '0 0 0 5px rgba(244,63,94,0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(251,113,133,0.3)' },
+          '50%': { boxShadow: '0 0 0 4px rgba(251,113,133,0)' },
         },
         // fadeSlideIn: entrada del item activo del carrusel de tareas
         // (scan-carousel). Fade + leve translateY de abajo a su sitio.
@@ -94,9 +95,10 @@ const config: Config = {
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
-        blink: 'blink 1.1s ease-in-out infinite',
-        'blink-slow': 'blink 1.6s ease-in-out infinite',
-        'urg-pulse': 'urgPulse 2s ease-in-out infinite',
+        // Pulsos atenuados (antes 1.1s/1.6s/2s — demasiado nerviosos).
+        blink: 'blink 2.4s ease-in-out infinite',
+        'blink-slow': 'blink 2.8s ease-in-out infinite',
+        'urg-pulse': 'urgPulse 2.6s ease-in-out infinite',
         'fade-slide-in': 'fadeSlideIn 380ms ease-out',
       },
     },

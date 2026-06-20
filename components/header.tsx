@@ -29,7 +29,7 @@ const STATUS_CLS: Record<Status, string> = {
   offline: 'bg-white/[0.04] text-white/66 border-white/10',
   running: 'bg-white/[0.06] text-white/80 border-white/20 animate-blink-slow',
   ok: 'bg-white/[0.06] text-white/90 border-white/25',
-  error: 'bg-white/[0.10] text-white border-white/40 animate-urg-pulse',
+  error: 'bg-white/[0.10] text-white border-white/40 animate-blink-slow',
 };
 
 export function Header({

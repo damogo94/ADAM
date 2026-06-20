@@ -177,17 +177,19 @@ function StatusDot({ status }: { status: AgentStatus }) {
       </div>
     );
   }
+  // Estado del agente = chrome → diferenciación por INTENSIDAD + MOVIMIENTO,
+  // no por color de mercado (emerald/rose/amber reservados a datos).
   const cls =
     status === 'idle'
       ? 'bg-white/30'
       : status === 'scanning'
         ? 'bg-white animate-blink'
         : status === 'done'
-          ? 'bg-emerald'
+          ? 'bg-white'
           : status === 'anomaly'
-            ? 'bg-amber animate-blink'
+            ? 'bg-white animate-blink'
             : status === 'error'
-              ? 'bg-rose animate-urg-pulse'
+              ? 'bg-white animate-blink-slow'
               : 'bg-white/30';
   return <span className={cn('h-1.5 w-1.5 rounded-full transition-all flex-shrink-0', cls)} />;
 }
