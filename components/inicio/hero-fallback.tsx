@@ -1,40 +1,30 @@
 /**
  * HeroFallback — versión estática y ligera del hero 3D.
  *
- * Doble uso:
- *   1. `loading` del dynamic(import hero-3d) mientras descarga three/R3F.
- *   2. Sustituto cuando `prefers-reduced-motion` está activo (no se monta
- *      el canvas; cero descarga de three).
+ * Doble uso: (1) `loading` del dynamic(import hero-3d) mientras descarga
+ * three/R3F; (2) sustituto con `prefers-reduced-motion` (no se monta el canvas).
  *
- * SVG puro, monocromo, sin dependencias. Evoca el mismo motivo que la escena
- * 3D: anillos concéntricos (apertura) + un poliedro wireframe = la "anomalía".
+ * SVG puro, sin dependencias. Evoca el mismo motivo que la escena 3D: tres
+ * anillos (A1 · A2 · A3) que convergen en un núcleo común — la confluencia.
+ * Tintes que dialogan con la aurora (índigo / violeta / teal).
  */
 export function HeroFallback() {
   return (
     <div className="relative flex h-full w-full items-center justify-center" aria-hidden="true">
-      <svg
-        viewBox="0 0 240 240"
-        className="h-full max-h-[320px] w-auto text-white"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* halo: anillos concéntricos tenues */}
-        <circle cx="120" cy="120" r="104" strokeWidth="0.6" opacity="0.12" />
-        <circle cx="120" cy="120" r="78" strokeWidth="0.6" opacity="0.18" />
-        {/* poliedro wireframe (icosaedro estilizado) */}
-        <g strokeWidth="1" opacity="0.55">
-          <polygon points="120,46 178,86 156,154 84,154 62,86" />
-          <polygon points="120,90 150,112 138,148 102,148 90,112" opacity="0.7" />
-          <line x1="120" y1="46" x2="120" y2="90" />
-          <line x1="178" y1="86" x2="150" y2="112" />
-          <line x1="156" y1="154" x2="138" y2="148" />
-          <line x1="84" y1="154" x2="102" y2="148" />
-          <line x1="62" y1="86" x2="90" y2="112" />
-        </g>
-        {/* núcleo */}
-        <circle cx="120" cy="120" r="3" fill="currentColor" stroke="none" opacity="0.8" />
+      <svg viewBox="0 0 240 240" className="h-full max-h-[320px] w-auto" fill="none">
+        <ellipse cx="120" cy="120" rx="94" ry="34" stroke="#6366f1" strokeWidth="1" opacity="0.55" />
+        <ellipse cx="120" cy="120" rx="34" ry="94" stroke="#a855f7" strokeWidth="1" opacity="0.5" />
+        <ellipse
+          cx="120"
+          cy="120"
+          rx="86"
+          ry="86"
+          stroke="#2dd4bf"
+          strokeWidth="1"
+          opacity="0.4"
+          transform="rotate(45 120 120)"
+        />
+        <circle cx="120" cy="120" r="6" fill="#ffffff" opacity="0.85" />
       </svg>
     </div>
   );
