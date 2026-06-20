@@ -32,10 +32,10 @@ export function A4Card({ status, data, aligned = false }: A4CardProps) {
     >
       {status === 'idle' && <IdleState label="esperando agentes..." />}
       {status === 'scanning' && (
-        <div className="font-mono text-[10px] text-white/55 py-2 text-center">ensamblando...</div>
+        <div className="font-mono text-[12px] text-white/66 py-2 text-center">ensamblando...</div>
       )}
       {status === 'error' && (
-        <div className="font-mono text-[10px] text-rose py-2">error en A4</div>
+        <div className="font-mono text-[12px] text-rose py-2">error en A4</div>
       )}
       {data && status === 'done' && <A4Body data={data} aligned={aligned} />}
     </AgentCardShell>
@@ -58,12 +58,12 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
       ? 'bg-emerald/[0.08] text-emerald border-emerald/35'
       : confianza === 'media'
         ? 'bg-amber/[0.07] text-amber border-amber/30'
-        : 'bg-white/[0.02] text-white/55 border-white/12';
+        : 'bg-white/[0.02] text-white/66 border-white/12';
 
   return (
     <>
       <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-        <span className={cn('font-orbitron text-[16px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
+        <span className={cn('font-sans text-[16px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
         <span
           className={cn(
             'rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider',
@@ -89,13 +89,13 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confluence.score_total_pct >= 67 ? 'text-emerald' : 'text-white/55'
+            confluence.score_total_pct >= 67 ? 'text-emerald' : 'text-white/66'
           )}
         >
           recomendación del sistema
         </div>
-        <div className="font-mono text-[10px] leading-snug text-white/95 mb-1">{accion_sugerida}</div>
-        <div className="font-mono text-[9px] text-white/65 border-t border-white/10 pt-1 mt-1">
+        <div className="font-mono text-[12px] leading-snug text-white/95 mb-1">{accion_sugerida}</div>
+        <div className="font-mono text-[12px] text-white/65 border-t border-white/10 pt-1 mt-1">
           <span className="text-rose font-medium">▲ riesgo clave:</span> {riesgo_clave}
         </div>
       </SignalBox>
@@ -109,7 +109,7 @@ function ResumenBlock({ badge, text }: { badge: string; text: string }) {
       <div className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-white">
         {badge}
       </div>
-      <div className="font-mono text-[9px] leading-snug text-white/85">{text}</div>
+      <div className="font-mono text-[12px] leading-snug text-white/85">{text}</div>
     </div>
   );
 }
@@ -121,7 +121,7 @@ function A4Summary({ data }: { data: A4Output }) {
   return (
     <>
       <DirectionBadge dir={data.direccion} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold tracking-wider text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-bold tracking-wider text-white">
         {dirLabel} · {data.confluence.score_total_pct}%
       </span>
       <ConfidenceChip value={data.confianza} showBar />

@@ -52,7 +52,7 @@ export function DirectionBadge({ dir, className }: { dir: RawDirection; classNam
   const label = d === 'up' ? 'alcista' : d === 'down' ? 'bajista' : 'neutral';
   return (
     <span
-      className={cn('font-mono text-[10px] leading-none flex-shrink-0', cls, className)}
+      className={cn('font-mono text-[12px] leading-none flex-shrink-0', cls, className)}
       role="img"
       aria-label={label}
     >
@@ -90,7 +90,7 @@ export function ConfidenceChip({
   return (
     <span className={cn('inline-flex items-center gap-1 flex-shrink-0', className)} title={`confianza ${label}`}>
       <span className={cn('h-1.5 w-1.5 rounded-full', fill)} />
-      <span className={cn('font-mono text-[9px] font-medium tabular-nums uppercase tracking-wider', tone)}>
+      <span className={cn('font-mono text-[12px] font-medium tabular-nums uppercase tracking-wider', tone)}>
         {label}
       </span>
       {showBar && (

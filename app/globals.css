@@ -4,18 +4,50 @@
 
 @layer base {
   :root {
-    --void: #020610;
-    --surface: #07091a;
-    --surface-2: #0b0e21;
-    --surface-3: #10142a;
-    --bdr: rgba(255, 255, 255, 0.055);
-    --bdr-2: rgba(255, 255, 255, 0.09);
+    /* FUENTE DE VERDAD ÚNICA del color — debe coincidir EXACTAMENTE con
+       tailwind.config.ts (theme.extend.colors). Neutro premium, sin azulado.
+       (Antes divergía: aquí azulado #020610, allí neutro #000 → fondo azul
+       con cards grises. Unificado en el re-skin "instrumento de precisión".) */
+    --void: #0b0b0d;
+    --surface: #161618;
+    --surface-2: #1e1e21;
+    --surface-3: #27272b;
+    --bdr: rgba(255, 255, 255, 0.08);
+    --bdr-2: rgba(255, 255, 255, 0.14);
+    /* Acento de marca frío (azul-acero). Uso moderado: foco, links, activo. */
+    --accent: #5b8af0;
   }
 
   html,
   body {
     background: var(--void);
     color-scheme: dark;
+  }
+
+  body {
+    /* Body/UI en Inter; interlineado cómodo (1.5). */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+
+  /* Foco visible global con el acento de marca (accesibilidad + identidad). */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* prefers-reduced-motion: corta animaciones y transiciones de la capa CSS.
+     (framer-motion y el hero 3D ya lo respetan por su cuenta via useReducedMotion.) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   /* Hide scrollbars (matching demo aesthetic) */

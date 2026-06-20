@@ -64,7 +64,7 @@ export function DictamenSparkline({
             strokeWidth={0.6}
           />
         </svg>
-        <span className="font-mono text-[9px] tracking-wide text-white/55">
+        <span className="font-mono text-[12px] tracking-wide text-white/66">
           sin histórico
         </span>
       </div>

@@ -13,7 +13,7 @@
  *
  * Uso típico:
  *   <AnomalyLoop className="w-4 h-4" />        // hereda currentColor
- *   <Signal className="w-3 h-3 text-white/60" />
+ *   <Signal className="w-3 h-3 text-white/66" />
  *
  * Para añadir un nuevo símbolo: copia el patrón, exporta. NO lo asocies
  * 1:1 con una pantalla — cualquier screen puede elegir cualquier símbolo.
@@ -107,6 +107,21 @@ export function Signal({ className, strokeWidth = 1.5, title }: SymbolProps) {
   );
 }
 
+// ─── 06. Origin ──────────────────────────────────────────────────────
+// Apertura concéntrica desde un punto — el origen del sistema, punto de
+// entrada, génesis. Distinto de AnomalyLoop (círculo roto) y Observer
+// (globo): aquí dos anillos casi cerrados rodean un núcleo sólido.
+export function Origin({ className, strokeWidth = 1.5, title }: SymbolProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} role="img" aria-label={title ?? 'Origin'}>
+      {title && <title>{title}</title>}
+      <circle fill="currentColor" stroke="none" cx="12" cy="12" r="2" />
+      <path {...COMMON_PROPS} strokeWidth={strokeWidth} d="M 12 6.6 A 5.4 5.4 0 1 1 7.4 9.3" />
+      <path {...COMMON_PROPS} strokeWidth={strokeWidth} d="M 12 2.8 A 9.2 9.2 0 1 0 17.2 4.6" />
+    </svg>
+  );
+}
+
 // ─── Catálogo (para iteración fácil — ej. bottom-nav, asset board) ──
 export const SYMBOLS = {
   anomaly: AnomalyLoop,
@@ -114,5 +129,6 @@ export const SYMBOLS = {
   observer: Observer,
   monogram: Monogram,
   signal: Signal,
+  origin: Origin,
 } as const;
 export type SymbolName = keyof typeof SYMBOLS;

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType } from 'react';
 import { cn } from '@/lib/utils';
-import { AnomalyLoop, SplitA, Observer, Monogram } from './symbols';
+import { AnomalyLoop, SplitA, Observer, Monogram, Origin } from './symbols';
 
 interface NavItem {
   href: string;
@@ -16,9 +16,10 @@ interface NavItem {
  * Iconos del bottom-nav = symbol library del brand system.
  * Asignación inicial (extensible — añadir items aquí cuando crezcan
  * las screens). Cada icono hereda currentColor, así la opacidad activa
- * vs. inactiva se controla con `text-white` / `text-white/40` arriba.
+ * vs. inactiva se controla con `text-white` / `text-white/66` arriba.
  */
 const ITEMS: NavItem[] = [
+  { href: '/inicio', label: 'INICIO', Icon: Origin },
   { href: '/analysis', label: 'ANÁLISIS', Icon: AnomalyLoop },
   { href: '/watchlist', label: 'WATCHLIST', Icon: SplitA },
   { href: '/signals', label: 'SEÑALES', Icon: Observer },
@@ -59,18 +60,18 @@ export function BottomNav() {
               active ? 'opacity-100' : 'opacity-40 hover:opacity-70'
             )}
           >
-            <it.Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-white/60')} title={it.label} />
+            <it.Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-white/66')} title={it.label} />
             <span
               className={cn(
-                'font-mono text-[8px] tracking-wider',
-                active ? 'text-white' : 'text-white/50'
+                'font-mono text-[12px] tracking-wider',
+                active ? 'text-accent' : 'text-white/66'
               )}
             >
               {it.label}
             </span>
             <span
               className={cn(
-                'w-3 h-px transition-opacity bg-white',
+                'w-3 h-px transition-opacity bg-accent',
                 active ? 'opacity-100' : 'opacity-0'
               )}
             />

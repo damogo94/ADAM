@@ -153,13 +153,13 @@ export function UsersConsole() {
   }
 
   if (loading) {
-    return <Box><span className="font-mono text-[10px] text-slate">cargando usuarios…</span></Box>;
+    return <Box><span className="font-mono text-[12px] text-slate">cargando usuarios…</span></Box>;
   }
   if (error) {
-    return <Box><span className="font-mono text-[10px] text-rose">{error}</span></Box>;
+    return <Box><span className="font-mono text-[12px] text-rose">{error}</span></Box>;
   }
   if (!users || users.length === 0) {
-    return <Box><span className="font-mono text-[10px] text-slate">sin usuarios</span></Box>;
+    return <Box><span className="font-mono text-[12px] text-slate">sin usuarios</span></Box>;
   }
 
   return (
@@ -182,28 +182,28 @@ export function UsersConsole() {
             >
               <div className="min-w-0 flex-1">
                 <div className="font-mono text-[11px] font-medium text-white truncate">
-                  {u.email ?? <span className="text-white/35">sin email</span>}
+                  {u.email ?? <span className="text-white/45">sin email</span>}
                 </div>
-                <div className="font-mono text-[8px] text-white/45 truncate">
+                <div className="font-mono text-[12px] text-white/66 truncate">
                   {u.display_name ?? '—'} · alta {fmtDate(u.registered_at)}
                 </div>
               </div>
               <Metric n={u.analyses_count} l="análisis" />
               <Metric n={u.signals_count} l="señales" />
               <div className="w-14 text-right">
-                <div className="font-mono text-[9px] text-white/70">{u.last_analysis_at ? timeAgo(u.last_analysis_at) : '—'}</div>
-                <div className="font-mono text-[7px] uppercase tracking-wider text-white/35">último</div>
+                <div className="font-mono text-[12px] text-white/70">{u.last_analysis_at ? timeAgo(u.last_analysis_at) : '—'}</div>
+                <div className="font-mono text-[7px] uppercase tracking-wider text-white/45">último</div>
               </div>
-              <span className={cn('font-mono text-[11px] text-white/40 transition-transform', open && 'rotate-90')} aria-hidden>›</span>
+              <span className={cn('font-mono text-[11px] text-white/66 transition-transform', open && 'rotate-90')} aria-hidden>›</span>
             </button>
 
             {/* L1 · actividad del usuario */}
             {open && (
               <div className="border-t border-white/8 px-3 py-2.5">
                 {activityLoading ? (
-                  <span className="font-mono text-[10px] text-slate">cargando actividad…</span>
+                  <span className="font-mono text-[12px] text-slate">cargando actividad…</span>
                 ) : !activity ? (
-                  <span className="font-mono text-[10px] text-slate">sin actividad</span>
+                  <span className="font-mono text-[12px] text-slate">sin actividad</span>
                 ) : (
                   <UserActivityPanel
                     activity={activity}
@@ -249,15 +249,15 @@ function UserActivityPanel({
       {/* Por ticker */}
       {by_ticker.length > 0 && (
         <div>
-          <div className="mb-1 font-mono text-[8px] uppercase tracking-wider text-white/40">por ticker</div>
+          <div className="mb-1 font-mono text-[12px] uppercase tracking-wider text-white/66">por ticker</div>
           <div className="space-y-1">
             {by_ticker.map((t) => (
               <div key={t.ticker} className="flex items-center gap-2 rounded-md border border-white/5 bg-black/30 px-2 py-1">
-                <span className="font-orbitron text-[10px] font-bold text-white w-16 flex-shrink-0">{t.ticker}</span>
+                <span className="font-mono text-[12px] font-bold text-white w-16 flex-shrink-0">{t.ticker}</span>
                 <DirectionBadge dir={t.last_direction as Dir} />
                 <ConfidenceChip value={normConf(t.last_confidence)} />
-                <span className="font-mono text-[9px] text-white/45">{t.analyses_count}× · {t.avg_confluence_pct ?? '—'}%</span>
-                <span className="ml-auto font-mono text-[8px] text-white/40">{timeAgo(t.last_analysis_at)}</span>
+                <span className="font-mono text-[12px] text-white/66">{t.analyses_count}× · {t.avg_confluence_pct ?? '—'}%</span>
+                <span className="ml-auto font-mono text-[12px] text-white/66">{timeAgo(t.last_analysis_at)}</span>
               </div>
             ))}
           </div>
@@ -267,26 +267,26 @@ function UserActivityPanel({
       {/* Runs recientes → L2 */}
       {recent.length > 0 && (
         <div>
-          <div className="mb-1 font-mono text-[8px] uppercase tracking-wider text-white/40">runs recientes</div>
+          <div className="mb-1 font-mono text-[12px] uppercase tracking-wider text-white/66">runs recientes</div>
           <div className="space-y-1">
             {recent.map((r) => {
               const open = expandedRun === r.id;
               return (
                 <div key={r.id} className="rounded-md border border-white/5 bg-black/30">
                   <button onClick={() => onToggleRun(r.id)} aria-expanded={open} className="flex w-full items-center gap-2 px-2 py-1 text-left">
-                    <span className="font-orbitron text-[10px] font-bold text-white w-16 flex-shrink-0">{r.ticker}</span>
+                    <span className="font-mono text-[12px] font-bold text-white w-16 flex-shrink-0">{r.ticker}</span>
                     <DirectionBadge dir={r.direction} />
                     <ConfidenceChip value={normConf(r.confidence)} />
-                    <span className="font-mono text-[9px] text-white/45">{r.confluence_pct}%</span>
-                    <span className="ml-auto font-mono text-[8px] text-white/40">{fmtDateTime(r.created_at)}</span>
-                    <span className={cn('font-mono text-[10px] text-white/40 transition-transform', open && 'rotate-90')} aria-hidden>›</span>
+                    <span className="font-mono text-[12px] text-white/66">{r.confluence_pct}%</span>
+                    <span className="ml-auto font-mono text-[12px] text-white/66">{fmtDateTime(r.created_at)}</span>
+                    <span className={cn('font-mono text-[12px] text-white/66 transition-transform', open && 'rotate-90')} aria-hidden>›</span>
                   </button>
                   {open && (
                     <div className="border-t border-white/5 px-2 py-2">
                       {detailLoading ? (
-                        <span className="font-mono text-[9px] text-slate">cargando detalle…</span>
+                        <span className="font-mono text-[12px] text-slate">cargando detalle…</span>
                       ) : !detail ? (
-                        <span className="font-mono text-[9px] text-slate">detalle no disponible</span>
+                        <span className="font-mono text-[12px] text-slate">detalle no disponible</span>
                       ) : (
                         <AnalysisDetailView detail={detail} />
                       )}
@@ -309,8 +309,8 @@ function AnalysisDetailView({ detail }: { detail: AnalysisDetail }) {
       <div className="flex flex-wrap items-center gap-2">
         <DirectionBadge dir={detail.direction} />
         <ConfidenceChip value={normConf(detail.confidence)} />
-        <span className="font-mono text-[9px] text-white/55">confluencia {detail.confluence_pct}%</span>
-        <span className="font-mono text-[8px] text-white/35">· {detail.latency_ms ?? '—'}ms · {detail.tokens_used ?? '—'} tok</span>
+        <span className="font-mono text-[12px] text-white/66">confluencia {detail.confluence_pct}%</span>
+        <span className="font-mono text-[12px] text-white/45">· {detail.latency_ms ?? '—'}ms · {detail.tokens_used ?? '—'} tok</span>
       </div>
 
       {/* Outputs por agente (jsonb crudo, scrollable) */}
@@ -334,8 +334,8 @@ function Box({ children }: { children: React.ReactNode }) {
 function Metric({ n, l, boxed }: { n: number | string; l: string; boxed?: boolean }) {
   return (
     <div className={cn('text-center', boxed && 'rounded-md border border-white/8 bg-black/30 px-2 py-1.5')}>
-      <div className="font-orbitron text-[13px] font-bold text-white tabular-nums">{n}</div>
-      <div className="font-mono text-[7px] uppercase tracking-wider text-white/40">{l}</div>
+      <div className="font-mono text-[13px] font-bold text-white tabular-nums">{n}</div>
+      <div className="font-mono text-[7px] uppercase tracking-wider text-white/66">{l}</div>
     </div>
   );
 }
@@ -344,8 +344,8 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
   const empty = value === null || value === undefined;
   return (
     <div className="rounded-md border border-white/8 bg-black/40">
-      <div className="border-b border-white/5 px-2 py-1 font-mono text-[8px] uppercase tracking-wider text-white/50">{label}</div>
-      <pre className="max-h-44 overflow-auto px-2 py-1 font-mono text-[8px] leading-snug text-white/70 whitespace-pre-wrap break-words">
+      <div className="border-b border-white/5 px-2 py-1 font-mono text-[12px] uppercase tracking-wider text-white/66">{label}</div>
+      <pre className="max-h-44 overflow-auto px-2 py-1 font-mono text-[12px] leading-snug text-white/70 whitespace-pre-wrap break-words">
         {empty ? '—' : JSON.stringify(value, null, 2)}
       </pre>
     </div>

@@ -42,14 +42,14 @@ export function UserMenu() {
         className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2 py-1 transition hover:border-a1/40"
         aria-label="User menu"
       >
-        <span className="font-orbitron text-[9px] font-bold text-a1">{initials}</span>
-        <span className="text-[10px] text-slate-l">▾</span>
+        <span className="font-sans text-[12px] font-bold text-a1">{initials}</span>
+        <span className="text-[12px] text-slate-l">▾</span>
       </button>
 
       {open && (
         <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-white/10 bg-surface-2 shadow-xl z-50">
           <div className="border-b border-white/5 px-3 py-2">
-            <div className="font-mono text-[8px] uppercase tracking-wider text-slate mb-0.5">Sesión</div>
+            <div className="font-mono text-[12px] uppercase tracking-wider text-slate mb-0.5">Sesión</div>
             <div className="truncate font-mono text-[11px] text-white">{email}</div>
           </div>
           <button

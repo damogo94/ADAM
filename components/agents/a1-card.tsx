@@ -43,9 +43,9 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-[10px] text-rose">error en A1 — reintenta</div>
+          <div className="font-mono text-[12px] text-rose">error en A1 — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-[9px] text-white/45 leading-snug break-words">{failureMessage}</div>
+            <div className="font-mono text-[12px] text-white/66 leading-snug break-words">{failureMessage}</div>
           )}
         </div>
       )}
@@ -68,7 +68,7 @@ function A1Body({ data }: { data: A1Output }) {
           v={price.change_pct_7d === null ? 'n/d' : fmtPct(price.change_pct_7d)}
           cls={
             price.change_pct_7d === null
-              ? 'text-white/55'
+              ? 'text-white/66'
               : price.change_pct_7d >= 0
                 ? 'text-emerald'
                 : 'text-rose'
@@ -82,14 +82,14 @@ function A1Body({ data }: { data: A1Output }) {
         <DataSection label="Noticias" source="Finnhub">
           {news.slice(0, 3).map((n, i) => (
             <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
-              <div className="font-mono text-[10px] leading-snug text-white">{n.headline}</div>
-              <div className="font-mono text-[8px] text-white/45">
+              <div className="font-mono text-[12px] leading-snug text-white">{n.headline}</div>
+              <div className="font-mono text-[12px] text-white/66">
                 {n.source} ·{' '}
                 <span
                   className={cn(
                     n.sentiment === 'bullish' && 'text-emerald',
                     n.sentiment === 'bearish' && 'text-rose',
-                    n.sentiment === 'neutral' && 'text-white/55'
+                    n.sentiment === 'neutral' && 'text-white/66'
                   )}
                 >
                   {n.sentiment === 'bullish' ? '↑ alcista' : n.sentiment === 'bearish' ? '↓ bajista' : '→ neutral'}
@@ -105,7 +105,7 @@ function A1Body({ data }: { data: A1Output }) {
           <div className="font-mono text-[11px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ {data.anomaly_type ?? 'anomalía'} detectada
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/95">{anomaly_description}</div>
+          <div className="font-mono text-[12px] leading-snug text-white/95">{anomaly_description}</div>
         </SignalBox>
       )}
 
@@ -113,12 +113,12 @@ function A1Body({ data }: { data: A1Output }) {
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confidence >= 61 ? 'text-white' : 'text-white/55'
+            confidence >= 61 ? 'text-white' : 'text-white/66'
           )}
         >
           A1 · confianza {confidence}%
         </div>
-        <div className="font-mono text-[10px] leading-snug text-white/90">{narrative}</div>
+        <div className="font-mono text-[12px] leading-snug text-white/90">{narrative}</div>
       </SignalBox>
     </>
   );
@@ -131,7 +131,7 @@ function A1Summary({ data }: { data: A1Output }) {
   return (
     <>
       <DirectionBadge dir={dir} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-medium capitalize text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-medium capitalize text-white">
         {titular}
       </span>
       <ConfidenceChip value={data.confidence} showBar />
@@ -144,7 +144,7 @@ function A1Summary({ data }: { data: A1Output }) {
 export function DataSection({ label, source, children }: { label: string; source?: string; children: React.ReactNode }) {
   return (
     <div className="mb-2">
-      <div className="mb-1 flex items-center gap-1 font-mono text-[11px] font-medium uppercase tracking-wider text-white/45">
+      <div className="mb-1 flex items-center gap-1 font-mono text-[11px] font-medium uppercase tracking-wider text-white/66">
         {label}
         {source && <span className="font-light opacity-70">· {source}</span>}
       </div>
@@ -156,8 +156,8 @@ export function DataSection({ label, source, children }: { label: string; source
 export function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
   return (
     <div className="flex items-center justify-between border-b border-white/5 py-0.5 last:border-b-0">
-      <span className="font-mono text-[10px] text-white/55">{k}</span>
-      <span className={cn('font-mono text-[10px] font-medium text-white', cls)}>{v}</span>
+      <span className="font-mono text-[12px] text-white/66">{k}</span>
+      <span className={cn('font-mono text-[12px] font-medium text-white', cls)}>{v}</span>
     </div>
   );
 }

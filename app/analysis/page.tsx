@@ -284,38 +284,38 @@ function AnalysisInner() {
       {state.error && (
         <div
           className={cn(
-            'mx-4 mt-3 rounded-lg border px-3 py-2.5',
-            // Color semántico por tono (sesión 5b):
-            // auth=blanco dim, transient/rate_limit=amber, partial=amber, fatal=rose pulse
+            'mx-4 mt-3 rounded-lg border px-3 py-2.5 transition-all',
+            // Errores = chrome → severidad por INTENSIDAD de blanco, no por
+            // color de mercado (emerald/rose/amber reservados a datos).
             state.error.tone === 'auth' && 'border-white/15 bg-white/[0.03]',
-            state.error.tone === 'transient' && 'border-amber/30 bg-amber/[0.06]',
-            state.error.tone === 'rate_limit' && 'border-amber/35 bg-amber/[0.07]',
-            state.error.tone === 'partial' && 'border-amber/30 bg-amber/[0.06]',
-            state.error.tone === 'fatal' && 'border-rose/40 bg-rose/[0.08] animate-urg-pulse'
+            state.error.tone === 'transient' && 'border-white/20 bg-white/[0.05]',
+            state.error.tone === 'rate_limit' && 'border-white/25 bg-white/[0.06]',
+            state.error.tone === 'partial' && 'border-white/20 bg-white/[0.05]',
+            state.error.tone === 'fatal' && 'border-white/40 bg-white/[0.10] animate-blink-slow'
           )}
         >
           <div
             className={cn(
-              'font-orbitron text-[10px] font-bold tracking-wider mb-0.5',
+              'font-sans text-[12px] font-bold tracking-wider mb-0.5',
               state.error.tone === 'auth' && 'text-white/75',
-              state.error.tone === 'transient' && 'text-amber',
-              state.error.tone === 'rate_limit' && 'text-amber',
-              state.error.tone === 'partial' && 'text-amber',
-              state.error.tone === 'fatal' && 'text-rose'
+              state.error.tone === 'transient' && 'text-white/80',
+              state.error.tone === 'rate_limit' && 'text-white/85',
+              state.error.tone === 'partial' && 'text-white/80',
+              state.error.tone === 'fatal' && 'text-white'
             )}
           >
             {state.error.title}
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/85">{state.error.message}</div>
+          <div className="font-mono text-[12px] leading-snug text-white/85">{state.error.message}</div>
         </div>
       )}
 
       {state.partial && state.failures.length > 0 && (
-        <div className="mx-4 mt-3 rounded-lg border border-amber/30 bg-amber/[0.06] px-3 py-2">
-          <div className="font-orbitron text-[10px] font-bold tracking-wider text-amber mb-0.5">
+        <div className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.05] px-3 py-2">
+          <div className="font-sans text-[12px] font-bold tracking-wider text-white/80 mb-0.5">
             ANÁLISIS PARCIAL
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/70">
+          <div className="font-mono text-[12px] leading-snug text-white/70">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
@@ -391,7 +391,7 @@ function AnalysisInner() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="px-5 pt-6 text-center font-mono text-[10px] text-white/45 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -421,7 +421,7 @@ function OnboardingCard() {
   return (
     <section className="mx-4 mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-surface-2 px-4 py-4">
       <div className="mb-3 flex items-center gap-2">
-        <span className="font-orbitron text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
+        <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
           cómo funciona
         </span>
         <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
@@ -433,12 +433,12 @@ function OnboardingCard() {
             key={s.n}
             className="flex gap-2.5 rounded-[12px] border border-white/5 bg-white/[0.015] px-3 py-2.5"
           >
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-white/15 font-orbitron text-[12px] font-bold text-white/80">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-white/15 font-sans text-[12px] font-bold text-white/80">
               {s.n}
             </span>
             <div className="min-w-0">
               <div className="font-mono text-[12px] font-medium leading-tight text-white/85">{s.t}</div>
-              <div className="mt-0.5 font-mono text-[11px] leading-snug text-white/55">{s.d}</div>
+              <div className="mt-0.5 font-mono text-[11px] leading-snug text-white/66">{s.d}</div>
             </div>
           </div>
         ))}

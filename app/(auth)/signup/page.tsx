@@ -48,17 +48,17 @@ export default function SignupPage() {
       <div className="mb-7 flex flex-col items-center">
         <Monogram className="h-12 w-12 text-white mb-3" title="A.D.A.M." />
         <div className="font-orbitron text-2xl font-black tracking-[0.18em] text-white">A.D.A.M.</div>
-        <div className="mt-2 font-mono text-[9px] tracking-[0.18em] text-white/60 uppercase text-center">
+        <div className="mt-2 font-mono text-[12px] tracking-[0.18em] text-white/66 uppercase text-center">
           Detect the unseen
         </div>
-        <div className="mt-1 font-mono text-[8px] tracking-wider text-white/30 uppercase">
+        <div className="mt-1 font-mono text-[12px] tracking-wider text-white/45 uppercase">
           Anomaly Detection &amp; Analysis Modular
         </div>
       </div>
 
       <div className="rounded-[15px] border border-white/10 bg-surface-2 p-5">
-        <h1 className="font-orbitron text-[14px] font-bold tracking-wider text-white mb-1">CREAR CUENTA</h1>
-        <p className="font-mono text-[9px] text-white/40 mb-4">Built to detect what others ignore.</p>
+        <h1 className="font-sans text-[14px] font-bold tracking-wider text-white mb-1">CREAR CUENTA</h1>
+        <p className="font-mono text-[12px] text-white/66 mb-4">Built to detect what others ignore.</p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <Field label="NOMBRE DISPLAY (opcional)">
@@ -96,12 +96,12 @@ export default function SignupPage() {
           </Field>
 
           {error && (
-            <div className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[10px] text-white animate-urg-pulse">
+            <div className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
               {error}
             </div>
           )}
           {info && (
-            <div className="rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2 font-mono text-[10px] text-white/85">
+            <div className="rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2 font-mono text-[12px] text-white/85">
               {info}
             </div>
           )}
@@ -109,14 +109,14 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 rounded-lg border border-white bg-white px-3 py-2.5 font-orbitron text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="mt-1 rounded-lg border border-white bg-white px-3 py-2.5 font-sans text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? 'CREANDO...' : 'CREAR CUENTA ▶'}
           </button>
         </form>
 
         <div className="mt-4 border-t border-white/5 pt-3 text-center">
-          <Link href="/login" className="font-mono text-[10px] text-white/50 hover:text-white transition">
+          <Link href="/login" className="font-mono text-[12px] text-accent transition hover:opacity-80">
             ¿Ya tienes cuenta? · entrar →
           </Link>
         </div>
@@ -128,7 +128,7 @@ export default function SignupPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block font-mono text-[8px] uppercase tracking-wider text-white/45">{label}</span>
+      <span className="mb-1 block font-mono text-[12px] uppercase tracking-wider text-white/66">{label}</span>
       {children}
     </label>
   );

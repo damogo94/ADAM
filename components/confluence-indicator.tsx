@@ -21,27 +21,27 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
 
   return (
     <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
-      <div className="font-orbitron text-[11px] font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
-      <div className="font-mono text-[11px] text-white/55 mb-3">alineamiento entre agentes activos</div>
+      <div className="font-sans text-[11px] font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
+      <div className="font-mono text-[11px] text-white/66 mb-3">alineamiento entre agentes activos</div>
 
       <div className="flex flex-col gap-2 mb-3">
         <ConfluenceRow
           label="A3 solo"
           score={data?.a3_solo.score ?? 0}
           rightLabel={data ? labelFromScore(data.a3_solo.score) : '—'}
-          rightCls={data ? intensityFromScore(data.a3_solo.score) : 'text-white/45'}
+          rightCls={data ? intensityFromScore(data.a3_solo.score) : 'text-white/66'}
         />
         <ConfluenceRow
           label="A1 + A2"
           score={data?.a1_a2.score ?? 0}
           rightLabel={data ? labelFromScore(data.a1_a2.score) : '—'}
-          rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-white/45'}
+          rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-white/66'}
         />
         <ConfluenceRow
           label="Alineados"
           score={data?.alineados.score ?? 0}
           rightLabel={data ? labelFromPct(data.total_pct) : '—'}
-          rightCls={data ? intensityFromPct(data.total_pct) : 'text-white/45'}
+          rightCls={data ? intensityFromPct(data.total_pct) : 'text-white/66'}
         />
       </div>
 
@@ -71,14 +71,14 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
       >
         <div
           className={cn(
-            'font-orbitron text-[30px] font-black tracking-[0.04em]',
+            'font-mono text-[30px] font-black tracking-[0.04em]',
             level === null
-              ? 'text-white/45'
+              ? 'text-white/66'
               : level === 'alta'
                 ? 'text-white'
                 : level === 'media'
                   ? 'text-white/75'
-                  : 'text-white/55'
+                  : 'text-white/66'
           )}
         >
           {total > 0 ? `${total}%` : '—'}
@@ -87,12 +87,12 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           className={cn(
             'mt-0.5 font-mono text-[11px] uppercase tracking-wider',
             level === null
-              ? 'text-white/45'
+              ? 'text-white/66'
               : level === 'alta'
                 ? 'text-white/80'
                 : level === 'media'
                   ? 'text-white/65'
-                  : 'text-white/55'
+                  : 'text-white/66'
           )}
         >
           confianza · {level === null ? '—' : level}
@@ -151,10 +151,10 @@ function labelFromPct(p: number): string {
 function intensityFromScore(s: number): string {
   if (s >= 67) return 'text-white';
   if (s >= 34) return 'text-white/70';
-  return 'text-white/55';
+  return 'text-white/66';
 }
 function intensityFromPct(p: number): string {
   if (p >= 67) return 'text-white';
   if (p >= 34) return 'text-white/70';
-  return 'text-white/55';
+  return 'text-white/66';
 }

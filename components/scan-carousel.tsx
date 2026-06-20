@@ -79,7 +79,7 @@ export function ScanCarousel({ tasks, icon, activeIndex }: ScanCarouselProps) {
   // Estado vacío idle — sin pantalla en blanco
   if (tasks.length === 0) {
     return (
-      <div className="flex h-[60px] items-center gap-1.5 py-2 font-mono text-[9px] tracking-wider text-white/40">
+      <div className="flex h-[60px] items-center gap-1.5 py-2 font-mono text-[12px] tracking-wider text-white/66">
         <span className="h-1 w-1 rounded-full bg-white/40 animate-blink-slow" />
         <span>en espera</span>
       </div>
@@ -125,10 +125,10 @@ export function ScanCarousel({ tasks, icon, activeIndex }: ScanCarouselProps) {
                 lineHeight: `${LINE_HEIGHT}px`,
                 opacity,
               }}
-              className="flex items-center gap-1.5 font-mono text-[10px] text-white/85 transition-opacity duration-500"
+              className="flex items-center gap-1.5 font-mono text-[12px] text-white/85 transition-opacity duration-500"
             >
               {icon && offset === 0 && (
-                <span className="flex-shrink-0 text-white/55">{icon}</span>
+                <span className="flex-shrink-0 text-white/66">{icon}</span>
               )}
               <span className="truncate">{task}</span>
             </div>

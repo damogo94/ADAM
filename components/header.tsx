@@ -26,10 +26,10 @@ const STATUS_LABEL: Record<Status, string> = {
  * - error     = stroke marcado + slight pulse
  */
 const STATUS_CLS: Record<Status, string> = {
-  offline: 'bg-white/[0.04] text-white/55 border-white/10',
+  offline: 'bg-white/[0.04] text-white/66 border-white/10',
   running: 'bg-white/[0.06] text-white/80 border-white/20 animate-blink-slow',
   ok: 'bg-white/[0.06] text-white/90 border-white/25',
-  error: 'bg-white/[0.10] text-white border-white/40 animate-urg-pulse',
+  error: 'bg-white/[0.10] text-white border-white/40 animate-blink-slow',
 };
 
 export function Header({
@@ -43,7 +43,7 @@ export function Header({
         <div className="font-orbitron text-lg font-black tracking-[0.18em] text-white">
           A.D.A.M.
         </div>
-        <div className="font-mono text-[9px] tracking-wider text-white/55 mt-px">{tagline}</div>
+        <div className="font-mono text-[12px] tracking-wider text-white/66 mt-px">{tagline}</div>
       </div>
       <div className="flex items-center gap-2">
         <span
