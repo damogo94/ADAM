@@ -8,5 +8,5 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function FlowArrow({ children = '↓' }: { children?: React.ReactNode }) {
-  return <div className="py-1.5 text-center font-mono text-[11px] text-white/55">{children}</div>;
+  return <div className="py-1.5 text-center font-mono text-[11px] text-white/66">{children}</div>;
 }

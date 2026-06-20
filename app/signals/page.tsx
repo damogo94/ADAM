@@ -227,7 +227,7 @@ export default function SignalsScreen() {
           <SectionLabel>
             seleccionar activos · {selectedTickers.length}/{MAX_SELECTABLE}
             {selectedTickers.length === 0 && (
-              <span className="ml-1 text-white/45 normal-case">— vacío = toda la watchlist</span>
+              <span className="ml-1 text-white/66 normal-case">— vacío = toda la watchlist</span>
             )}
           </SectionLabel>
           <div className="px-4">
@@ -243,7 +243,7 @@ export default function SignalsScreen() {
                     aria-pressed={active}
                     title={disabled ? `Máximo ${MAX_SELECTABLE} activos` : undefined}
                     className={cn(
-                      'rounded-lg border px-2 py-1 font-orbitron text-[10px] font-bold tracking-wider transition',
+                      'rounded-lg border px-2 py-1 font-orbitron text-[12px] font-bold tracking-wider transition',
                       active
                         ? 'border-white bg-white text-black'
                         : disabled
@@ -258,7 +258,7 @@ export default function SignalsScreen() {
               {selectedTickers.length > 0 && (
                 <button
                   onClick={() => setSelectedTickers([])}
-                  className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-white/55 hover:border-white/30 hover:text-white/80 transition"
+                  className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-white/66 hover:border-white/30 hover:text-white/80 transition"
                   aria-label="Limpiar selección"
                 >
                   limpiar
@@ -281,7 +281,7 @@ export default function SignalsScreen() {
               ? `EJECUTAR SCAN · ${selectedTickers.length} ACTIVO${selectedTickers.length > 1 ? 'S' : ''} ▶`
               : 'EJECUTAR SCAN CMT ▶'}
         </button>
-        <p className="mt-1.5 font-mono text-[10px] text-white/55 text-center">
+        <p className="mt-1.5 font-mono text-[12px] text-white/66 text-center">
           {selectedTickers.length > 0
             ? `escaneando solo: ${selectedTickers.join(' · ')}`
             : 'escanea tus tickers · usa Haiku (rápido)'}
@@ -312,7 +312,7 @@ export default function SignalsScreen() {
                       : lv === 'monitorear'
                         ? 'border-emerald/45 bg-emerald/[0.08] text-emerald'
                         : 'border-white/35 bg-white/[0.06] text-white'
-                  : 'border-white/8 bg-surface-2 text-white/55 hover:border-white/20'
+                  : 'border-white/8 bg-surface-2 text-white/66 hover:border-white/20'
               )}
             >
               {lv === 'all' ? 'todas' : lv}
@@ -335,7 +335,7 @@ export default function SignalsScreen() {
                 'rounded-lg border px-2 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
                 filterAck === a
                   ? 'border-white/40 bg-white/[0.06] text-white'
-                  : 'border-white/8 bg-surface-2 text-white/55 hover:border-white/20'
+                  : 'border-white/8 bg-surface-2 text-white/66 hover:border-white/20'
               )}
             >
               {a === 'all' ? 'todas' : a === 'unread' ? 'no leídas' : 'leídas'}
@@ -353,7 +353,7 @@ export default function SignalsScreen() {
         <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">⚡</div>
           <div className="font-mono text-[11px] text-white/70 mb-1">sin señales</div>
-          <div className="font-mono text-[10px] text-white/55">
+          <div className="font-mono text-[12px] text-white/66">
             añade activos a tu watchlist y ejecuta un scan
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function SignalsScreen() {
         </div>
       )}
 
-      <footer className="px-5 pt-6 text-center font-mono text-[10px] text-white/45 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -396,16 +396,16 @@ function TrackRecordPanel({ track }: { track: TrackRecord }) {
       <div className="flex items-center gap-4">
         {/* Hit-rate */}
         <div className="flex flex-col items-center">
-          <div className={cn('font-orbitron text-[28px] font-black leading-none', empty ? 'text-white/45' : 'text-white')}>
+          <div className={cn('font-orbitron text-[28px] font-black leading-none', empty ? 'text-white/66' : 'text-white')}>
             {empty ? '—' : `${track.hitRate}%`}
           </div>
-          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-white/55">hit-rate</div>
+          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-white/66">hit-rate</div>
         </div>
 
         {/* Detalle */}
         <div className="flex-1">
           {empty ? (
-            <div className="font-mono text-[11px] leading-snug text-white/55">
+            <div className="font-mono text-[11px] leading-snug text-white/66">
               sin señales resueltas todavía — el seguimiento corre cada noche y
               clasificará las señales 1D al tocar target o stop.
             </div>
@@ -416,10 +416,10 @@ function TrackRecordPanel({ track }: { track: TrackRecord }) {
                 <OutcomeChip label="loss" n={track.loss} cls="text-rose border-rose/35 bg-rose/[0.07]" />
                 <OutcomeChip label="timeout" n={track.timeout} cls="text-amber border-amber/30 bg-amber/[0.06]" />
                 {track.noFill > 0 && (
-                  <OutcomeChip label="no fill" n={track.noFill} cls="text-white/55 border-white/12 bg-white/[0.02]" />
+                  <OutcomeChip label="no fill" n={track.noFill} cls="text-white/66 border-white/12 bg-white/[0.02]" />
                 )}
               </div>
-              <div className="mt-1.5 font-mono text-[11px] text-white/55">
+              <div className="mt-1.5 font-mono text-[11px] text-white/66">
                 {track.denom} resuelta{track.denom > 1 ? 's' : ''}
                 {track.avgR != null && (
                   <>
@@ -465,12 +465,12 @@ function GroupSection({
         <span
           className={cn(
             'font-mono text-[11px] font-medium uppercase tracking-[0.12em]',
-            muted ? 'text-white/45' : 'text-white/70'
+            muted ? 'text-white/66' : 'text-white/70'
           )}
         >
           {label}
         </span>
-        <span className="font-mono text-[11px] tabular-nums text-white/45">{count}</span>
+        <span className="font-mono text-[11px] tabular-nums text-white/66">{count}</span>
         <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
       </div>
       <div className={cn('px-4 space-y-1.5', muted && 'opacity-75')}>{children}</div>
@@ -514,7 +514,7 @@ function levelMeta(level: SignalLevel) {
   if (level === 'urgente') return { band: 'bg-rose', text: 'text-rose', label: 'URGENTE', pulse: true };
   if (level === 'atencion') return { band: 'bg-amber', text: 'text-amber', label: 'ATENCIÓN', pulse: false };
   if (level === 'monitorear') return { band: 'bg-emerald', text: 'text-emerald', label: 'MONITOREAR', pulse: false };
-  return { band: 'bg-white/20', text: 'text-white/55', label: 'SIN SEÑAL', pulse: false };
+  return { band: 'bg-white/20', text: 'text-white/66', label: 'SIN SEÑAL', pulse: false };
 }
 
 /**
@@ -530,9 +530,9 @@ function outcomeMeta(outcome: string): { label: string; cls: string } {
     case 'timeout':
       return { label: 'TIMEOUT', cls: 'text-amber border-amber/35 bg-amber/[0.07]' };
     case 'no_fill':
-      return { label: 'NO FILL', cls: 'text-white/55 border-white/15 bg-white/[0.03]' };
+      return { label: 'NO FILL', cls: 'text-white/66 border-white/15 bg-white/[0.03]' };
     default:
-      return { label: 'NO EVALUABLE', cls: 'text-white/45 border-white/10 bg-white/[0.02]' };
+      return { label: 'NO EVALUABLE', cls: 'text-white/66 border-white/10 bg-white/[0.02]' };
   }
 }
 
@@ -586,11 +586,11 @@ function SignalCard({
               <span className={cn('font-mono text-[11px] font-medium uppercase tracking-wider', meta.text)}>
                 {meta.label}
               </span>
-              <span className="rounded border border-white/15 bg-white/[0.03] px-1.5 py-px font-mono text-[10px] tracking-wider text-white/70">
+              <span className="rounded border border-white/15 bg-white/[0.03] px-1.5 py-px font-mono text-[12px] tracking-wider text-white/70">
                 {signal.timeframe}
               </span>
             </div>
-            <div className="font-mono text-[10px] text-slate-l mt-0.5 line-clamp-1">
+            <div className="font-mono text-[12px] text-slate-l mt-0.5 line-clamp-1">
               {signal.setup_detected}
             </div>
           </div>
@@ -599,7 +599,7 @@ function SignalCard({
             <div className={cn('font-orbitron text-[14px] font-bold', meta.text)}>
               {signal.confidence_pct}%
             </div>
-            <div className="font-mono text-[9px] text-white/55">{emitted.toLocaleTimeString().slice(0, 5)}</div>
+            <div className="font-mono text-[12px] text-white/66">{emitted.toLocaleTimeString().slice(0, 5)}</div>
           </div>
           <span className="font-mono text-[14px] text-slate-l opacity-50">{expanded ? '▾' : '▸'}</span>
         </div>
@@ -610,7 +610,7 @@ function SignalCard({
           {/* Resultado del trade (si ya se evaluó) */}
           {out && (
             <div className="mb-2">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-white/55 mb-1">Resultado</div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-white/66 mb-1">Resultado</div>
               {isResolved ? (
                 <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
                   <OutcomeBadge outcome={out} />
@@ -627,11 +627,11 @@ function SignalCard({
                     </span>
                   )}
                   {out.resolved_days != null && (
-                    <span className="text-white/55">· {out.resolved_days}d hasta resolución</span>
+                    <span className="text-white/66">· {out.resolved_days}d hasta resolución</span>
                   )}
                 </div>
               ) : (
-                <div className="font-mono text-[11px] text-white/55">
+                <div className="font-mono text-[11px] text-white/66">
                   no evaluable — geometría de niveles degenerada (no se pudo inferir dirección).
                 </div>
               )}
@@ -647,11 +647,11 @@ function SignalCard({
 
           {Object.keys(indicators).length > 0 && (
             <div className="mt-2">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-white/55 mb-1">Indicadores</div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-white/66 mb-1">Indicadores</div>
               <div className="space-y-1">
                 {Object.entries(indicators).map(([k, v]) => (
-                  <div key={k} className="font-mono text-[10px]">
-                    <span className="text-white/55">{k}: </span>
+                  <div key={k} className="font-mono text-[12px]">
+                    <span className="text-white/66">{k}: </span>
                     <span className="text-white">{v}</span>
                   </div>
                 ))}
@@ -661,13 +661,13 @@ function SignalCard({
 
           <div className="mt-2 border-t border-white/5 pt-2">
             <div className="font-mono text-[11px] uppercase tracking-wider text-rose mb-0.5">Invalida si</div>
-            <div className="font-mono text-[10px] text-white/90">{signal.invalidation_factor}</div>
+            <div className="font-mono text-[12px] text-white/90">{signal.invalidation_factor}</div>
           </div>
 
           <div className="mt-3 flex gap-1.5">
             <button
               onClick={copyReport}
-              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[11px] text-white/55 hover:border-white/35 hover:text-white transition"
+              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[11px] text-white/66 hover:border-white/35 hover:text-white transition"
             >
               copiar reporte
             </button>
@@ -706,7 +706,7 @@ function OutcomeBadge({ outcome }: { outcome: SignalTradeOutcome }) {
 function KV({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
     <div className="rounded-lg border border-white/5 bg-black/30 px-2 py-1.5">
-      <div className="font-mono text-[11px] uppercase tracking-wider text-white/55 mb-0.5">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-white/66 mb-0.5">{label}</div>
       <div className={cn('font-mono text-[11px] font-medium text-white', cls)}>{value}</div>
     </div>
   );

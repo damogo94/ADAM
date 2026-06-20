@@ -43,9 +43,9 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-[10px] text-rose">error en A2 — reintenta</div>
+          <div className="font-mono text-[12px] text-rose">error en A2 — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-[9px] text-white/45 leading-snug break-words">{failureMessage}</div>
+            <div className="font-mono text-[12px] text-white/66 leading-snug break-words">{failureMessage}</div>
           )}
         </div>
       )}
@@ -59,7 +59,7 @@ function A2Body({ data }: { data: A2Output }) {
   return (
     <>
       <DataSection label="Régimen" source="FRED">
-        <div className="font-mono text-[10px] leading-snug text-white/90 py-0.5">
+        <div className="font-mono text-[12px] leading-snug text-white/90 py-0.5">
           {macro_context.ciclo_economico} · tipos {macro_context.regimen_tipos} · inflación {macro_context.inflacion_trend}
         </div>
       </DataSection>
@@ -68,7 +68,7 @@ function A2Body({ data }: { data: A2Output }) {
         <DataSection label="Factores clave" source="FRED">
           {factores_clave.slice(0, 4).map((f, i) => (
             <div key={i} className="flex items-center gap-1.5 border-b border-white/5 py-0.5 last:border-b-0">
-              <span className="font-mono text-[10px] flex-1 text-white/65">{f.factor}</span>
+              <span className="font-mono text-[12px] flex-1 text-white/65">{f.factor}</span>
               <SegmentBar value={f.magnitud} />
               <DirectionBadge dir={f.impacto} />
             </div>
@@ -81,7 +81,7 @@ function A2Body({ data }: { data: A2Output }) {
           <div className="font-mono text-[11px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ oportunidad macro detectada
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/95">{opportunity_description}</div>
+          <div className="font-mono text-[12px] leading-snug text-white/95">{opportunity_description}</div>
         </SignalBox>
       )}
 
@@ -89,12 +89,12 @@ function A2Body({ data }: { data: A2Output }) {
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confidence >= 61 ? 'text-white' : 'text-white/55'
+            confidence >= 61 ? 'text-white' : 'text-white/66'
           )}
         >
           A2 · confianza {confidence}%
         </div>
-        <div className="font-mono text-[10px] leading-snug text-white/90">{narrative}</div>
+        <div className="font-mono text-[12px] leading-snug text-white/90">{narrative}</div>
       </SignalBox>
     </>
   );
@@ -109,7 +109,7 @@ function A2Summary({ data }: { data: A2Output }) {
   return (
     <>
       <DirectionBadge dir={dir} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-medium text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-medium text-white">
         {m.ciclo_economico} · {m.regimen_tipos} · {m.inflacion_trend}
       </span>
       <ConfidenceChip value={data.confidence} showBar />

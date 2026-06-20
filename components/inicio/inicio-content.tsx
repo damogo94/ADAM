@@ -88,7 +88,7 @@ function Reveal({
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="mb-8">
-      <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">{eyebrow}</p>
+      <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">{eyebrow}</p>
       <h2 className="mt-2 font-orbitron text-2xl font-bold tracking-wide text-white md:text-3xl">
         {title}
       </h2>
@@ -98,7 +98,7 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex h-7 min-w-[2.75rem] flex-shrink-0 items-center justify-center rounded border border-white/15 bg-white/[0.04] px-1.5 font-mono text-[10px] font-bold tracking-wider text-white/80">
+    <span className="inline-flex h-7 min-w-[2.75rem] flex-shrink-0 items-center justify-center rounded border border-white/15 bg-white/[0.04] px-1.5 font-mono text-[12px] font-bold tracking-wider text-white/80">
       {children}
     </span>
   );
@@ -107,7 +107,7 @@ function Badge({ children }: { children: ReactNode }) {
 /** Etiqueta inequívoca de que el ejemplo NO son datos reales. */
 function IllustrativeTag() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber/[0.08] px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider text-amber">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber/[0.08] px-2.5 py-1 font-mono text-[12px] font-semibold uppercase tracking-wider text-amber">
       <span className="h-1.5 w-1.5 rounded-full bg-amber" aria-hidden="true" />
       Ejemplo ilustrativo
     </span>
@@ -126,7 +126,7 @@ export function InicioContent() {
         <section className="mx-auto max-w-5xl px-5 pt-14 md:pt-20">
           <div className="grid items-center gap-10 md:grid-cols-2">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/55">
+              <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">
                 Anomaly Detection &amp; Analysis Module
               </p>
               <h1 className="mt-3 font-orbitron text-5xl font-black tracking-[0.14em] text-white md:text-6xl">
@@ -136,7 +136,7 @@ export function InicioContent() {
                 Escribe un ticker. ADAM cruza fundamentales, macro y técnico, y te devuelve una
                 lectura con su nivel de confianza — y el porqué.
               </p>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/50">
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/66">
                 No es un broker. No ejecuta órdenes ni mueve tu capital.
               </p>
               <Link
@@ -171,7 +171,7 @@ export function InicioContent() {
           <Reveal>
             <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+                <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">
                   Cómo se ve un análisis
                 </p>
                 <h2 className="mt-2 font-orbitron text-2xl font-bold tracking-wide text-white md:text-3xl">
@@ -185,13 +185,13 @@ export function InicioContent() {
           {/* Input → ticker */}
           <Reveal delay={0.05}>
             <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">
+              <span className="font-mono text-[12px] uppercase tracking-wider text-white/66">
                 Escribes
               </span>
               <span className="rounded-md border border-white/20 bg-white/[0.06] px-3 py-1 font-mono text-base font-bold tracking-widest text-white">
                 {EXAMPLE.ticker}
               </span>
-              <span className="ml-auto font-mono text-xs text-white/45">
+              <span className="ml-auto font-mono text-xs text-white/66">
                 {EXAMPLE.price.current} {EXAMPLE.price.currency} ·{' '}
                 <span className="text-emerald">+{EXAMPLE.price.change_pct_24h}%</span>
               </span>
@@ -224,19 +224,19 @@ export function InicioContent() {
                   <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
                     {lens.points.map((p) => (
                       <div key={p.k} className="flex items-baseline gap-1.5">
-                        <dt className="font-mono text-[9px] uppercase tracking-wider text-white/40">
+                        <dt className="font-mono text-[12px] uppercase tracking-wider text-white/66">
                           {p.k}
                         </dt>
                         <dd className="font-mono text-xs text-white/85">{p.v}</dd>
                       </div>
                     ))}
                   </dl>
-                  <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">{lens.line}</p>
+                  <p className="mt-3 flex-1 text-sm leading-relaxed text-white/66">{lens.line}</p>
                   <div className="mt-3 flex items-center gap-2">
                     <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
                       <div className="h-full rounded-full bg-white/70" style={{ width: `${lens.confidence}%` }} />
                     </div>
-                    <span className="font-mono text-[10px] text-white/50">conf. {lens.confidence}</span>
+                    <span className="font-mono text-[12px] text-white/66">conf. {lens.confidence}</span>
                   </div>
                 </div>
               </Reveal>
@@ -248,7 +248,7 @@ export function InicioContent() {
             <div className="mt-3 rounded-2xl border border-emerald/40 bg-emerald/[0.05] p-5 md:p-6">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/45">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
                     Veredicto
                   </p>
                   <p className="mt-1 font-orbitron text-2xl font-bold tracking-wide text-emerald">
@@ -256,7 +256,7 @@ export function InicioContent() {
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/45">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
                     Confluencia
                   </p>
                   <p className="mt-1 font-mono text-2xl font-bold text-white">
@@ -268,13 +268,13 @@ export function InicioContent() {
               </div>
               <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-white/45">
+                  <p className="font-mono text-[12px] uppercase tracking-wider text-white/66">
                     Acción sugerida
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-white/75">{v.accion}</p>
                 </div>
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-wider text-white/45">
+                  <p className="font-mono text-[12px] uppercase tracking-wider text-white/66">
                     Riesgo clave
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-white/75">{v.riesgo}</p>
@@ -284,7 +284,7 @@ export function InicioContent() {
           </Reveal>
 
           <Reveal delay={0.3}>
-            <p className="mt-3 font-mono text-[10px] leading-relaxed text-white/35">
+            <p className="mt-3 font-mono text-[12px] leading-relaxed text-white/66">
               Ejemplo ilustrativo · no es una recomendación · cifras de muestra para enseñar el
               formato.
             </p>
@@ -301,7 +301,7 @@ export function InicioContent() {
               <Reveal key={b.title} delay={i * 0.05}>
                 <div className="h-full rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <h3 className="font-medium text-white">{b.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-white/60">{b.body}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-white/66">{b.body}</p>
                 </div>
               </Reveal>
             ))}
@@ -325,7 +325,7 @@ export function InicioContent() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-7 border-t border-white/10 pt-5 font-mono text-xs leading-relaxed text-white/55">
+              <p className="mt-7 border-t border-white/10 pt-5 font-mono text-xs leading-relaxed text-white/66">
                 {DISCLAIMER}
               </p>
             </div>

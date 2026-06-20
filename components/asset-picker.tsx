@@ -95,13 +95,13 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
 
         <div className="shrink-0 px-4 pt-2 pb-3 border-b border-white/8">
           <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-[8px] font-medium uppercase tracking-[0.12em] text-white/65">
+            <p className="font-mono text-[12px] font-medium uppercase tracking-[0.12em] text-white/65">
               ▸ catálogo · selecciona un activo
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="font-mono text-[14px] text-white/40 hover:text-white transition"
+              className="font-mono text-[14px] text-white/66 hover:text-white transition"
               aria-label="Cerrar"
             >
               ×
@@ -115,13 +115,13 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
             className={cn(
               'w-full rounded-[11px] border border-white/10 bg-black/40 px-3 py-2',
               'font-mono text-[12px] text-white caret-white outline-none transition-[border-color]',
-              'placeholder:text-white/30',
+              'placeholder:text-white/45',
               'focus:border-white/40'
             )}
             autoFocus
           />
           {favorites.error && (
-            <div className="mt-2 font-mono text-[9px] text-rose">
+            <div className="mt-2 font-mono text-[12px] text-rose">
               ⚠ no se pudo sincronizar favoritos — reintenta
             </div>
           )}
@@ -148,7 +148,7 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
           {isEmptyFavTab ? (
             <FavEmptyState />
           ) : filtered.length === 0 ? (
-            <div className="py-8 text-center font-mono text-[10px] text-slate">
+            <div className="py-8 text-center font-mono text-[12px] text-slate">
               sin resultados
             </div>
           ) : (
@@ -235,7 +235,7 @@ function TabChip({
       type="button"
       onClick={() => onSelect(id)}
       className={cn(
-        'flex-shrink-0 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] transition-all',
+        'flex-shrink-0 rounded-full border px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.08em] transition-all',
         active
           ? 'border-white bg-white text-black'
           : 'border-white/15 bg-white/[0.03] text-white/65 hover:border-white/35 hover:text-white'
@@ -281,13 +281,13 @@ function AssetTile({
           {asset.ticker}
         </div>
         <div className="flex items-center justify-between gap-1 mt-0.5">
-          <div className="font-mono text-[9px] text-white/55 truncate">
+          <div className="font-mono text-[12px] text-white/66 truncate">
             {asset.label}
           </div>
           {changePct !== undefined && (
             <span
               className={cn(
-                'font-mono text-[9px] tabular-nums flex-shrink-0',
+                'font-mono text-[12px] tabular-nums flex-shrink-0',
                 pos ? 'text-emerald' : 'text-rose'
               )}
             >
@@ -324,7 +324,7 @@ function FavEmptyState() {
   return (
     <div className="px-3 py-8 text-center">
       <div className="text-2xl text-white/15 mb-2">★</div>
-      <div className="font-mono text-[10px] text-slate leading-relaxed">
+      <div className="font-mono text-[12px] text-slate leading-relaxed">
         sin favoritos · pulsa la estrella en cualquier activo
         <br />
         para guardarlo aquí y en tu watchlist

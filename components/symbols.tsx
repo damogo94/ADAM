@@ -13,7 +13,7 @@
  *
  * Uso típico:
  *   <AnomalyLoop className="w-4 h-4" />        // hereda currentColor
- *   <Signal className="w-3 h-3 text-white/60" />
+ *   <Signal className="w-3 h-3 text-white/66" />
  *
  * Para añadir un nuevo símbolo: copia el patrón, exporta. NO lo asocies
  * 1:1 con una pantalla — cualquier screen puede elegir cualquier símbolo.

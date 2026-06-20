@@ -296,7 +296,7 @@ function AnalysisInner() {
         >
           <div
             className={cn(
-              'font-orbitron text-[10px] font-bold tracking-wider mb-0.5',
+              'font-orbitron text-[12px] font-bold tracking-wider mb-0.5',
               state.error.tone === 'auth' && 'text-white/75',
               state.error.tone === 'transient' && 'text-amber',
               state.error.tone === 'rate_limit' && 'text-amber',
@@ -306,16 +306,16 @@ function AnalysisInner() {
           >
             {state.error.title}
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/85">{state.error.message}</div>
+          <div className="font-mono text-[12px] leading-snug text-white/85">{state.error.message}</div>
         </div>
       )}
 
       {state.partial && state.failures.length > 0 && (
         <div className="mx-4 mt-3 rounded-lg border border-amber/30 bg-amber/[0.06] px-3 py-2">
-          <div className="font-orbitron text-[10px] font-bold tracking-wider text-amber mb-0.5">
+          <div className="font-orbitron text-[12px] font-bold tracking-wider text-amber mb-0.5">
             ANÁLISIS PARCIAL
           </div>
-          <div className="font-mono text-[10px] leading-snug text-white/70">
+          <div className="font-mono text-[12px] leading-snug text-white/70">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
@@ -391,7 +391,7 @@ function AnalysisInner() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="px-5 pt-6 text-center font-mono text-[10px] text-white/45 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -438,7 +438,7 @@ function OnboardingCard() {
             </span>
             <div className="min-w-0">
               <div className="font-mono text-[12px] font-medium leading-tight text-white/85">{s.t}</div>
-              <div className="mt-0.5 font-mono text-[11px] leading-snug text-white/55">{s.d}</div>
+              <div className="mt-0.5 font-mono text-[11px] leading-snug text-white/66">{s.d}</div>
             </div>
           </div>
         ))}

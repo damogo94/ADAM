@@ -35,26 +35,26 @@ export function VerdictBar({
   return (
     <div className="sticky top-0 z-20 mx-4 mt-3 rounded-[13px] border border-white/10 bg-surface-2/90 px-3 py-2 backdrop-blur-sm">
       <div className="flex items-center gap-2">
-        <span className="flex-shrink-0 rounded bg-white/10 px-1.5 py-0.5 font-orbitron text-[8px] font-bold tracking-wider text-white/70">
+        <span className="flex-shrink-0 rounded bg-white/10 px-1.5 py-0.5 font-orbitron text-[12px] font-bold tracking-wider text-white/70">
           VEREDICTO
         </span>
         <DirectionBadge dir={a4.direccion} />
         <span className={cn('font-orbitron text-[14px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
 
         <span className="ml-auto flex items-center gap-2">
-          <span className="hidden font-mono text-[11px] uppercase tracking-wider text-white/55 sm:inline">
+          <span className="hidden font-mono text-[11px] uppercase tracking-wider text-white/66 sm:inline">
             confluencia
           </span>
           <span className="font-orbitron text-[14px] font-bold tabular-nums text-white">{pct}%</span>
           <ConfidenceChip value={a4.confianza} showBar />
           {aligned && (
-            <span className="flex-shrink-0 rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[8px] tracking-wider text-emerald">
+            <span className="flex-shrink-0 rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[12px] tracking-wider text-emerald">
               A3 ✓
             </span>
           )}
         </span>
       </div>
-      <div className="mt-1 truncate font-mono text-[10px] leading-snug text-white/80">{a4.accion_sugerida}</div>
+      <div className="mt-1 truncate font-mono text-[12px] leading-snug text-white/80">{a4.accion_sugerida}</div>
     </div>
   );
 }

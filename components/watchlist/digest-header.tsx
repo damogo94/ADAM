@@ -39,7 +39,7 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
         </div>
         {generatedAt && (
           <div
-            className="font-mono text-[10px] text-white/55"
+            className="font-mono text-[12px] text-white/66"
             title={new Date(generatedAt).toLocaleString()}
           >
             {timeAgo(generatedAt)}
@@ -48,7 +48,7 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
       </div>
 
       {isEmpty ? (
-        <div className="flex items-center gap-1.5 py-1 font-mono text-[11px] text-white/55">
+        <div className="flex items-center gap-1.5 py-1 font-mono text-[11px] text-white/66">
           <span className="h-1 w-1 rounded-full bg-white/45 animate-blink-slow" />
           <span>radar limpio · sin alertas ni cambios relevantes</span>
         </div>
@@ -62,8 +62,8 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
                 <span className={cn('font-orbitron text-[11px] font-bold tracking-wider', meta.text)}>
                   {e.ticker}
                 </span>
-                <span className="font-mono text-[10px] text-white/75 truncate">{e.reason}</span>
-                <span className="ml-auto font-mono text-[11px] uppercase tracking-wider text-white/55">
+                <span className="font-mono text-[12px] text-white/75 truncate">{e.reason}</span>
+                <span className="ml-auto font-mono text-[11px] uppercase tracking-wider text-white/66">
                   {e.source === 'signal' ? 'CMT' : 'Δ'}
                 </span>
               </div>

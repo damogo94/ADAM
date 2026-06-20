@@ -64,7 +64,7 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
               'flex-1 rounded-[11px] border border-white/10 bg-black/40 px-3.5 py-2.5',
               'font-orbitron text-[22px] font-bold uppercase tracking-[0.12em] text-white',
               'caret-white outline-none transition-[border-color,box-shadow]',
-              'placeholder:font-mono placeholder:text-[14px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-white/45',
+              'placeholder:font-mono placeholder:text-[14px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-white/66',
               'focus:border-white/40 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.06)]',
               'disabled:opacity-30'
             )}
