@@ -116,7 +116,7 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
               'w-full rounded-[11px] border border-white/10 bg-black/40 px-3 py-2',
               'font-mono text-[12px] text-white caret-white outline-none transition-[border-color]',
               'placeholder:text-white/45',
-              'focus:border-white/40'
+              'focus:border-accent'
             )}
             autoFocus
           />

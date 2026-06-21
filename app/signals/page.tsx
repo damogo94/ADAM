@@ -243,7 +243,7 @@ export default function SignalsScreen() {
                     aria-pressed={active}
                     title={disabled ? `Máximo ${MAX_SELECTABLE} activos` : undefined}
                     className={cn(
-                      'rounded-lg border px-2 py-1 font-sans text-[12px] font-bold tracking-wider transition',
+                      'rounded-lg border px-2.5 py-2 font-sans text-[12px] font-bold tracking-wider transition',
                       active
                         ? 'border-white bg-white text-black'
                         : disabled
@@ -258,7 +258,7 @@ export default function SignalsScreen() {
               {selectedTickers.length > 0 && (
                 <button
                   onClick={() => setSelectedTickers([])}
-                  className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-white/66 hover:border-white/30 hover:text-white/80 transition"
+                  className="rounded-lg border border-white/10 px-2.5 py-2 font-mono text-[11px] uppercase tracking-wider text-white/66 hover:border-white/30 hover:text-white/80 transition"
                   aria-label="Limpiar selección"
                 >
                   limpiar
@@ -302,7 +302,7 @@ export default function SignalsScreen() {
               key={lv}
               onClick={() => setFilterLevel(lv)}
               className={cn(
-                'flex-1 rounded-lg border px-2 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
+                'flex-1 rounded-lg border px-2 py-3 font-mono text-[11px] uppercase tracking-wider transition',
                 // Filter activo: color del nivel correspondiente. Inactivo: B&W dim.
                 filterLevel === lv
                   ? lv === 'urgente'
@@ -325,14 +325,14 @@ export default function SignalsScreen() {
             value={filterTicker}
             onChange={(e) => setFilterTicker(e.target.value)}
             placeholder="ticker..."
-            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 font-mono text-[11px] uppercase text-white placeholder-white/45 focus:border-white/40 focus:outline-none"
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-3 font-mono text-[11px] uppercase text-white placeholder-white/45 focus:border-accent focus:outline-none"
           />
           {(['all', 'unread', 'acknowledged'] as const).map((a) => (
             <button
               key={a}
               onClick={() => setFilterAck(a)}
               className={cn(
-                'rounded-lg border px-2 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
+                'rounded-lg border px-2 py-3 font-mono text-[11px] uppercase tracking-wider transition',
                 filterAck === a
                   ? 'border-white/40 bg-white/[0.06] text-white'
                   : 'border-white/8 bg-surface-2 text-white/66 hover:border-white/20'
@@ -667,14 +667,14 @@ function SignalCard({
           <div className="mt-3 flex gap-1.5">
             <button
               onClick={copyReport}
-              className="flex-1 rounded-lg border border-white/10 px-2 py-1.5 font-mono text-[11px] text-white/66 hover:border-white/35 hover:text-white transition"
+              className="flex-1 rounded-lg border border-white/10 px-2 py-3 font-mono text-[11px] text-white/66 hover:border-white/35 hover:text-white transition"
             >
               copiar reporte
             </button>
             {!acknowledged && (
               <button
                 onClick={onAck}
-                className="flex-1 rounded-lg border border-emerald/25 bg-emerald/[0.04] px-2 py-1.5 font-mono text-[11px] text-emerald hover:bg-emerald/[0.08] hover:border-emerald/40 transition"
+                className="flex-1 rounded-lg border border-emerald/25 bg-emerald/[0.04] px-2 py-3 font-mono text-[11px] text-emerald hover:bg-emerald/[0.08] hover:border-emerald/40 transition"
               >
                 marcar leído
               </button>
@@ -705,7 +705,7 @@ function OutcomeBadge({ outcome }: { outcome: SignalTradeOutcome }) {
 
 function KV({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-black/30 px-2 py-1.5">
+    <div className="rounded-lg border border-white/5 bg-black/30 px-2 py-3">
       <div className="font-mono text-[11px] uppercase tracking-wider text-white/66 mb-0.5">{label}</div>
       <div className={cn('font-mono text-[11px] font-medium text-white', cls)}>{value}</div>
     </div>

@@ -64,12 +64,12 @@ function Node({
       <div className="flex items-center gap-1">
         <span className={`font-mono text-[10px] font-medium leading-tight ${titleCls}`}>{title}</span>
         {tag && (
-          <span className="ml-auto rounded bg-white/15 px-1 py-px font-mono text-[7px] font-bold uppercase tracking-wider text-white/80">
+          <span className="ml-auto rounded bg-white/15 px-1 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-white/80">
             {tag}
           </span>
         )}
       </div>
-      {sub && <div className="mt-0.5 font-mono text-[8px] leading-snug text-white/45">{sub}</div>}
+      {sub && <div className="mt-0.5 font-mono text-[10px] leading-snug text-white/45">{sub}</div>}
     </div>
   );
 }
@@ -78,7 +78,7 @@ function Node({
 function Zone({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-stretch sm:gap-2">
-      <div className="flex-shrink-0 pt-1 font-orbitron text-[7px] font-bold uppercase tracking-[0.15em] text-white/30 sm:w-16">
+      <div className="flex-shrink-0 pt-1 font-orbitron text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 sm:w-16">
         {label}
       </div>
       <div className="flex-1">{children}</div>
@@ -98,7 +98,7 @@ function FlowDown() {
 export function ArchitectureDiagram() {
   return (
     <div className="rounded-[15px] border border-white/5 bg-black/40 p-3">
-      <div className="mb-3 font-mono text-[8px] uppercase tracking-wider text-white/40">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-white/40">
         pipeline · compute (determinístico) + narrate (LLM)
       </div>
 
@@ -183,7 +183,7 @@ export function ArchitectureDiagram() {
 
       {/* Subsistema AUTÓNOMO — desconectado del flujo usuario→salida */}
       <div className="mt-3 border-t border-dashed border-white/10 pt-2.5">
-        <div className="mb-1.5 font-mono text-[8px] uppercase tracking-wider text-white/35">
+        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-white/35">
           subsistema autónomo · independiente del análisis
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -199,7 +199,7 @@ export function ArchitectureDiagram() {
           (POST /api/agents/estructura), fuera del pipeline runADAM. Aislado con
           su propio guard, igual que A3. */}
       <div className="mt-3 border-t border-dashed border-white/10 pt-2.5">
-        <div className="mb-1.5 font-mono text-[8px] uppercase tracking-wider text-white/35">
+        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-white/35">
           agente de estructura · módulo independiente · price action multi-temporal
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -214,7 +214,7 @@ export function ArchitectureDiagram() {
       </div>
 
       {/* Leyenda por tipo de nodo */}
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/5 pt-2 font-mono text-[7px] text-white/55">
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/5 pt-2 font-mono text-[10px] text-white/55">
         <LegendDot className="border-emerald/55 bg-emerald/[0.06]" label="compute · sin LLM" />
         <LegendDot className="border-white/90 border-dashed bg-white/[0.08]" label="A3 aislado · solo OHLCV" />
         <LegendDot className="border-white/25 border-dashed bg-white/[0.02]" label="condicional (debate)" />

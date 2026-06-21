@@ -282,7 +282,7 @@ function AnalysisInner() {
         <span>¿futuros con estructura multi-temporal?</span>
         <Link
           href="/estructura"
-          className="text-white/80 underline-offset-2 transition-colors hover:text-white hover:underline"
+          className="text-accent underline-offset-2 transition-colors hover:opacity-80 hover:underline"
         >
           Agente de Estructura →
         </Link>

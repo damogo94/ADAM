@@ -97,7 +97,7 @@ function EstructuraInner() {
       <div className="mx-4 mt-2 flex items-center justify-end gap-1.5 font-mono text-[11px] text-white/55">
         <Link
           href="/analysis"
-          className="text-white/80 underline-offset-2 transition-colors hover:text-white hover:underline"
+          className="text-accent underline-offset-2 transition-colors hover:opacity-80 hover:underline"
         >
           ← Análisis multiagente
         </Link>

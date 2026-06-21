@@ -67,7 +67,7 @@ export default function SignupPage() {
               autoComplete="name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
               placeholder="ej. Trader_01"
             />
           </Field>
@@ -78,7 +78,7 @@ export default function SignupPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
               placeholder="tu@email.com"
             />
           </Field>
@@ -90,7 +90,7 @@ export default function SignupPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
               placeholder="••••••••"
             />
           </Field>
