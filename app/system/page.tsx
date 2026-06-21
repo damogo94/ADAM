@@ -54,6 +54,7 @@ const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'co
   { id: 'A4', label: 'Sistema · ensamblado', model: 'haiku-4-5 (narrate) + código (confluence)', mode: 'compute' },
   { id: 'DEBATE', label: 'Debate · A1 × A2', model: 'sonnet-4-6', mode: 'narrate' },
   { id: 'CMT', label: 'Scanner autónomo', model: 'código (computeTechnical · sin LLM)', mode: 'compute' },
+  { id: 'EST', label: 'Estructura · price action MTF', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
 ];
 
 export default function SystemScreen() {
@@ -283,10 +284,11 @@ export default function SystemScreen() {
       <SectionLabel>seguridad</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2">
         <KV k="A3 aislado" v="✓ 3 capas + compute sin LLM" cls="text-emerald" />
+        <KV k="Estructura aislado" v="✓ guard propio · solo OHLCV (+vanilla)" cls="text-emerald" />
         <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-emerald" />
         <KV k="rate-limit" v="✓ 5/min/IP + 30/día/IP + 30/día/user" cls="text-emerald" />
         <KV k="CSRF" v="✓ checkSameOrigin en POST" cls="text-emerald" />
-        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT (shared/types)" cls="text-emerald" />
+        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT·Estructura (shared/types)" cls="text-emerald" />
         <KV k="type-safety" v="✓ tipos Supabase generados · 0 casts as-any en src" cls="text-emerald" />
         <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-emerald" />
       </div>

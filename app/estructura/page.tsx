@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useRef, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
 import { SectionLabel } from '@/components/section-label';
@@ -91,6 +92,16 @@ function EstructuraInner() {
       <Header status={headerStatus} tagline="Agente de Estructura · Price Action MTF" />
 
       <AssetInput onSubmit={handleRun} disabled={isLoading} />
+
+      {/* Vuelta al análisis multiagente completo. */}
+      <div className="mx-4 mt-2 flex items-center justify-end gap-1.5 font-mono text-[11px] text-white/55">
+        <Link
+          href="/analysis"
+          className="text-white/80 underline-offset-2 transition-colors hover:text-white hover:underline"
+        >
+          ← Análisis multiagente
+        </Link>
+      </div>
 
       {error && (
         <div
