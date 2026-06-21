@@ -80,6 +80,15 @@ export function computeEjecucion(input: EjecucionInput): EjecucionResult {
   const { readings, series, rangoDaily, profile } = input;
   const { daily } = readings;
   const round = (n: number) => roundProfile(n, profile);
+
+  // Sin velas diarias no hay nada que leer (símbolo inválido / sin datos).
+  if (series.daily.length === 0) {
+    return {
+      setup: SETUP_VACIO('ninguno', 'sin_estructura', null),
+      gestion: GESTION_VACIA,
+      factor_invalidacion: 'Sin datos de mercado para el símbolo.',
+    };
+  }
   const price = series.daily[series.daily.length - 1]!.c;
 
   // ── Sesgo macro: operamos a favor de la corriente (manual §1) ──────────

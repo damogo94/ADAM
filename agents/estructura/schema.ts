@@ -183,3 +183,14 @@ export type EstructuraOutput_t = z.infer<typeof EstructuraOutput>;
  */
 export const EstructuraComputeSchema = EstructuraOutput.omit({ narrative: true });
 export type EstructuraComputeOutput_t = z.infer<typeof EstructuraComputeSchema>;
+
+/**
+ * Lo que el LLM produce en la capa narrate: SOLO la prosa. El código mergea
+ * el resto (determinista) + el disclaimer literal (igual que A3 / A4).
+ */
+export const EstructuraNarrativeOnly = z
+  .object({
+    narrative: z.string().min(20).max(2500),
+  })
+  .strict();
+export type EstructuraNarrativeOnly_t = z.infer<typeof EstructuraNarrativeOnly>;
