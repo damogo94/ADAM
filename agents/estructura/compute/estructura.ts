@@ -67,12 +67,24 @@ export function readStructure(
   const highs = swings.filter((s) => s.type === 'high');
   const lows = swings.filter((s) => s.type === 'low');
 
-  const ultimo_alto = highs.length >= 1 ? round(highs[highs.length - 1]!.price) : null;
-  const penultimo_alto = highs.length >= 2 ? round(highs[highs.length - 2]!.price) : null;
-  const ultimo_bajo = lows.length >= 1 ? round(lows[lows.length - 1]!.price) : null;
-  const penultimo_bajo = lows.length >= 2 ? round(lows[lows.length - 2]!.price) : null;
+  // Precios crudos de los swings (sin redondear) para clasificar dirección sin
+  // artefactos de redondeo; los valores REPORTADOS sí se redondean.
+  const uaRaw = highs.length >= 1 ? highs[highs.length - 1]!.price : null;
+  const paRaw = highs.length >= 2 ? highs[highs.length - 2]!.price : null;
+  const ubRaw = lows.length >= 1 ? lows[lows.length - 1]!.price : null;
+  const pbRaw = lows.length >= 2 ? lows[lows.length - 2]!.price : null;
 
-  const direccion = detectTrend(candles).primaria;
+  // Dirección desde LOS MISMOS swings que los extremos reportados (coherencia,
+  // misma ventana del TF). Fallback a detectTrend (cierres monótonos) cuando no
+  // hay 2 altos y 2 bajos confirmados.
+  const direccion =
+    classifyFromSwings(uaRaw, paRaw, ubRaw, pbRaw) ?? detectTrend(candles).primaria;
+
+  const ultimo_alto = uaRaw != null ? round(uaRaw) : null;
+  const penultimo_alto = paRaw != null ? round(paRaw) : null;
+  const ultimo_bajo = ubRaw != null ? round(ubRaw) : null;
+  const penultimo_bajo = pbRaw != null ? round(pbRaw) : null;
+
   const price = candles[candles.length - 1]!.c;
   const fase = computeFase(direccion, price, ultimo_alto, ultimo_bajo);
 
@@ -106,4 +118,32 @@ export function computeFase(
   if (direccion === 'alcista') return price >= mid ? 'impulso' : 'retroceso';
   // bajista
   return price <= mid ? 'impulso' : 'retroceso';
+}
+
+/**
+ * Clasifica la dirección desde los últimos 2 altos y 2 bajos (HH/HL → alcista,
+ * LH/LL → bajista, resto lateral). Devuelve `null` si faltan extremos para que
+ * el caller use el fallback (cierres monótonos vía detectTrend).
+ */
+function classifyFromSwings(
+  ultimoAlto: number | null,
+  penultimoAlto: number | null,
+  ultimoBajo: number | null,
+  penultimoBajo: number | null
+): LecturaTimeframe_t['direccion'] | null {
+  if (
+    ultimoAlto == null ||
+    penultimoAlto == null ||
+    ultimoBajo == null ||
+    penultimoBajo == null
+  ) {
+    return null;
+  }
+  const hh = ultimoAlto > penultimoAlto;
+  const hl = ultimoBajo > penultimoBajo;
+  const lh = ultimoAlto < penultimoAlto;
+  const ll = ultimoBajo < penultimoBajo;
+  if (hh && hl) return 'alcista';
+  if (lh && ll) return 'bajista';
+  return 'lateral';
 }

@@ -73,7 +73,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Mostramos la nomenclatura que el usuario tecleó, no el símbolo de datos.
-    return NextResponse.json({ ...result, ticker: display, data_symbol: dataSymbol });
+    // El compute usa dataSymbol (perfil correcto), pero la narrativa (incl. el
+    // fallback determinista, que arranca con el ticker) debe lucir el display.
+    const narrative =
+      display !== dataSymbol ? result.narrative.split(dataSymbol).join(display) : result.narrative;
+    return NextResponse.json({ ...result, ticker: display, narrative, data_symbol: dataSymbol });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     return NextResponse.json({ error: 'Estructura failed', detail: msg }, { status: 500 });
