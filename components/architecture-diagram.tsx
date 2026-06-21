@@ -78,7 +78,7 @@ function Node({
 function Zone({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-stretch sm:gap-2">
-      <div className="flex-shrink-0 pt-1 font-orbitron text-[7px] font-bold uppercase tracking-[0.15em] text-white/30 sm:w-16">
+      <div className="flex-shrink-0 pt-1 font-sans text-[7px] font-bold uppercase tracking-[0.15em] text-white/30 sm:w-16">
         {label}
       </div>
       <div className="flex-1">{children}</div>

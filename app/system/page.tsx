@@ -97,7 +97,7 @@ export default function SystemScreen() {
       <Header status={loading ? 'running' : 'ok'} />
 
       <section className="mx-4 mt-3 rounded-[18px] border border-white/15 bg-surface-2 px-3.5 py-3.5">
-        <div className="font-orbitron text-[22px] font-black tracking-[0.2em] text-white">
+        <div className="font-sans text-[22px] font-extrabold tracking-[0.2em] text-white">
           A.D.A.M.
         </div>
         <div className="mt-1 font-mono text-[12px] text-white/66 tracking-wider">

@@ -47,7 +47,7 @@ export default function SignupPage() {
     <div className="w-full max-w-sm">
       <div className="mb-7 flex flex-col items-center">
         <Monogram className="h-12 w-12 text-white mb-3" title="A.D.A.M." />
-        <div className="font-orbitron text-2xl font-black tracking-[0.18em] text-white">A.D.A.M.</div>
+        <div className="font-sans text-2xl font-extrabold tracking-[0.2em] text-white">A.D.A.M.</div>
         <div className="mt-2 font-mono text-[12px] tracking-[0.18em] text-white/66 uppercase text-center">
           Detect the unseen
         </div>

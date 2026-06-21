@@ -129,7 +129,7 @@ export function InicioContent() {
               <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">
                 Anomaly Detection &amp; Analysis Module
               </p>
-              <h1 className="mt-3 font-orbitron text-5xl font-black tracking-[0.14em] text-white md:text-6xl">
+              <h1 className="mt-3 font-sans text-5xl font-extrabold tracking-[0.12em] text-white md:text-6xl">
                 A.D.A.M.
               </h1>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-white/85">
