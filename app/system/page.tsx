@@ -293,7 +293,7 @@ export default function SystemScreen() {
         <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-emerald" />
       </div>
 
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-slate opacity-60 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>

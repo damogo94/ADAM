@@ -590,7 +590,7 @@ function SignalCard({
                 {signal.timeframe}
               </span>
             </div>
-            <div className="font-mono text-[12px] text-slate-l mt-0.5 line-clamp-1">
+            <div className="font-mono text-[12px] text-white/66 mt-0.5 line-clamp-1">
               {signal.setup_detected}
             </div>
           </div>

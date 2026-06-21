@@ -153,13 +153,13 @@ export function UsersConsole() {
   }
 
   if (loading) {
-    return <Box><span className="font-mono text-[12px] text-slate">cargando usuarios…</span></Box>;
+    return <Box><span className="font-mono text-[12px] text-white/66">cargando usuarios…</span></Box>;
   }
   if (error) {
     return <Box><span className="font-mono text-[12px] text-rose">{error}</span></Box>;
   }
   if (!users || users.length === 0) {
-    return <Box><span className="font-mono text-[12px] text-slate">sin usuarios</span></Box>;
+    return <Box><span className="font-mono text-[12px] text-white/66">sin usuarios</span></Box>;
   }
 
   return (
@@ -201,9 +201,9 @@ export function UsersConsole() {
             {open && (
               <div className="border-t border-white/8 px-3 py-2.5">
                 {activityLoading ? (
-                  <span className="font-mono text-[12px] text-slate">cargando actividad…</span>
+                  <span className="font-mono text-[12px] text-white/66">cargando actividad…</span>
                 ) : !activity ? (
-                  <span className="font-mono text-[12px] text-slate">sin actividad</span>
+                  <span className="font-mono text-[12px] text-white/66">sin actividad</span>
                 ) : (
                   <UserActivityPanel
                     activity={activity}
@@ -284,9 +284,9 @@ function UserActivityPanel({
                   {open && (
                     <div className="border-t border-white/5 px-2 py-2">
                       {detailLoading ? (
-                        <span className="font-mono text-[12px] text-slate">cargando detalle…</span>
+                        <span className="font-mono text-[12px] text-white/66">cargando detalle…</span>
                       ) : !detail ? (
-                        <span className="font-mono text-[12px] text-slate">detalle no disponible</span>
+                        <span className="font-mono text-[12px] text-white/66">detalle no disponible</span>
                       ) : (
                         <AnalysisDetailView detail={detail} />
                       )}

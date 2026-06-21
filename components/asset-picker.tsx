@@ -148,7 +148,7 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
           {isEmptyFavTab ? (
             <FavEmptyState />
           ) : filtered.length === 0 ? (
-            <div className="py-8 text-center font-mono text-[12px] text-slate">
+            <div className="py-8 text-center font-mono text-[12px] text-white/66">
               sin resultados
             </div>
           ) : (
@@ -324,7 +324,7 @@ function FavEmptyState() {
   return (
     <div className="px-3 py-8 text-center">
       <div className="text-2xl text-white/15 mb-2">★</div>
-      <div className="font-mono text-[12px] text-slate leading-relaxed">
+      <div className="font-mono text-[12px] text-white/66 leading-relaxed">
         sin favoritos · pulsa la estrella en cualquier activo
         <br />
         para guardarlo aquí y en tu watchlist
