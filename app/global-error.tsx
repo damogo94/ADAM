@@ -37,8 +37,8 @@ export default function GlobalError({
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
           <div
             style={{
-              fontFamily: '"Orbitron", monospace',
-              fontWeight: 900,
+              fontFamily: 'Inter, system-ui, sans-serif',
+              fontWeight: 800,
               fontSize: 28,
               letterSpacing: '0.18em',
               marginBottom: 8,
@@ -59,7 +59,7 @@ export default function GlobalError({
               padding: '10px 24px',
               borderRadius: 8,
               textDecoration: 'none',
-              fontFamily: '"Orbitron", monospace',
+              fontFamily: 'Inter, system-ui, sans-serif',
               fontWeight: 700,
               fontSize: 11,
               letterSpacing: '0.1em',

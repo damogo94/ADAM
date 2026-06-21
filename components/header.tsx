@@ -40,7 +40,7 @@ export function Header({
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-void/95 backdrop-blur-xl px-5 py-2.5">
       <div className="flex flex-col">
-        <div className="font-orbitron text-lg font-black tracking-[0.18em] text-white">
+        <div className="font-sans text-lg font-extrabold tracking-[0.2em] text-white">
           A.D.A.M.
         </div>
         <div className="font-mono text-[12px] tracking-wider text-white/66 mt-px">{tagline}</div>

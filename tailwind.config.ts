@@ -60,9 +60,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        // Brand / títulos / símbolos
-        orbitron: ['Orbitron', 'monospace'],
-        // Body
+        // Body + wordmark (el logotipo "A.D.A.M." usa Inter extrabold + tracking
+        // ancho desde la retirada de Orbitron — coherente con "Instrumento de
+        // precisión", sin familia de fuente decorativa extra).
         sans: ['Inter', 'system-ui', 'sans-serif'],
         // Technical data / números / tickers
         mono: ['"IBM Plex Mono"', '"JetBrains Mono"', 'monospace'],
