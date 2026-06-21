@@ -120,6 +120,17 @@ Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `Debat
 - **Hobby plan lambda timeout is 60s.** Treat this as the hard ceiling whenever you touch `DEFAULT_TIMEOUT_MS`, `MAX_ATTEMPTS`, or add new sequential LLM calls to the pipeline. A 504 in prod means you broke the worst-case math.
 - The repo has worktrees under `.claude/worktrees/` (agent isolation mode). Their `CLAUDE.md`/code may diverge from main — they're disposable.
 
+## Design system invariants
+
+The UI design system is real and load-bearing — verified facts, not aspirations (audited 2026-06-22). Extended docs: `docs/handoff/` (descriptive, per screen) + `docs/ADAM_REDESIGN.md` (prescriptive ADRs).
+
+- **Token SSOT = `tailwind.config.ts`** (`theme.extend.colors`), mirrored EXACTLY in `app/globals.css :root` (void/surfaces/borders/accent). Keep them in sync — a divergence is what produced the old "azulado vs neutro" drift. There are **zero `bg-[#…]` hardcodes** in `app`/`components`; don't introduce any.
+- **Semantic market color is intocable:** `emerald` (alza/bullish), `rose` (baja/bearish), `amber` (atención/pendiente) — **only** on data, levels, direction and signal-state. **Never** on chrome, nav, identity badges or decoration.
+- **`accent #5B8AF0` = brand** (input focus, links, active tab/state, wordmark): moderate use, never decorative fill. The identity is **neutral-premium + accent ("Instrumento de precisión"), NOT monochrome B&W** — that reskin is superseded (see `docs/ADAM_REDESIGN.md`).
+- **Text hierarchy by opacity over `ink #F5F5F7`** (`ink/66` secondary, `ink/45` metadata). Known debt: components use `text-white/X` (314×) not `text-ink/X` (0×) — visually identical, but `ink` is the SSOT.
+- **Wordmark "A.D.A.M." = Inter `font-extrabold` + wide tracking** (Orbitron retired 2026-06-22). Don't reintroduce display fonts.
+- **A3-isolation applies to the UI too:** the A3 card and the Estructura card never render cross-agent narrative context (news/macro/sentiment) — only what their isolated compute produces. Don't "enrich" them with A1/A2/macro data.
+
 ## What not to touch without owner approval
 
 - A3 isolation (any of the three layers).
@@ -129,3 +140,4 @@ Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `Debat
 - The literal `DISCLAIMER_LITERAL` string (separator is U+00B7).
 - The generated `types/db/supabase.ts` — don't hand-edit it or reintroduce `as any` casts on Supabase calls; regenerate after migrations instead.
 - `eslint` pinned to 8.x (peer of `eslint-config-next@14`) — bumping to 9 needs `eslint-config-next` to move too.
+- The design token SSOT (`tailwind.config.ts` ↔ `app/globals.css :root` must match) and the semantic-color rule (`emerald/rose/amber` = market data only) — see **Design system invariants**.
