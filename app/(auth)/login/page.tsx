@@ -60,7 +60,7 @@ function LoginInner() {
           Detect the unseen
         </div>
         <div className="mt-1 font-mono text-[12px] tracking-wider text-white/45 uppercase">
-          Anomaly Detection &amp; Analysis Modular
+          Anomaly Detection &amp; Analysis Module
         </div>
       </div>
 
@@ -76,7 +76,7 @@ function LoginInner() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-slate focus:border-a1/60 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
               placeholder="tu@email.com"
             />
           </Field>
@@ -87,7 +87,7 @@ function LoginInner() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-slate focus:border-a1/60 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
               placeholder="••••••••"
             />
           </Field>

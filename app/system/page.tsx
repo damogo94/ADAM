@@ -240,7 +240,7 @@ export default function SystemScreen() {
               <div className="font-mono text-[12px] text-white/66 truncate">{a.model}</div>
             </div>
             {a.mode === 'compute' && (
-              <span className="font-mono text-[7px] uppercase tracking-wider text-emerald border border-emerald/35 bg-emerald/[0.05] rounded px-1.5 py-0.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-emerald border border-emerald/35 bg-emerald/[0.05] rounded px-1.5 py-0.5">
                 hybrid
               </span>
             )}
@@ -293,7 +293,7 @@ export default function SystemScreen() {
         <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-emerald" />
       </div>
 
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-slate opacity-60 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -333,7 +333,7 @@ function Stat({
     >
       <div className={cn('font-mono text-[20px] font-black', cls ?? 'text-white')}>{n}</div>
       <div className="mt-0.5 font-mono text-[12px] text-white/66">{l}</div>
-      {sub && <div className="mt-px font-mono text-[7px] text-white/45 italic">{sub}</div>}
+      {sub && <div className="mt-px font-mono text-[10px] text-white/45 italic">{sub}</div>}
     </div>
   );
 }

@@ -216,7 +216,7 @@ export function InicioContent() {
                       {lens.label}
                     </span>
                     {lens.isolated && (
-                      <span className="ml-auto rounded bg-white/15 px-1 py-px font-mono text-[7px] font-bold uppercase tracking-wider text-white/80">
+                      <span className="ml-auto rounded bg-white/15 px-1 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-white/80">
                         aislado
                       </span>
                     )}

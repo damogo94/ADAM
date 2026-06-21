@@ -78,7 +78,7 @@ export function RadarRow({
             <span className="font-mono text-[13px] font-bold tracking-wider text-white">
               {ticker}
             </span>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-slate-l">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-white/66">
               {asset_type}
             </span>
           </div>
@@ -105,7 +105,7 @@ export function RadarRow({
               </div>
             </>
           ) : (
-            <span className="font-mono text-[12px] text-slate-l">no quote</span>
+            <span className="font-mono text-[12px] text-white/66">no quote</span>
           )}
         </div>
 

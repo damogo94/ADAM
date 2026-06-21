@@ -261,7 +261,7 @@ export default function WatchlistScreen() {
             onClick={() => setPickerOpen(true)}
             disabled={adding}
             className={cn(
-              'flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04]',
+              'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04]',
               'text-[14px] leading-none text-white/70 transition-all',
               'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
               'disabled:opacity-30 disabled:cursor-not-allowed'
@@ -276,12 +276,12 @@ export default function WatchlistScreen() {
             value={newTicker}
             onChange={(e) => setNewTicker(e.target.value)}
             placeholder="ticker (AAPL, BTC, EUR/USD…)"
-            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] uppercase text-white placeholder-white/25 focus:border-white/40 focus:outline-none"
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-[12px] uppercase text-white placeholder-white/45 focus:border-accent focus:outline-none"
           />
           <select
             value={newAssetType}
             onChange={(e) => setNewAssetType(e.target.value as AssetType)}
-            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 font-mono text-[12px] text-white focus:border-white/40 focus:outline-none"
+            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2.5 font-mono text-[12px] text-white focus:border-accent focus:outline-none"
           >
             <option value="equity">equity</option>
             <option value="etf">etf</option>
@@ -293,7 +293,7 @@ export default function WatchlistScreen() {
           <button
             type="submit"
             disabled={adding}
-            className="rounded-lg border border-white bg-white px-3 py-2 font-sans text-[12px] font-bold tracking-[0.12em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded-lg border border-white bg-white px-3 py-2.5 font-sans text-[12px] font-bold tracking-[0.12em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {adding ? '…' : '+'}
           </button>
@@ -333,7 +333,7 @@ export default function WatchlistScreen() {
               aria-checked={sparkRange === r}
               onClick={() => setSparkRange(r)}
               className={cn(
-                'rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider transition',
+                'rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
                 sparkRange === r ? 'bg-white text-black' : 'text-white/66 hover:text-white'
               )}
             >
