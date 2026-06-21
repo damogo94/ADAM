@@ -90,6 +90,27 @@ describe('classOf — heurísticas (ticker no en catálogo)', () => {
     expect(classOf('^GSPC')).toBe('index_etf');
   });
 
+  it('futuros de índice NQ=F / ES=F / YM=F / RTY=F → index_etf', () => {
+    expect(classOf('NQ=F')).toBe('index_etf');
+    expect(classOf('ES=F')).toBe('index_etf');
+    expect(classOf('YM=F')).toBe('index_etf');
+    expect(classOf('RTY=F')).toBe('index_etf');
+  });
+
+  it('futuros de materia prima CL=F / NG=F → commodity', () => {
+    expect(classOf('CL=F')).toBe('commodity');
+    expect(classOf('NG=F')).toBe('commodity');
+  });
+
+  it('futuros de bono ZB=F / ZN=F → bond_etf', () => {
+    expect(classOf('ZB=F')).toBe('bond_etf');
+    expect(classOf('ZN=F')).toBe('bond_etf');
+  });
+
+  it('futuro =F desconocido → commodity (default mejor que equity)', () => {
+    expect(classOf('XYZ=F')).toBe('commodity');
+  });
+
   it('sufijo bolsa europea .MC → equity (IBE.MC en catálogo es equity)', () => {
     expect(classOf('IBE.MC')).toBe('equity');
   });
@@ -137,6 +158,11 @@ describe('profileFor — devuelve el profile con valores plausibles', () => {
   it('bond_etf tiene min_rb < 1.5 (no quedar bloqueado en hold)', () => {
     const p = profileFor('TLT');
     expect(p.min_rb_ratio).toBeLessThan(1.5);
+  });
+
+  it('futuro de índice (NQ=F) usa proximidad de índice, no de equity', () => {
+    // El fix: NQ=F antes caía a equity (proximity 3% ≈ 750 pts). Ahora index_etf.
+    expect(profileFor('NQ=F').proximity_pct).toBeLessThan(profileFor('AAPL').proximity_pct);
   });
 
   it('todos los profiles tienen class != null y valores > 0', () => {

@@ -308,6 +308,29 @@ export function InicioContent() {
           </div>
         </section>
 
+        {/* ── 4b · Agente de Estructura (módulo independiente) ──────── */}
+        <section className="mx-auto max-w-3xl px-5 pt-24">
+          <Reveal>
+            <SectionHeading eyebrow="Además · para futuros" title="Agente de Estructura" />
+            <p className="max-w-2xl text-lg leading-relaxed text-white/75">
+              Un módulo aparte para operar con price action multi-temporal. Lee la estructura de
+              Weekly a H1, espera el retesteo «rompe y apoya» y, cuando el nivel coincide con un
+              precio redondo, propone entrada, stop estructural y objetivo con un R/B mínimo de 1.5.
+              Determinista y mecánico — sin caja negra.
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
+              Escribe tu nomenclatura de futuros — XAUUSD, NAS100, US500 — y la traduce al contrato correcto.
+            </p>
+            <Link
+              href="/estructura"
+              className="mt-7 inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/[0.04] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:border-white/50 hover:bg-white/[0.08]"
+            >
+              Abrir Estructura
+              <span aria-hidden="true">→</span>
+            </Link>
+          </Reveal>
+        </section>
+
         {/* ── 5 · ¿Qué NO ofrece? ───────────────────────────────────── */}
         <section id="limites" className="mx-auto max-w-3xl px-5 pt-24 scroll-mt-20">
           <Reveal>

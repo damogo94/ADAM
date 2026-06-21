@@ -207,6 +207,17 @@ const CRYPTO_SOLO = new Set([
 const METAL_BASES = new Set(['XAU', 'XAG', 'XPT', 'XPD']);
 const EQUITY_SUFFIXES = /\.(MC|PA|DE|L|AS|MI|SW|T|JP|HK|TO|SS|BO|NS|KS)$/;
 
+// Futuros Yahoo (=F) — clasificación por RAÍZ del contrato. Sin esto, los
+// futuros de índice (NQ/ES/YM/RTY) caían al default 'equity' → proximity 3%,
+// que en un índice de 5 cifras (~750 pts en el NASDAQ) es ruido, no "cerca".
+const INDEX_FUTURES = new Set(['ES', 'NQ', 'YM', 'RTY', 'NKD', 'EMD', 'MES', 'MNQ', 'MYM', 'M2K']);
+const BOND_FUTURES = new Set(['ZB', 'ZN', 'ZF', 'ZT', 'UB', 'TN']);
+const COMMODITY_FUTURES = new Set([
+  'CL', 'BZ', 'NG', 'RB', 'HO', 'QM', // energía
+  'GC', 'SI', 'HG', 'PL', 'PA', 'MGC', // metales
+  'ZC', 'ZW', 'ZS', 'ZL', 'ZM', 'KC', 'CT', 'SB', 'CC', 'LE', 'HE', 'OJ', // agrícolas
+]);
+
 export function classOf(ticker: string): AssetClass {
   const t = ticker.trim().toUpperCase();
   if (!t) return 'equity';
@@ -218,6 +229,19 @@ export function classOf(ticker: string): AssetClass {
 
   // 2. Yahoo forex EURUSD=X
   if (/=X$/.test(t)) return 'forex';
+
+  // 2b. Yahoo futuros =F — por raíz del contrato (índice/bono/materia prima).
+  // Los del catálogo (GC=F, SI=F…) ya se resolvieron arriba; esto cubre el
+  // resto (NQ=F, ES=F, YM=F, CL=F…). Default para un =F desconocido: commodity
+  // (mejor que 'equity' para un contrato de futuros).
+  const fut = t.match(/^([A-Z0-9]{1,3})=F$/);
+  if (fut) {
+    const root = fut[1]!;
+    if (INDEX_FUTURES.has(root)) return 'index_etf';
+    if (BOND_FUTURES.has(root)) return 'bond_etf';
+    if (COMMODITY_FUTURES.has(root)) return 'commodity';
+    return 'commodity';
+  }
 
   // 3. Par 3+3 letras — distinguir metales spot vs forex
   if (/^[A-Z]{3}\/[A-Z]{3}$/.test(t)) {

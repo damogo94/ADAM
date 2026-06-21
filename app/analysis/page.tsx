@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
 import { SectionLabel, FlowArrow } from '@/components/section-label';
@@ -275,6 +276,17 @@ function AnalysisInner() {
       <Header status={headerStatus} />
 
       <AssetInput onSubmit={handleRun} disabled={isLoading} />
+
+      {/* Acceso al módulo independiente de price action multi-temporal (futuros). */}
+      <div className="mx-4 mt-2 flex items-center justify-end gap-1.5 font-mono text-[11px] text-white/55">
+        <span>¿futuros con estructura multi-temporal?</span>
+        <Link
+          href="/estructura"
+          className="text-white/80 underline-offset-2 transition-colors hover:text-white hover:underline"
+        >
+          Agente de Estructura →
+        </Link>
+      </div>
 
       {/* Barra de veredicto — lo primero que ve el usuario en cuanto A4 está listo. */}
       {state.a4 && state.a4Status === 'done' && (

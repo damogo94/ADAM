@@ -195,6 +195,24 @@ export function ArchitectureDiagram() {
         </div>
       </div>
 
+      {/* Módulo INDEPENDIENTE · Agente de Estructura — disparado por el usuario
+          (POST /api/agents/estructura), fuera del pipeline runADAM. Aislado con
+          su propio guard, igual que A3. */}
+      <div className="mt-3 border-t border-dashed border-white/10 pt-2.5">
+        <div className="mb-1.5 font-mono text-[8px] uppercase tracking-wider text-white/35">
+          agente de estructura · módulo independiente · price action multi-temporal
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Node kind="data" title="Yahoo · futuros" sub="OHLCV 1D+1h · GC=F · NQ=F" tag="EST" className="flex-1 min-w-[7rem]" />
+          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <Node kind="compute" title="computeEstructura" sub="Weekly/Daily/H4/H1 · rompe y apoya · redondos + vanilla" tag="sin LLM" className="flex-1 min-w-[8rem]" />
+          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <Node kind="agentIsolated" accent="a3" title="narrate · Estructura" sub="Haiku · guard propio" tag="aislado" className="flex-1 min-w-[6rem]" />
+          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <Node kind="io" title="/estructura" sub="render UI" className="flex-1 min-w-[5rem]" />
+        </div>
+      </div>
+
       {/* Leyenda por tipo de nodo */}
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/5 pt-2 font-mono text-[7px] text-white/55">
         <LegendDot className="border-emerald/55 bg-emerald/[0.06]" label="compute · sin LLM" />
