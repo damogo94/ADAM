@@ -14,15 +14,16 @@ vi.mock('@/lib/market/finnhub', () => ({
   fallbackNewsSentiment: vi.fn(),
 }));
 vi.mock('@/lib/market/macro', () => ({ getMacroSnapshot: vi.fn() }));
-vi.mock('@/lib/market/coingecko', () => ({
-  coingeckoId: vi.fn(),
-  fetchCryptoMarketData: vi.fn(),
-}));
+vi.mock('@/lib/market/crypto-registry', () => ({ isCryptoTicker: vi.fn() }));
+vi.mock('@/lib/market/crypto-fundamentals', () => ({ fetchCryptoFundamentals: vi.fn() }));
+vi.mock('@/lib/market/newsdata', () => ({ fetchCryptoNews: vi.fn() }));
 
 import { buildMarketSnapshot } from '../snapshot';
 import * as finnhub from '@/lib/market/finnhub';
 import { getMacroSnapshot } from '@/lib/market/macro';
-import * as coingecko from '@/lib/market/coingecko';
+import { isCryptoTicker } from '@/lib/market/crypto-registry';
+import { fetchCryptoFundamentals } from '@/lib/market/crypto-fundamentals';
+import { fetchCryptoNews } from '@/lib/market/newsdata';
 
 const candle = (c: number, t: number) => ({ o: c, h: c + 1, l: c - 1, c, v: 100, t });
 
@@ -38,9 +39,10 @@ beforeEach(() => {
   vi.mocked(finnhub.fallbackOverview).mockResolvedValue(null as never);
   vi.mocked(finnhub.fallbackNewsSentiment).mockResolvedValue([] as never);
   vi.mocked(getMacroSnapshot).mockResolvedValue(null as never);
-  // Por defecto NO crypto: coingeckoId null → no se hace fetch a CoinGecko.
-  vi.mocked(coingecko.coingeckoId).mockReturnValue(null);
-  vi.mocked(coingecko.fetchCryptoMarketData).mockResolvedValue(null as never);
+  // Por defecto NO crypto: isCryptoTicker false → no se hace ningún fetch crypto.
+  vi.mocked(isCryptoTicker).mockReturnValue(false);
+  vi.mocked(fetchCryptoFundamentals).mockResolvedValue(null as never);
+  vi.mocked(fetchCryptoNews).mockResolvedValue([] as never);
 });
 
 describe('buildMarketSnapshot', () => {
@@ -112,9 +114,9 @@ describe('buildMarketSnapshot', () => {
     expect(r.data.snapshot.fundamentals.fcf_yield_pct).toBeNull();
   });
 
-  it('crypto: puebla snapshot.crypto y rellena market_cap desde CoinGecko (Finnhub da null)', async () => {
-    vi.mocked(coingecko.coingeckoId).mockReturnValue('bitcoin');
-    vi.mocked(coingecko.fetchCryptoMarketData).mockResolvedValue({
+  it('crypto: puebla snapshot.crypto y rellena market_cap desde el orquestador (Finnhub da null)', async () => {
+    vi.mocked(isCryptoTicker).mockReturnValue(true);
+    vi.mocked(fetchCryptoFundamentals).mockResolvedValue({
       market_cap_usd: 1_300_000_000_000,
       market_cap_rank: 1,
       volume_24h_usd: 25_000_000_000,
@@ -136,8 +138,22 @@ describe('buildMarketSnapshot', () => {
     expect(r.data.snapshot.fundamentals.market_cap_usd).toBe(1_300_000_000_000);
   });
 
-  it('no-crypto: snapshot.crypto es null y no se llama a CoinGecko', async () => {
+  it('crypto: las noticias de newsdata.io entran en snapshot.news', async () => {
+    vi.mocked(isCryptoTicker).mockReturnValue(true);
+    vi.mocked(fetchCryptoNews).mockResolvedValue([
+      { headline: 'BTC ETF inflows surge', source: 'CoinDesk', age_hours: 3 },
+    ] as never);
+    const r = await buildMarketSnapshot('BTC');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // Finnhub /company-news da [] en crypto → news = solo las de newsdata.io.
+    expect(r.data.snapshot.news).toHaveLength(1);
+    expect(r.data.snapshot.news[0]?.headline).toBe('BTC ETF inflows surge');
+  });
+
+  it('no-crypto: snapshot.crypto null y no se llama a los proveedores crypto', async () => {
     await buildMarketSnapshot('AAPL');
-    expect(coingecko.fetchCryptoMarketData).not.toHaveBeenCalled();
+    expect(fetchCryptoFundamentals).not.toHaveBeenCalled();
+    expect(fetchCryptoNews).not.toHaveBeenCalled();
   });
 });

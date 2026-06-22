@@ -51,7 +51,7 @@ Si el activo es cripto, los ratios equity (P/E, PEG, EV/EBITDA, dividend yield) 
 - \`market_cap_usd\` + \`market_cap_rank\` — tamaño y posición relativa.
 - \`circulating_supply\` / \`total_supply\` / \`max_supply\` — dinámica de oferta (dilución si circulante ≪ máx; escasez si circulante ≈ máx; \`max_supply\` null = oferta no acotada, ej. ETH).
 - \`volume_24h_usd\` — liquidez.
-- \`ath_change_pct\` — distancia al máximo histórico (muy negativo = drawdown profundo; cerca de 0 = en zona de máximos).
+- \`ath_change_pct\` — distancia al máximo histórico (muy negativo = drawdown profundo; cerca de 0 = en zona de máximos). Si llega \`null\`, ese dato NO está disponible: no lo infieras ni penalices por ello.
 - \`price_change_pct_24h/7d/30d\` — momentum.
 Detecta oportunidad/vulnerabilidad desde ESTOS: p.ej. cerca de ATH con momentum fuerte (extensión/oportunidad), oferta diluyéndose (vulnerabilidad), drawdown profundo desde ATH (contexto de riesgo o suelo). Rellena \`fundamentals.market_cap_usd\` con el dato; deja los demás ratios equity en \`null\`.
 
