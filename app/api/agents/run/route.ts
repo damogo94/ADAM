@@ -139,25 +139,36 @@ export async function POST(req: NextRequest) {
       }
 
       // ─── Persistir log (best-effort) ───────────────────────────
+      // Capturamos el id insertado y lo devolvemos: en el primer análisis A2
+      // llega null (cache fría) y esta fila se hornea degradada. El frontend
+      // re-narra A4 vía /api/agents/a4 cuando A2 vuelve; con este id, ese
+      // endpoint actualiza la fila para que confluence_pct/direction/confidence
+      // persistidos (los que lee la calibración) coincidan con lo que ve el user.
+      let analysisId: string | null = null;
       try {
         const admin = createSupabaseAdmin();
-        await admin.from('analyses_log').insert({
-          user_id: user.id,
-          ticker,
-          confluence_pct: result.output.confluence.score_total_pct,
-          direction: result.output.direccion,
-          confidence: result.output.confianza,
-          a1_output: result.intermediates.a1,
-          a2_output: result.intermediates.a2,
-          a3_output: result.intermediates.a3,
-          debate_output: result.intermediates.debate,
-          a4_output: result.output,
-          latency_ms: result.meta.durationMs,
-          tokens_used: tokensUsed,
-          usage_breakdown: usages,
-          initial_price: currentPrice,
-          initial_price_at: new Date().toISOString(),
-        });
+        const { data: inserted } = await admin
+          .from('analyses_log')
+          .insert({
+            user_id: user.id,
+            ticker,
+            confluence_pct: result.output.confluence.score_total_pct,
+            direction: result.output.direccion,
+            confidence: result.output.confianza,
+            a1_output: result.intermediates.a1,
+            a2_output: result.intermediates.a2,
+            a3_output: result.intermediates.a3,
+            debate_output: result.intermediates.debate,
+            a4_output: result.output,
+            latency_ms: result.meta.durationMs,
+            tokens_used: tokensUsed,
+            usage_breakdown: usages,
+            initial_price: currentPrice,
+            initial_price_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        analysisId = inserted?.id ?? null;
       } catch (logErr) {
         // eslint-disable-next-line no-console
         console.error(
@@ -167,6 +178,7 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({
+        analysis_id: analysisId,
         a1: result.intermediates.a1,
         a2: result.intermediates.a2,
         a3: result.intermediates.a3,

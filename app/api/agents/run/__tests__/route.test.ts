@@ -124,6 +124,9 @@ describe('POST /api/agents/run — gates', () => {
     const json = await res.json();
     expect(json.a4).toMatchObject({ direccion: 'positivo' });
     expect(json.partial).toBe(false);
+    // Devuelve el id de la fila insertada (para que el re-narrate de A4 cierre
+    // el A2 gap en persistencia).
+    expect(json.analysis_id).toBe('log-1');
     // Persistencia con el contrato esperado
     expect(adminBuilder.insert).toHaveBeenCalledWith(
       expect.objectContaining({

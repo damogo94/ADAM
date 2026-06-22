@@ -20,6 +20,7 @@ import * as Sentry from '@sentry/nextjs';
 import { narrateA4 } from '@/agents/a4/narrate';
 import { computeConfluence, type DebateForConfluence } from '@/agents/a4/compute';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
 
@@ -41,6 +42,10 @@ const RequestSchema = z.object({
   a2: A2Output.nullable(),
   a3: A3Output.nullable(),
   debate: DebateLite.nullable().optional(),
+  // Si viene, este endpoint ACTUALIZA la fila de analyses_log con el A4
+  // re-narrado (cierra el first-run A2 gap en persistencia). Opcional para
+  // back-compat: sin id, solo re-narra y devuelve (comportamiento previo).
+  analysisId: z.string().uuid().nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { ticker, a1, a2, a3, debate } = parsed.data;
+    const { ticker, a1, a2, a3, debate, analysisId } = parsed.data;
 
     // Necesitamos al menos un agente vivo para que A4 tenga algo que consolidar.
     if (!a1 && !a2 && !a3) {
@@ -85,6 +90,35 @@ export async function POST(req: NextRequest) {
       confluence,
       failures: [],
     });
+
+    // Cierra el first-run A2 gap en PERSISTENCIA: actualiza la fila ya insertada
+    // por /api/agents/run (que se horneó con A2 null) para que las columnas que
+    // lee la calibración (confluence_pct/direction/confidence) y los JSON
+    // reflejen el A4 completo. Admin + filtro user_id = scoping seguro sin
+    // depender de una policy UPDATE en RLS. Best-effort: un fallo aquí NO rompe
+    // la re-narración que el frontend necesita.
+    if (analysisId) {
+      try {
+        const admin = createSupabaseAdmin();
+        await admin
+          .from('analyses_log')
+          .update({
+            a2_output: a2,
+            a4_output: a4,
+            confluence_pct: a4.confluence.score_total_pct,
+            confidence: a4.confianza,
+            direction: a4.direccion,
+          })
+          .eq('id', analysisId)
+          .eq('user_id', user.id);
+      } catch (updErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[a4-consolidate] persist update failed:',
+          updErr instanceof Error ? updErr.message : updErr
+        );
+      }
+    }
 
     return NextResponse.json({ a4 });
   } catch (err) {
