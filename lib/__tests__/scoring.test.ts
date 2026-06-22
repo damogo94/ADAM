@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreSignal, returnPct, SIGNAL_THRESHOLD_PCT } from '../scoring';
+import { scoreSignal, returnPct, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K } from '../scoring';
 
 describe('returnPct', () => {
   it('calcula retorno positivo correctamente', () => {
@@ -56,5 +56,33 @@ describe('scoreSignal — direccion neutral', () => {
 describe('SIGNAL_THRESHOLD_PCT', () => {
   it('es 2.0 en v1', () => {
     expect(SIGNAL_THRESHOLD_PCT).toBe(2.0);
+  });
+});
+
+describe('scoreSignal — threshold_pct custom (ATR-adjusted)', () => {
+  it('sin threshold_pct → usa el default 2%', () => {
+    expect(scoreSignal({ direccion: 'alcista', initial_price: 100, eval_price: 103 }).hit).toBe(true);
+  });
+
+  it('umbral 4% (ATR alto, p.ej. BTC): +3% alcista NO es hit; +5% sí', () => {
+    expect(
+      scoreSignal({ direccion: 'alcista', initial_price: 100, eval_price: 103, threshold_pct: 4 }).hit
+    ).toBe(false);
+    expect(
+      scoreSignal({ direccion: 'alcista', initial_price: 100, eval_price: 105, threshold_pct: 4 }).hit
+    ).toBe(true);
+  });
+
+  it('umbral alto también endurece bajista y ensancha neutral', () => {
+    expect(
+      scoreSignal({ direccion: 'bajista', initial_price: 100, eval_price: 97, threshold_pct: 4 }).hit
+    ).toBe(false);
+    expect(
+      scoreSignal({ direccion: 'neutral', initial_price: 100, eval_price: 103, threshold_pct: 4 }).hit
+    ).toBe(true);
+  });
+
+  it('SIGNAL_ATR_K es 1.0 (tunable)', () => {
+    expect(SIGNAL_ATR_K).toBe(1.0);
   });
 });

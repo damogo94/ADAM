@@ -165,7 +165,8 @@ function AnalysisInner() {
         return;
       }
 
-      const { a1, a2, a3, debate, a4, partial, failures, chart_data } = data as {
+      const { analysis_id, a1, a2, a3, debate, a4, partial, failures, chart_data } = data as {
+        analysis_id?: string | null;
         a1: A1Output | null;
         a2: A2Output | null;
         a3: A3Output | null;
@@ -223,7 +224,9 @@ function AnalysisInner() {
             const consRes = await fetch('/api/agents/a4', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ticker, a1, a2: a2Standalone, a3, debate }),
+              // analysisId → el consolidador ACTUALIZA la fila persistida (cierra
+              // el A2 gap en persistencia, no solo en el display de N0).
+              body: JSON.stringify({ ticker, a1, a2: a2Standalone, a3, debate, analysisId: analysis_id ?? undefined }),
               signal: ctrl.signal,
             });
             if (ctrl.signal.aborted) return;

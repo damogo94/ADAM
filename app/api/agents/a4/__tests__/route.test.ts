@@ -6,7 +6,13 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { makeRequest, makeSupabaseMock, type SupabaseMock } from '@/test/helpers/route';
+import {
+  makeRequest,
+  makeSupabaseMock,
+  makeBuilder,
+  type SupabaseMock,
+  type QueryBuilderMock,
+} from '@/test/helpers/route';
 
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 vi.mock('@/lib/api-helpers', async (importOriginal) => {
@@ -14,10 +20,12 @@ vi.mock('@/lib/api-helpers', async (importOriginal) => {
   return { ...actual, checkSameOrigin: vi.fn(), rateLimitByIP: vi.fn() };
 });
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServer: vi.fn() }));
+vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdmin: vi.fn() }));
 vi.mock('@/agents/a4/narrate', () => ({ narrateA4: vi.fn() }));
 
 import { POST } from '../route';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { narrateA4 } from '@/agents/a4/narrate';
 import { NextResponse } from 'next/server';
@@ -46,6 +54,7 @@ const VALID_A1 = {
 };
 
 let supa: SupabaseMock;
+let adminBuilder: QueryBuilderMock;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -53,10 +62,13 @@ beforeEach(() => {
   vi.mocked(rateLimitByIP).mockResolvedValue(null);
   supa = makeSupabaseMock({ user: { id: 'user-1' } });
   vi.mocked(createSupabaseServer).mockResolvedValue(supa.client as never);
+  adminBuilder = makeBuilder();
+  vi.mocked(createSupabaseAdmin).mockReturnValue({ from: vi.fn(() => adminBuilder) } as never);
   vi.mocked(narrateA4).mockResolvedValue({
     ticker: 'AAPL',
     direccion: 'neutral',
     confianza: 'baja',
+    confluence: { score_total_pct: 42 },
   } as never);
 });
 
@@ -72,6 +84,33 @@ describe('POST /api/agents/a4 (consolidador)', () => {
         confluence: expect.objectContaining({ score_total_pct: expect.any(Number) }),
       })
     );
+  });
+
+  it('con analysisId → actualiza analyses_log (scoped al user) con el A4 re-narrado', async () => {
+    const res = await POST(
+      makeRequest(URL, {
+        body: {
+          ticker: 'AAPL',
+          a1: VALID_A1,
+          a2: null,
+          a3: null,
+          analysisId: '00000000-0000-0000-0000-000000000001',
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    // Cierra el A2 gap persistido: columnas que lee la calibración + JSON.
+    expect(adminBuilder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ confluence_pct: 42, direction: 'neutral', confidence: 'baja' })
+    );
+    // Scoping seguro: solo la fila del propio usuario.
+    expect(adminBuilder.eq).toHaveBeenCalledWith('id', '00000000-0000-0000-0000-000000000001');
+    expect(adminBuilder.eq).toHaveBeenCalledWith('user_id', 'user-1');
+  });
+
+  it('sin analysisId → NO toca analyses_log (back-compat)', async () => {
+    await POST(makeRequest(URL, { body: { ticker: 'AAPL', a1: VALID_A1, a2: null, a3: null } }));
+    expect(adminBuilder.update).not.toHaveBeenCalled();
   });
 
   it('403 si CSRF bloquea (sin tocar auth)', async () => {
