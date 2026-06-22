@@ -20,8 +20,9 @@ import {
   type NormalizedCandle,
 } from '@/lib/market/finnhub';
 import { getMacroSnapshot } from '@/lib/market/macro';
-import { coingeckoId, fetchCryptoMarketData } from '@/lib/market/coingecko';
-import { fetchCryptoNews } from '@/lib/market/cryptopanic';
+import { isCryptoTicker } from '@/lib/market/crypto-registry';
+import { fetchCryptoFundamentals } from '@/lib/market/crypto-fundamentals';
+import { fetchCryptoNews } from '@/lib/market/newsdata';
 import type { MarketSnapshot } from '@/agents/shared/types';
 
 const DAY_S = 86_400; // segundos en un día (los timestamps de las velas van en segundos)
@@ -84,10 +85,10 @@ export type SnapshotResult =
  */
 export async function buildMarketSnapshot(ticker: string): Promise<SnapshotResult> {
   // Fan-out paralelo — cada provider es best-effort.
-  // CoinGecko SOLO si el ticker es crypto conocido (coingeckoId != null); para
+  // Los fundamentals/noticias crypto SOLO si el ticker es crypto conocido; para
   // el resto, Finnhub cubre fundamentals. Sin esto A1 quedaba mudo en crypto
   // (Finnhub free no cubre crypto).
-  const isCrypto = coingeckoId(ticker) !== null;
+  const isCrypto = isCryptoTicker(ticker);
   const [q, daily, intraday, ov, news, macro, crypto, cryptoNews] = await Promise.all([
     fallbackQuote(ticker).catch(() => null),
     // '1y' (~252 velas), NO el default '3mo' (~63): A3 corre SMA200 y
@@ -99,8 +100,9 @@ export async function buildMarketSnapshot(ticker: string): Promise<SnapshotResul
     fallbackOverview(ticker).catch(() => null),
     fallbackNewsSentiment(ticker, 5).catch(() => []),
     getMacroSnapshot().catch(() => null),
-    // CoinGecko (fundamentals) + CryptoPanic (noticias) SOLO si es crypto conocido.
-    isCrypto ? fetchCryptoMarketData(ticker).catch(() => null) : Promise.resolve(null),
+    // Fundamentals (CMC∥CoinGecko→CoinStats) + noticias (newsdata.io) SOLO si es
+    // crypto conocido. El orquestador ya degrada a null entre proveedores.
+    isCrypto ? fetchCryptoFundamentals(ticker).catch(() => null) : Promise.resolve(null),
     isCrypto ? fetchCryptoNews(ticker, 5).catch(() => []) : Promise.resolve([]),
   ]);
 
@@ -140,12 +142,12 @@ export async function buildMarketSnapshot(ticker: string): Promise<SnapshotResul
       ev_ebitda: ov?.ev_ebitda ?? null,
       fcf_yield_pct: null, // Finnhub free no expone FCF yield
       dividend_yield_pct: ov?.dividend_yield_pct ?? null,
-      // En crypto, Finnhub da null → lo rellena CoinGecko.
+      // En crypto, Finnhub da null → lo rellena el orquestador crypto (CMC…).
       market_cap_usd: ov?.market_cap_usd ?? crypto?.market_cap_usd ?? null,
     },
-    // Fundamentals crypto (CoinGecko) — null para no-crypto. A1 lo usa como lente.
+    // Fundamentals crypto (CMC∥CoinGecko→CoinStats) — null para no-crypto. A1 lo usa como lente.
     crypto: crypto ?? null,
-    // En crypto, Finnhub /company-news da [] → usamos CryptoPanic. Mutuamente
+    // En crypto, Finnhub /company-news da [] → usamos newsdata.io. Mutuamente
     // excluyentes en la práctica (equity: cryptoNews=[]; crypto: news=[]).
     news: [...news, ...cryptoNews],
     // Cap a 300 (no 100): el compute de A3 necesita ≥205 velas para SMA200 +

@@ -10,42 +10,24 @@
  * Free tier sin key (~30 req/min). Si hay `COINGECKO_API_KEY` en env, se manda
  * como demo key (x-cg-demo-api-key) para subir el límite — pero funciona sin ella.
  *
- * Noticias/narrativa crypto quedan FUERA de v1 (necesitan otro proveedor) —
- * decisión del owner. Esto solo cubre los fundamentals.
+ * Rol actual: dentro del orquestador `crypto-fundamentals.ts`, CoinGecko corre
+ * EN PARALELO con CoinMarketCap (el primario). Aporta el ATH —que CMC no expone—
+ * y sirve de backup si CMC cae. El set de monedas + ids ya no vive aquí: es el
+ * `crypto-registry` (fuente única, neutral de proveedor); `coingeckoId` delega.
  */
 
+import { cryptoMeta } from '@/lib/market/crypto-registry';
 import type { CryptoSnapshot } from '@/agents/shared/types';
 
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
 const FETCH_TIMEOUT_MS = 6000;
 
 /**
- * Map ticker canónico → CoinGecko coin id. Cubre el set de crypto del catálogo
- * (lib/catalog/assets.ts). Un ticker fuera de este map → null (no fetch).
- */
-const COINGECKO_IDS: Record<string, string> = {
-  BTC: 'bitcoin',
-  ETH: 'ethereum',
-  SOL: 'solana',
-  BNB: 'binancecoin',
-  XRP: 'ripple',
-  ADA: 'cardano',
-  DOGE: 'dogecoin',
-  AVAX: 'avalanche-2',
-  DOT: 'polkadot',
-  LINK: 'chainlink',
-  MATIC: 'matic-network',
-  LTC: 'litecoin',
-  ATOM: 'cosmos',
-};
-
-/**
  * Resuelve un ticker a su CoinGecko id, o null si no es un crypto conocido.
- * Tolera el sufijo `-USD` que añade el normalizador de Yahoo (BTC-USD → BTC).
+ * Delega en el `crypto-registry` (que ya tolera el sufijo `-USD` de Yahoo).
  */
 export function coingeckoId(ticker: string): string | null {
-  const base = ticker.trim().toUpperCase().replace(/-USD$/, '');
-  return COINGECKO_IDS[base] ?? null;
+  return cryptoMeta(ticker)?.coingeckoId ?? null;
 }
 
 /** Forma (parcial) de una fila de /coins/markets. Solo lo que consumimos. */

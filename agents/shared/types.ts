@@ -134,9 +134,10 @@ export interface MarketNewsItem {
 }
 
 /**
- * Fundamentals de un activo CRYPTO (CoinGecko). Los ratios equity (P/E, EV/EBITDA…)
- * no aplican; los "fundamentals" crypto son supply, market cap/rank, volumen,
- * distancia a ATH y momentum. Solo presente cuando el activo es crypto; A1 lo
+ * Fundamentals de un activo CRYPTO (CoinMarketCap ∥ CoinGecko → CoinStats). Los
+ * ratios equity (P/E, EV/EBITDA…) no aplican; los "fundamentals" crypto son
+ * supply, market cap/rank, volumen, distancia a ATH y momentum. El ATH lo aporta
+ * CoinGecko (CMC/CoinStats no lo exponen). Solo presente cuando el activo es crypto; A1 lo
  * usa como su lente fundamental para detectar oportunidad/vulnerabilidad.
  */
 export interface CryptoSnapshot {
