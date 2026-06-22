@@ -18,11 +18,13 @@ vi.mock('@/lib/market/coingecko', () => ({
   coingeckoId: vi.fn(),
   fetchCryptoMarketData: vi.fn(),
 }));
+vi.mock('@/lib/market/cryptopanic', () => ({ fetchCryptoNews: vi.fn() }));
 
 import { buildMarketSnapshot } from '../snapshot';
 import * as finnhub from '@/lib/market/finnhub';
 import { getMacroSnapshot } from '@/lib/market/macro';
 import * as coingecko from '@/lib/market/coingecko';
+import * as cryptopanic from '@/lib/market/cryptopanic';
 
 const candle = (c: number, t: number) => ({ o: c, h: c + 1, l: c - 1, c, v: 100, t });
 
@@ -38,9 +40,10 @@ beforeEach(() => {
   vi.mocked(finnhub.fallbackOverview).mockResolvedValue(null as never);
   vi.mocked(finnhub.fallbackNewsSentiment).mockResolvedValue([] as never);
   vi.mocked(getMacroSnapshot).mockResolvedValue(null as never);
-  // Por defecto NO crypto: coingeckoId null → no se hace fetch a CoinGecko.
+  // Por defecto NO crypto: coingeckoId null → no se hace fetch a CoinGecko/CryptoPanic.
   vi.mocked(coingecko.coingeckoId).mockReturnValue(null);
   vi.mocked(coingecko.fetchCryptoMarketData).mockResolvedValue(null as never);
+  vi.mocked(cryptopanic.fetchCryptoNews).mockResolvedValue([] as never);
 });
 
 describe('buildMarketSnapshot', () => {
@@ -136,8 +139,22 @@ describe('buildMarketSnapshot', () => {
     expect(r.data.snapshot.fundamentals.market_cap_usd).toBe(1_300_000_000_000);
   });
 
-  it('no-crypto: snapshot.crypto es null y no se llama a CoinGecko', async () => {
+  it('crypto: las noticias de CryptoPanic entran en snapshot.news', async () => {
+    vi.mocked(coingecko.coingeckoId).mockReturnValue('bitcoin');
+    vi.mocked(cryptopanic.fetchCryptoNews).mockResolvedValue([
+      { headline: 'BTC ETF inflows surge', source: 'CoinDesk', age_hours: 3 },
+    ] as never);
+    const r = await buildMarketSnapshot('BTC');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // Finnhub /company-news da [] en crypto → news = solo las de CryptoPanic.
+    expect(r.data.snapshot.news).toHaveLength(1);
+    expect(r.data.snapshot.news[0]?.headline).toBe('BTC ETF inflows surge');
+  });
+
+  it('no-crypto: snapshot.crypto null y no se llama a CoinGecko/CryptoPanic', async () => {
     await buildMarketSnapshot('AAPL');
     expect(coingecko.fetchCryptoMarketData).not.toHaveBeenCalled();
+    expect(cryptopanic.fetchCryptoNews).not.toHaveBeenCalled();
   });
 });
