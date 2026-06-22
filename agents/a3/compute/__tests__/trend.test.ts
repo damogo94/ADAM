@@ -59,6 +59,20 @@ describe('detectTrend', () => {
     expect(t.fuerza).toBe(1);
   });
 
+  it('ventana ancha pero cola reciente plana → fuerza baja (des-saturación)', () => {
+    // +200% sobre toda la serie, pero las últimas 60 velas son planas. El
+    // código viejo (cambio sobre toda la serie) daba fuerza 5; ahora manda la
+    // ventana reciente → fuerza baja. Lock anti-saturación tras ampliar a '1y'.
+    const t = detectTrend([...linearUp(200, 100, 1), ...flatPrice(60, 300)]);
+    expect(t.fuerza).toBeLessThanOrEqual(2);
+  });
+
+  it('ventana ancha con impulso reciente → fuerza alta (la cola reciente manda)', () => {
+    const t = detectTrend([...linearUp(200, 100, 0.5), ...linearUp(60, 200, 2)]);
+    expect(t.primaria).toBe('alcista');
+    expect(t.fuerza).toBeGreaterThanOrEqual(4);
+  });
+
   it('determinismo: mismo input → mismo output', () => {
     const c = linearUp(50, 100, 1);
     expect(detectTrend(c)).toEqual(detectTrend(c));
