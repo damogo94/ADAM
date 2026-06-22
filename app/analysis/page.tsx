@@ -395,7 +395,12 @@ function AnalysisInner() {
               <FlowArrow>↓ output al usuario</FlowArrow>
               <SectionLabel>sistema · A4</SectionLabel>
               <div className="px-4">
-                <A4Card status={state.a4Status} data={state.a4} aligned={confluence?.aligned ?? false} />
+                <A4Card
+                  status={state.a4Status}
+                  data={state.a4}
+                  aligned={confluence?.aligned ?? false}
+                  confluencePct={confluence?.total_pct}
+                />
               </div>
             </>
           )}

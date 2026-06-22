@@ -8,6 +8,13 @@ interface A4CardProps {
   status: AgentStatus;
   data: A4Output | null;
   aligned?: boolean;
+  /**
+   * Confluencia % recalculada en cliente — fuente ÚNICA de display. La card
+   * de A4 horneó su `data.confluence` en el run (posible bake sin A2 → first-run
+   * gap, p.ej. 17% mientras el indicador muestra 22%). Mostramos esta para que
+   * card, indicador y verdict-bar coincidan. Si falta, cae a la horneada.
+   */
+  confluencePct?: number;
 }
 
 /**
@@ -20,7 +27,7 @@ interface A4CardProps {
  *   - confianza → border-weight + bg-intensity
  *   - "A3 alineado" → outline blanco firme (cuando aplica)
  */
-export function A4Card({ status, data, aligned = false }: A4CardProps) {
+export function A4Card({ status, data, aligned = false, confluencePct }: A4CardProps) {
   const hasData = data != null && status === 'done';
   return (
     <AgentCardShell
@@ -28,7 +35,7 @@ export function A4Card({ status, data, aligned = false }: A4CardProps) {
       badge="A4"
       title="Sistema · Ensamblado final"
       status={status}
-      summary={hasData ? <A4Summary data={data} /> : undefined}
+      summary={hasData ? <A4Summary data={data} confluencePct={confluencePct} /> : undefined}
     >
       {status === 'idle' && <IdleState label="esperando agentes..." />}
       {status === 'scanning' && (
@@ -37,13 +44,16 @@ export function A4Card({ status, data, aligned = false }: A4CardProps) {
       {status === 'error' && (
         <div className="font-mono text-[12px] text-rose py-2">error en A4</div>
       )}
-      {data && status === 'done' && <A4Body data={data} aligned={aligned} />}
+      {data && status === 'done' && <A4Body data={data} aligned={aligned} confluencePct={confluencePct} />}
     </AgentCardShell>
   );
 }
 
-function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
+function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boolean; confluencePct?: number }) {
   const { direccion, confianza, accion_sugerida, riesgo_clave, resumen_a1, resumen_a2, resumen_a3, confluence } = data;
+  // Fuente única de display: la confluencia recalculada en cliente manda sobre
+  // la horneada en A4 (que puede venir del bake sin A2). Fallback a la horneada.
+  const pct = confluencePct ?? confluence.score_total_pct;
   const dirLabel =
     direccion === 'positivo' ? '↑ ALCISTA' : direccion === 'negativo' ? '↓ BAJISTA' : '→ NEUTRAL';
   // Color semántico (sesión 5b): positivo=emerald, negativo=rose, neutral=blanco.
@@ -70,7 +80,7 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
             confCls
           )}
         >
-          {confianza} · {confluence.score_total_pct}%
+          {confianza} · {pct}%
         </span>
         {aligned && (
           <span className="rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[11px] text-emerald tracking-wider">
@@ -85,11 +95,11 @@ function A4Body({ data, aligned }: { data: A4Output; aligned: boolean }) {
         <ResumenBlock badge="A3" text={resumen_a3} />
       </div>
 
-      <SignalBox tone={confluence.score_total_pct >= 67 ? 'bull' : 'neut'}>
+      <SignalBox tone={pct >= 67 ? 'bull' : 'neut'}>
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confluence.score_total_pct >= 67 ? 'text-emerald' : 'text-white/66'
+            pct >= 67 ? 'text-emerald' : 'text-white/66'
           )}
         >
           recomendación del sistema
@@ -115,14 +125,15 @@ function ResumenBlock({ badge, text }: { badge: string; text: string }) {
 }
 
 /** Fila-veredicto de A4: dirección consolidada + confluencia% + confianza. */
-function A4Summary({ data }: { data: A4Output }) {
+function A4Summary({ data, confluencePct }: { data: A4Output; confluencePct?: number }) {
   const dirLabel =
     data.direccion === 'positivo' ? 'ALCISTA' : data.direccion === 'negativo' ? 'BAJISTA' : 'NEUTRAL';
+  const pct = confluencePct ?? data.confluence.score_total_pct;
   return (
     <>
       <DirectionBadge dir={data.direccion} />
       <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-bold tracking-wider text-white">
-        {dirLabel} · {data.confluence.score_total_pct}%
+        {dirLabel} · {pct}%
       </span>
       <ConfidenceChip value={data.confianza} showBar />
     </>
