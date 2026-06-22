@@ -133,6 +133,27 @@ export interface MarketNewsItem {
   age_hours?: number | null;
 }
 
+/**
+ * Fundamentals de un activo CRYPTO (CoinGecko). Los ratios equity (P/E, EV/EBITDA…)
+ * no aplican; los "fundamentals" crypto son supply, market cap/rank, volumen,
+ * distancia a ATH y momentum. Solo presente cuando el activo es crypto; A1 lo
+ * usa como su lente fundamental para detectar oportunidad/vulnerabilidad.
+ */
+export interface CryptoSnapshot {
+  market_cap_usd: number | null;
+  market_cap_rank: number | null;
+  volume_24h_usd: number | null;
+  circulating_supply: number | null;
+  total_supply: number | null;
+  max_supply: number | null;
+  ath_usd: number | null;
+  /** % respecto al máximo histórico (negativo = por debajo del ATH). */
+  ath_change_pct: number | null;
+  price_change_pct_24h: number | null;
+  price_change_pct_7d: number | null;
+  price_change_pct_30d: number | null;
+}
+
 export interface MarketSnapshot {
   ticker: string;
   quote: {
@@ -149,6 +170,8 @@ export interface MarketSnapshot {
     dividend_yield_pct: number | null;
     market_cap_usd: number | null;
   };
+  /** Fundamentals crypto (CoinGecko). null/ausente para no-crypto. */
+  crypto?: CryptoSnapshot | null;
   news: MarketNewsItem[];
   ohlcv_daily: OHLCVCandle_t[];
   ohlcv_intraday: OHLCVCandle_t[];

@@ -35,9 +35,12 @@ export async function narrateA1(
   const { traceId, onUsage } = options;
 
   // Subset del snapshot que A1 ve. NO le pasamos macro ni ohlcv.
+  // El bloque `crypto` (CoinGecko) solo se incluye si el activo es crypto —
+  // son los fundamentals que SÍ aplican ahí (Finnhub no cubre crypto).
   const market_snapshot = {
     quote: snapshot.quote,
     fundamentals: snapshot.fundamentals,
+    ...(snapshot.crypto ? { crypto: snapshot.crypto } : {}),
     news: snapshot.news,
   };
 

@@ -14,10 +14,15 @@ vi.mock('@/lib/market/finnhub', () => ({
   fallbackNewsSentiment: vi.fn(),
 }));
 vi.mock('@/lib/market/macro', () => ({ getMacroSnapshot: vi.fn() }));
+vi.mock('@/lib/market/coingecko', () => ({
+  coingeckoId: vi.fn(),
+  fetchCryptoMarketData: vi.fn(),
+}));
 
 import { buildMarketSnapshot } from '../snapshot';
 import * as finnhub from '@/lib/market/finnhub';
 import { getMacroSnapshot } from '@/lib/market/macro';
+import * as coingecko from '@/lib/market/coingecko';
 
 const candle = (c: number, t: number) => ({ o: c, h: c + 1, l: c - 1, c, v: 100, t });
 
@@ -33,6 +38,9 @@ beforeEach(() => {
   vi.mocked(finnhub.fallbackOverview).mockResolvedValue(null as never);
   vi.mocked(finnhub.fallbackNewsSentiment).mockResolvedValue([] as never);
   vi.mocked(getMacroSnapshot).mockResolvedValue(null as never);
+  // Por defecto NO crypto: coingeckoId null → no se hace fetch a CoinGecko.
+  vi.mocked(coingecko.coingeckoId).mockReturnValue(null);
+  vi.mocked(coingecko.fetchCryptoMarketData).mockResolvedValue(null as never);
 });
 
 describe('buildMarketSnapshot', () => {
@@ -102,5 +110,34 @@ describe('buildMarketSnapshot', () => {
     expect(r.data.snapshot.quote.currency).toBe('USD'); // overview > quote
     expect(r.data.snapshot.fundamentals.per).toBe(25);
     expect(r.data.snapshot.fundamentals.fcf_yield_pct).toBeNull();
+  });
+
+  it('crypto: puebla snapshot.crypto y rellena market_cap desde CoinGecko (Finnhub da null)', async () => {
+    vi.mocked(coingecko.coingeckoId).mockReturnValue('bitcoin');
+    vi.mocked(coingecko.fetchCryptoMarketData).mockResolvedValue({
+      market_cap_usd: 1_300_000_000_000,
+      market_cap_rank: 1,
+      volume_24h_usd: 25_000_000_000,
+      circulating_supply: 19_700_000,
+      total_supply: 19_700_000,
+      max_supply: 21_000_000,
+      ath_usd: 73_000,
+      ath_change_pct: -12.5,
+      price_change_pct_24h: 1.2,
+      price_change_pct_7d: -3.5,
+      price_change_pct_30d: 8.1,
+    } as never);
+    const r = await buildMarketSnapshot('BTC');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.snapshot.crypto?.market_cap_rank).toBe(1);
+    expect(r.data.snapshot.crypto?.max_supply).toBe(21_000_000);
+    // Finnhub overview da null en crypto → market_cap lo rellena CoinGecko.
+    expect(r.data.snapshot.fundamentals.market_cap_usd).toBe(1_300_000_000_000);
+  });
+
+  it('no-crypto: snapshot.crypto es null y no se llama a CoinGecko', async () => {
+    await buildMarketSnapshot('AAPL');
+    expect(coingecko.fetchCryptoMarketData).not.toHaveBeenCalled();
   });
 });
