@@ -72,11 +72,13 @@ describe('buildCMTSignal — smoke end-to-end', () => {
     expect(out.confidence_pct).toBeLessThanOrEqual(100);
   });
 
-  it('indicators tiene entre 3 y 5 entradas (≤5 lo exige el schema)', () => {
+  it('indicators tiene entre 3 y 6 entradas e incluye rango_52s con ≥200 velas', () => {
     const out = buildCMTSignal({ ticker: 'TEST', ohlcv: linearUp(250, 100, 1) });
     const n = Object.keys(out.indicators).length;
     expect(n).toBeGreaterThanOrEqual(3);
-    expect(n).toBeLessThanOrEqual(5);
+    expect(n).toBeLessThanOrEqual(6);
+    // ≥200 velas → el rango de 52s entra en el map (opción C, sin migración).
+    expect(out.indicators.rango_52s).toBeDefined();
   });
 
   it('<20 velas → hold → sin_senal', () => {
