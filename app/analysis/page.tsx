@@ -16,6 +16,7 @@ import { VerdictBar } from '@/components/verdict-bar';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
 import { resolveTicker } from '@/lib/catalog/assets';
+import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
 import type {
   A1Output_t as A1Output,
@@ -350,6 +351,7 @@ function AnalysisInner() {
             <A1Card
               status={state.a1Status}
               data={state.a1}
+              isCrypto={isCryptoTicker(state.ticker ?? '')}
               failureMessage={state.failures.find((f) => f.agent === 'A1')?.message}
             />
             <A2Card

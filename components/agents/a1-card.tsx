@@ -2,16 +2,51 @@ import type { A1Output_t as A1Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { ScanCarousel } from '@/components/scan-carousel';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
-import { cn, fmtPct } from '@/lib/utils';
+import { cn, fmtPct, fmtMarketCap } from '@/lib/utils';
 
 interface A1CardProps {
   status: AgentStatus;
   data: A1Output | null;
   /** Mensaje de error específico de este agente — surface al UI para diagnóstico. */
   failureMessage?: string;
+  /**
+   * Activo cripto: cambia las fuentes mostradas. En cripto los fundamentales
+   * vienen de CoinMarketCap (∥ CoinGecko → CoinStats) y las noticias de
+   * newsdata.io — Finnhub no cubre cripto. Se deriva en la página vía
+   * `isCryptoTicker(ticker)` para que el label sea correcto ya en "scanning".
+   */
+  isCrypto?: boolean;
 }
 
-export function A1Card({ status, data, failureMessage }: A1CardProps) {
+/** Tareas del carrusel "scanning" — equity (ratios) vs cripto (supply/ATH). */
+const EQUITY_SCAN_TASKS = [
+  'consultando precio · Yahoo',
+  'volumen 24h · cambio porcentual',
+  'fundamentales · ratios P/E',
+  'EV/EBITDA · market cap',
+  'dividendos · payout ratio',
+  'noticias últimas 48h · Finnhub',
+  'cruzando sentiment · headlines',
+  'momentum 24h / 7d',
+  'comparativa sector · peers',
+  'detección de anomalías',
+  'componiendo narrativa A1',
+] as const;
+
+const CRYPTO_SCAN_TASKS = [
+  'consultando precio · Yahoo',
+  'market cap · ranking · CoinMarketCap',
+  'oferta circulante / total / máx',
+  'volumen 24h · liquidez',
+  'distancia al máximo histórico (ATH)',
+  'momentum 24h / 7d / 30d',
+  'noticias cripto · newsdata.io',
+  'cruzando titulares por moneda',
+  'detección de anomalías',
+  'componiendo narrativa A1',
+] as const;
+
+export function A1Card({ status, data, failureMessage, isCrypto = false }: A1CardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
     <AgentCardShell
@@ -19,27 +54,13 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
       badge="A1"
       title="Activos"
       status={status}
-      source="Yahoo · Finnhub"
+      source={isCrypto ? 'Yahoo · CoinMarketCap · newsdata' : 'Yahoo · Finnhub'}
       summary={hasData ? <A1Summary data={data} /> : undefined}
       defaultOpen={data?.anomaly_detected ?? false}
     >
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
-        <ScanCarousel
-          tasks={[
-            'consultando precio · Yahoo',
-            'volumen 24h · cambio porcentual',
-            'fundamentales · ratios P/E',
-            'EV/EBITDA · market cap',
-            'dividendos · payout ratio',
-            'noticias últimas 48h · Finnhub',
-            'cruzando sentiment · headlines',
-            'momentum 24h / 7d',
-            'comparativa sector · peers',
-            'detección de anomalías',
-            'componiendo narrativa A1',
-          ]}
-        />
+        <ScanCarousel tasks={[...(isCrypto ? CRYPTO_SCAN_TASKS : EQUITY_SCAN_TASKS)]} />
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
@@ -49,12 +70,12 @@ export function A1Card({ status, data, failureMessage }: A1CardProps) {
           )}
         </div>
       )}
-      {(status === 'done' || status === 'anomaly') && data && <A1Body data={data} />}
+      {(status === 'done' || status === 'anomaly') && data && <A1Body data={data} isCrypto={isCrypto} />}
     </AgentCardShell>
   );
 }
 
-function A1Body({ data }: { data: A1Output }) {
+function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
   const { price, fundamentals, news, anomaly_detected, anomaly_description, confidence, narrative } = data;
   const pos = price.change_pct_24h >= 0;
   const ccy = price.currency || 'USD';
@@ -74,12 +95,17 @@ function A1Body({ data }: { data: A1Output }) {
                 : 'text-rose'
           }
         />
+        {/* Market cap: clave en cripto (donde P/E y EV/EBITDA son null por
+            naturaleza) y útil en equity. Ya viene en A1Output.fundamentals. */}
+        {fundamentals.market_cap_usd !== null && (
+          <KV k="Market cap" v={fmtMarketCap(fundamentals.market_cap_usd)} />
+        )}
         {fundamentals.per !== null && <KV k="P/E" v={fundamentals.per.toFixed(2)} />}
         {fundamentals.ev_ebitda !== null && <KV k="EV/EBITDA" v={fundamentals.ev_ebitda.toFixed(2)} />}
       </DataSection>
 
       {news.length > 0 && (
-        <DataSection label="Noticias" source="Finnhub">
+        <DataSection label="Noticias" source={isCrypto ? 'newsdata.io' : 'Finnhub'}>
           {news.slice(0, 3).map((n, i) => (
             <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
               <div className="font-mono text-[12px] leading-snug text-white">{n.headline}</div>
