@@ -458,10 +458,12 @@ export async function fallbackQuote(symbol: string): Promise<{
 /**
  * Daily candles. Yahoo /v8/chart 3mo/1d — sin auth, sin cuota práctica.
  *
- * `range` por defecto '3mo' (suficiente para el análisis vivo). El backtest
- * path-dependent (cron evaluate-trades) necesita más historia para cubrir la
- * ventana posicional (~120 días) → pasa '1y'. Yahoo acepta 1d/5d/1mo/3mo/6mo/
- * 1y/2y/5y/max.
+ * `range` por defecto '3mo' (~63 velas). OJO: el análisis vivo de A3
+ * (snapshot.ts) y cmt/scan/estructura pasan '1y' EXPLÍCITAMENTE porque el
+ * compute corre SMA200 + golden/death cross, que exigen ≥200/≥205 velas; con
+ * '3mo' SMA200 sale null y los cruces no disparan. El backtest path-dependent
+ * (cron evaluate-trades) también pasa '1y' para cubrir la ventana posicional
+ * (~120 días). Yahoo acepta 1d/5d/1mo/3mo/6mo/1y/2y/5y/max.
  */
 export async function fallbackDaily(
   symbol: string,

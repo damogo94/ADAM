@@ -82,7 +82,13 @@ export function computeTechnical(
   const sma20 = smaLast(ohlcv, 20);
   const sma50 = smaLast(ohlcv, 50);
   const sma200 = smaLast(ohlcv, 200); // null si <200 velas
-  const vwapVal = vwap(ohlcv);
+  // VWAP acotado a una ventana reciente. El array de entrada ahora es ANCHO
+  // (~252 velas, necesario para SMA200/golden-death cross), pero un VWAP rolling
+  // sobre ~1 año es un ancla inútil. Lo fijamos a las últimas VWAP_WINDOW velas
+  // para preservar su semántica (~3 meses, como cuando el path vivo pasaba '3mo').
+  // No afecta a CMT (descarta vwap) ni a Estructura (no lo usa).
+  const VWAP_WINDOW = 60;
+  const vwapVal = vwap(ohlcv.slice(-VWAP_WINDOW));
   const atr = atrLast(ohlcv, 14);
   const { golden_cross, death_cross } = detectCrosses(ohlcv);
 
