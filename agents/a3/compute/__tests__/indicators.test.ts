@@ -14,6 +14,7 @@ import {
   macdLast,
   detectCrosses,
   classifyVolumeState,
+  rango52Semanas,
 } from '../indicators';
 import { flatPrice, linearUp, linearDown } from './fixtures';
 
@@ -197,5 +198,31 @@ describe('determinismo', () => {
     expect(smaLast(candles, 20)).toBe(smaLast(candles, 20));
     expect(atrLast(candles, 14)).toBe(atrLast(candles, 14));
     expect(vwap(candles)).toBe(vwap(candles));
+  });
+});
+
+describe('rango52Semanas', () => {
+  it('null con <200 velas (histórico insuficiente para 52s)', () => {
+    expect(rango52Semanas(flatPrice(150, 100))).toBeNull();
+  });
+
+  it('≥200 velas → high > low y posición dentro de [0,100]', () => {
+    const r = rango52Semanas(linearUp(252, 100, 0.5));
+    expect(r).not.toBeNull();
+    expect(r!.high).toBeGreaterThan(r!.low);
+    expect(r!.posicion_pct).toBeGreaterThanOrEqual(0);
+    expect(r!.posicion_pct).toBeLessThanOrEqual(100);
+  });
+
+  it('precio cerca de máximos → posición alta', () => {
+    const r = rango52Semanas([...flatPrice(200, 100), ...linearUp(20, 100, 2.5)]);
+    expect(r).not.toBeNull();
+    expect(r!.posicion_pct).toBeGreaterThanOrEqual(90);
+  });
+
+  it('precio cerca de mínimos → posición baja', () => {
+    const r = rango52Semanas([...flatPrice(200, 100), ...linearDown(20, 100, 2.5)]);
+    expect(r).not.toBeNull();
+    expect(r!.posicion_pct).toBeLessThanOrEqual(10);
   });
 });

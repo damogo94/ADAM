@@ -86,6 +86,44 @@ export function vwap(candles: OHLCVCandle_t[]): number | null {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
+// Rango de 52 semanas — máximo/mínimo de las últimas ~252 sesiones + posición
+//
+// Derivado SOLO de OHLCV (max de highs, min de lows). NO usa el week52 de
+// Finnhub (fundamental → violaría el aislamiento de A3). Devuelve null con
+// <MIN_CANDLES_52W velas: sin ~1 año de histórico, "52 semanas" sería una
+// etiqueta engañosa (mismo bar de suficiencia que SMA200).
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Sesiones que abarca el rango: ~52 semanas de trading. */
+const WEEKS_52_CANDLES = 252;
+/** Mínimo de velas para reportar el rango (igual que el bar de SMA200). */
+const MIN_CANDLES_52W = 200;
+
+export interface Range52w {
+  high: number;
+  low: number;
+  /** Posición del cierre actual dentro del rango: 0 = mínimo, 100 = máximo. */
+  posicion_pct: number;
+}
+
+export function rango52Semanas(candles: OHLCVCandle_t[]): Range52w | null {
+  if (candles.length < MIN_CANDLES_52W) return null;
+  const window = candles.slice(-WEEKS_52_CANDLES);
+  let high = -Infinity;
+  let low = Infinity;
+  for (const c of window) {
+    if (c.h > high) high = c.h;
+    if (c.l < low) low = c.l;
+  }
+  // Rango degenerado (todo el histórico al mismo precio) → sin posición útil.
+  if (!Number.isFinite(high) || !Number.isFinite(low) || high <= low) return null;
+  const current = window[window.length - 1]!.c;
+  const raw = ((current - low) / (high - low)) * 100;
+  const posicion_pct = Math.round(Math.max(0, Math.min(100, raw)) * 10) / 10;
+  return { high, low, posicion_pct };
+}
+
+// ───────────────────────────────────────────────────────────────────────────
 // ATR (Average True Range) — para sizing de stops
 // ───────────────────────────────────────────────────────────────────────────
 
