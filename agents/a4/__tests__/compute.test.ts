@@ -280,6 +280,46 @@ describe('scoreAlignment', () => {
     );
     expect(r).toBe(100);
   });
+
+  // ── Fix N0: HOLD con tendencia direccional SÍ cuenta en alignment ───────
+  it('A3 hold pero tendencia alcista → aporta dirección (1 opina) → 30 (antes 0)', () => {
+    // El caso del screenshot del usuario: A1/A2 neutrales, A3 hold con tendencia
+    // alcista. Antes A3 hold → neutral → 0 direcciones → "Alineados —". Ahora la
+    // tendencia de fondo de A3 cuenta → 1 opina → 30.
+    const r = scoreAlignment(
+      mkA1({ anomaly_detected: false, anomaly_type: null }),
+      mkA2({ opportunity_detected: false }),
+      mkA3({
+        operativa: { ...mkA3().operativa, signal: 'hold' },
+        tendencia: { primaria: 'alcista', secundaria: 'alcista', fuerza: 4 },
+      })
+    );
+    expect(r).toBe(30);
+  });
+
+  it('A3 hold+tendencia alcista con A1+A2 alcista → 3 alineados → 100 (antes 70)', () => {
+    const r = scoreAlignment(
+      mkA1({ anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      mkA2({ opportunity_detected: true }),
+      mkA3({
+        operativa: { ...mkA3().operativa, signal: 'hold' },
+        tendencia: { primaria: 'alcista', secundaria: 'alcista', fuerza: 4 },
+      })
+    );
+    expect(r).toBe(100);
+  });
+
+  it('A3 hold + tendencia lateral → sigue neutral (no se inventa dirección)', () => {
+    const r = scoreAlignment(
+      mkA1({ anomaly_detected: false, anomaly_type: null }),
+      mkA2({ opportunity_detected: false }),
+      mkA3({
+        operativa: { ...mkA3().operativa, signal: 'hold' },
+        tendencia: { primaria: 'lateral', secundaria: 'lateral', fuerza: 1 },
+      })
+    );
+    expect(r).toBe(0);
+  });
 });
 
 // ───────────────────────────────────────────────────────────────────────────

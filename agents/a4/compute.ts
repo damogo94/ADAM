@@ -141,7 +141,8 @@ export function scoreA1A2(
  *            anomaly_type 'vulnerabilidad' → bajista
  *            'anomalia' o null → neutral
  *      - a2: opportunity_detected → alcista, !opportunity_detected → neutral
- *      - a3: signal buy → alcista, sell → bajista, hold → neutral
+ *      - a3: signal buy → alcista, sell → bajista; hold → cae a tendencia.primaria
+ *            (alcista/bajista; lateral → neutral) para no perder el sesgo de fondo
  *
  *   2. Filtrar direcciones neutrales/null (no aportan a alignment).
  *
@@ -216,6 +217,12 @@ function directionOfA3(a3: A3Output_t | null): 'alcista' | 'bajista' | 'neutral'
   if (!a3) return null;
   if (a3.operativa.signal === 'buy') return 'alcista';
   if (a3.operativa.signal === 'sell') return 'bajista';
+  // HOLD = sin setup accionable, pero A3 puede tener un sesgo de fondo. Antes
+  // un HOLD contaba como neutral y la tendencia se perdía (un HOLD en tendencia
+  // alcista no es "sin opinión"). Caemos a la tendencia primaria para que la
+  // lectura direccional de A3 SÍ cuente en la alineación. 'lateral' → neutral.
+  if (a3.tendencia.primaria === 'alcista') return 'alcista';
+  if (a3.tendencia.primaria === 'bajista') return 'bajista';
   return 'neutral';
 }
 
