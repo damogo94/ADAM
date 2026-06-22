@@ -64,7 +64,12 @@ function trimA1(a1: A1Output_t) {
 function trimA2(a2: A2Output_t) {
   return {
     ticker: a2.ticker,
+    // regime_outlook es la ÚNICA señal direccional SIMÉTRICA de A2 (risk_on →
+    // alcista / risk_off → bajista). Sin pasarla, A4 nunca veía el sesgo alcista
+    // macro → contribuía al sesgo "A4 nunca emite positivo" (0/209 en prod).
+    regime_outlook: a2.regime_outlook ?? null,
     opportunity_detected: a2.opportunity_detected,
+    opportunity_description: a2.opportunity_description,
     confidence: a2.confidence,
     narrative: a2.narrative,
   };
