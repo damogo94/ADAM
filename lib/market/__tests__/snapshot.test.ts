@@ -1,7 +1,7 @@
 /**
  * Tests de buildMarketSnapshot — el constructor único del MarketSnapshot.
  * Cubre: camino feliz, recovery de precio desde la última vela cuando el
- * quote cae, market_data_unavailable, y caps/merge (ohlcv 100, macro).
+ * quote cae, market_data_unavailable, y caps/merge (range '1y', ohlcv ≥205/cap 300, macro).
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -66,14 +66,27 @@ describe('buildMarketSnapshot', () => {
     expect(r.reason).toBe('market_data_unavailable');
   });
 
-  it('capa ohlcv_daily a 100 velas y mergea el snapshot macro', async () => {
-    const many = Array.from({ length: 150 }, (_, i) => candle(i + 1, i));
+  it('pide range "1y" a fallbackDaily y conserva ≥205 velas para SMA200/cross', async () => {
+    const oneYear = Array.from({ length: 252 }, (_, i) => candle(i + 1, i));
+    vi.mocked(finnhub.fallbackDaily).mockResolvedValue(oneYear as never);
+    const r = await buildMarketSnapshot('X');
+    // Fetch-side del fix: el path vivo DEBE pedir '1y' (no el default '3mo'), o
+    // SMA200 y golden/death cross mueren en prod aunque el compute esté testeado.
+    expect(finnhub.fallbackDaily).toHaveBeenCalledWith('X', '1y');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.snapshot.ohlcv_daily.length).toBeGreaterThanOrEqual(205);
+    expect(r.data.snapshot.ohlcv_daily).toHaveLength(252);
+  });
+
+  it('capa ohlcv_daily a 300 velas (techo defensivo) y mergea el snapshot macro', async () => {
+    const many = Array.from({ length: 400 }, (_, i) => candle(i + 1, i));
     vi.mocked(finnhub.fallbackDaily).mockResolvedValue(many as never);
     vi.mocked(getMacroSnapshot).mockResolvedValue({ as_of: '2026-05-30', vix: 15 } as never);
     const r = await buildMarketSnapshot('X');
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.data.snapshot.ohlcv_daily).toHaveLength(100);
+    expect(r.data.snapshot.ohlcv_daily).toHaveLength(300);
     expect(r.data.snapshot.macro_snapshot).toMatchObject({ as_of: '2026-05-30', vix: 15 });
   });
 

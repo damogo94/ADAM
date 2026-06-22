@@ -84,7 +84,11 @@ export async function buildMarketSnapshot(ticker: string): Promise<SnapshotResul
   // Fan-out paralelo — cada provider es best-effort.
   const [q, daily, intraday, ov, news, macro] = await Promise.all([
     fallbackQuote(ticker).catch(() => null),
-    fallbackDaily(ticker).catch(() => []),
+    // '1y' (~252 velas), NO el default '3mo' (~63): A3 corre SMA200 y
+    // golden/death cross sobre estas velas vía computeTechnical, y ambos
+    // exigen ≥200/≥205 velas. Con '3mo' SMA200 era siempre null y los cruces
+    // nunca disparaban en prod. Iguala lo que ya usan cmt/scan y estructura.
+    fallbackDaily(ticker, '1y').catch(() => []),
     fallbackIntraday(ticker).catch(() => []),
     fallbackOverview(ticker).catch(() => null),
     fallbackNewsSentiment(ticker, 5).catch(() => []),
@@ -130,7 +134,12 @@ export async function buildMarketSnapshot(ticker: string): Promise<SnapshotResul
       market_cap_usd: ov?.market_cap_usd ?? null,
     },
     news,
-    ohlcv_daily: daily.slice(-100),
+    // Cap a 300 (no 100): el compute de A3 necesita ≥205 velas para SMA200 +
+    // golden/death cross. '1y' devuelve ~252, que pasan enteras; 300 es solo
+    // un techo defensivo. Bajar este cap por debajo de 205 revive el bug.
+    // A1/A2 NO reciben ohlcv (ver a1/a2 narrate), así que ensanchar no les
+    // sube tokens; el LLM de A3 recibe computeOut, no las velas.
+    ohlcv_daily: daily.slice(-300),
     ohlcv_intraday: intraday.slice(-100),
     macro_snapshot: macro ? { ...macro } : {},
   };
