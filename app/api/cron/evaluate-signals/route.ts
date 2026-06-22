@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { fallbackQuote } from '@/lib/market/finnhub';
-import { scoreSignal, type Direction } from '@/lib/scoring';
+import { scoreSignal, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K, type Direction } from '@/lib/scoring';
 import type { Direction as DbDirection } from '@/types/db';
 import * as Sentry from '@sentry/nextjs';
 
@@ -40,6 +40,22 @@ interface PendingAnalysis {
   direction: DbDirection;
   initial_price: number | null;
   initial_price_at: string | null;
+  a3_output: unknown;
+}
+
+/**
+ * ATR% del activo al momento del análisis, desde a3_output.operativa.atr_actual.
+ * Usado para hacer el umbral de hit volatility-adjusted. null si no hay ATR
+ * (runs antiguos, velas insuficientes, precio inválido) → el caller cae al 2% fijo.
+ */
+function extractAtrPct(a3: unknown, initialPrice: number): number | null {
+  if (!a3 || typeof a3 !== 'object' || !Number.isFinite(initialPrice) || initialPrice <= 0) {
+    return null;
+  }
+  const op = (a3 as { operativa?: { atr_actual?: unknown } }).operativa;
+  const atr = op?.atr_actual;
+  if (typeof atr !== 'number' || !Number.isFinite(atr) || atr <= 0) return null;
+  return (atr / initialPrice) * 100;
 }
 
 export async function GET(req: NextRequest) {
@@ -67,7 +83,7 @@ export async function GET(req: NextRequest) {
     // con embedding; hacemos dos queries y diffeamos en memoria.
     const { data: candidates, error: candErr } = await admin
       .from('analyses_log')
-      .select('id, ticker, direction, initial_price, initial_price_at')
+      .select('id, ticker, direction, initial_price, initial_price_at, a3_output')
       .not('initial_price', 'is', null)
       .lte('initial_price_at', cutoffISO)
       .limit(500);
@@ -108,10 +124,16 @@ export async function GET(req: NextRequest) {
           skipped.push({ analysis_id: a.id, reason: 'quote_unavailable' });
           continue;
         }
+        // Umbral de hit volatility-adjusted: max(2%, k·ATR%). Para BTC (ATR ~3-4%)
+        // sube el listón; para una equity (ATR ~1%) se queda en el piso del 2%.
+        const atrPct = extractAtrPct(a.a3_output, Number(a.initial_price));
+        const thresholdPct =
+          atrPct != null ? Math.max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K * atrPct) : SIGNAL_THRESHOLD_PCT;
         const scored = scoreSignal({
           direccion: DB_TO_SCORING_DIRECTION[a.direction],
           initial_price: Number(a.initial_price),
           eval_price: q.current,
+          threshold_pct: thresholdPct,
         });
         const { error: insErr } = await admin.from('signal_outcomes').insert({
           analysis_id: a.id,
