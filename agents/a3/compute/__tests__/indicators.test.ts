@@ -143,6 +143,25 @@ describe('detectCrosses', () => {
     expect(typeof r.golden_cross).toBe('boolean');
     expect(typeof r.death_cross).toBe('boolean');
   });
+
+  // Caso positivo (antes diferido a "Fase 2 eval harness"): forzamos el cruce
+  // en las últimas barras con 204 velas planas (SMA50 = SMA200) + un impulso
+  // corto al final. La SMA50 reacciona antes que la SMA200 y la cruza dentro
+  // de la ventana de lookback. Sin esta cobertura el disparo estaba muerto en
+  // prod (ventana corta) Y sin assert (los tests solo veían el caso false).
+  it('golden cross: SMA50 cruza ARRIBA de SMA200 en las últimas barras → true', () => {
+    const candles = [...flatPrice(204, 100), ...linearUp(3, 110, 10)];
+    const r = detectCrosses(candles);
+    expect(r.golden_cross).toBe(true);
+    expect(r.death_cross).toBe(false);
+  });
+
+  it('death cross: SMA50 cruza ABAJO de SMA200 en las últimas barras → true', () => {
+    const candles = [...flatPrice(204, 100), ...linearDown(3, 90, 10)];
+    const r = detectCrosses(candles);
+    expect(r.death_cross).toBe(true);
+    expect(r.golden_cross).toBe(false);
+  });
 });
 
 describe('classifyVolumeState', () => {

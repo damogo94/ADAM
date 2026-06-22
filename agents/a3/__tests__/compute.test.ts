@@ -96,6 +96,20 @@ describe('computeTechnical — reglas operativas', () => {
     expect(out.medias.sma200).not.toBeNull();
   });
 
+  it('ventana ancha con cruce reciente → sma200 no null Y golden_cross true (end-to-end)', () => {
+    // Lock end-to-end del fix de la ventana de velas: con un array de ancho
+    // realista (~207, como el path vivo tras pasar '1y'), el orquestador
+    // expone sma200 Y dispara el golden cross. Con la ventana corta de antes
+    // (~63 velas) ambos salían null/false en prod.
+    const out = computeTechnical({
+      ticker: 'TEST',
+      ohlcv: [...flatPrice(204, 100), ...linearUp(3, 110, 10)],
+      timeframe: '1D',
+    });
+    expect(out.medias.sma200).not.toBeNull();
+    expect(out.medias.golden_cross).toBe(true);
+  });
+
   it('<20 velas → confidence ≤ 30 y signal hold', () => {
     const out = computeTechnical({
       ticker: 'TEST',
