@@ -119,6 +119,27 @@ describe('computeTechnical — reglas operativas', () => {
     expect(out.confidence).toBeLessThanOrEqual(30);
     expect(out.operativa.signal).toBe('hold');
   });
+
+  it('≥200 velas → rango_52s presente (high > low, posición en [0,100])', () => {
+    const out = computeTechnical({
+      ticker: 'TEST',
+      ohlcv: linearUp(250, 100, 0.5),
+      timeframe: '1D',
+    });
+    expect(out.rango_52s).not.toBeNull();
+    expect(out.rango_52s!.high).toBeGreaterThan(out.rango_52s!.low);
+    expect(out.rango_52s!.posicion_pct).toBeGreaterThanOrEqual(0);
+    expect(out.rango_52s!.posicion_pct).toBeLessThanOrEqual(100);
+  });
+
+  it('<200 velas → rango_52s null', () => {
+    const out = computeTechnical({
+      ticker: 'TEST',
+      ohlcv: flatPrice(100, 100),
+      timeframe: '1D',
+    });
+    expect(out.rango_52s ?? null).toBeNull();
+  });
 });
 
 describe('computeTechnical — campos específicos', () => {

@@ -36,6 +36,7 @@ import {
   macdLast,
   detectCrosses,
   classifyVolumeState,
+  rango52Semanas,
 } from './compute/indicators';
 import { detectTrend } from './compute/trend';
 import { detectLevels } from './compute/levels';
@@ -91,6 +92,9 @@ export function computeTechnical(
   const vwapVal = vwap(ohlcv.slice(-VWAP_WINDOW));
   const atr = atrLast(ohlcv, 14);
   const { golden_cross, death_cross } = detectCrosses(ohlcv);
+
+  // ── Rango de 52 semanas (máx/mín de las últimas ~252 sesiones, OHLCV-only) ──
+  const rango_52s = rango52Semanas(ohlcv);
 
   // ── Osciladores de momentum (confirmación lateral, no driver) ────
   const rsi14 = rsiLast(ohlcv, 14);
@@ -169,6 +173,7 @@ export function computeTechnical(
     factor_invalidacion,
     mtf,
     osciladores: { rsi14, macd },
+    rango_52s,
     confidence,
   };
 }

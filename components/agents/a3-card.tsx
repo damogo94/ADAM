@@ -158,6 +158,14 @@ function A3Body({
         {medias.vwap !== null && <KVRow k="VWAP" v={fmtNum(medias.vwap)} />}
       </DataSection>
 
+      {data.rango_52s && (
+        <DataSection label={`Rango 52s · ${currency}`} source="Yahoo · OHLCV">
+          <KVRow k="Máximo 52s" v={fmtNum(data.rango_52s.high)} />
+          <KVRow k="Mínimo 52s" v={fmtNum(data.rango_52s.low)} />
+          <KVRow k="Posición" v={`${data.rango_52s.posicion_pct.toFixed(0)}%`} />
+        </DataSection>
+      )}
+
       {data.osciladores && (data.osciladores.rsi14 !== null || data.osciladores.macd) && (
         <DataSection label="Osciladores" source="momentum · confirmación">
           {data.osciladores.rsi14 !== null && (

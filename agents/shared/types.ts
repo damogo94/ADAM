@@ -418,6 +418,23 @@ export const A3Output = z
       .strict()
       .nullable()
       .optional(),
+    /**
+     * Rango de 52 semanas — máximo/mínimo de las últimas ~252 sesiones y la
+     * posición actual dentro de él (0 = en mínimos, 100 = en máximos). Derivado
+     * SOLO de OHLCV (max H / min L), NO del week52 fundamental de Finnhub (eso
+     * violaría el aislamiento de A3). null cuando hay <200 velas (histórico
+     * insuficiente para "52 semanas"). nullable+optional para back-compat con
+     * runs previos (igual que mtf/osciladores).
+     */
+    rango_52s: z
+      .object({
+        high: z.number(),
+        low: z.number(),
+        posicion_pct: z.number(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
     confidence: z.number().int().min(0).max(100),
     narrative: z.string().max(2500),
   })
