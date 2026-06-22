@@ -72,9 +72,26 @@ export interface TrendResult {
 }
 
 /**
- * Detecta tendencia primaria sobre la serie completa, y secundaria sobre
- * el último tercio. Esto captura la dinámica "tendencia de fondo vs
- * movimiento reciente" sin necesidad de multi-timeframe en este nivel.
+ * Ventanas recientes FIJAS para `fuerza` y `secundaria`. Antes `fuerza` barría
+ * la serie COMPLETA y `secundaria` el `length/3`, así que su valor dependía de
+ * cuántas velas recibía detectTrend. Tras ampliar el path vivo a '1y' (~252
+ * velas) eso saturaba `fuerza` a 5 para casi cualquier activo (un movimiento
+ * >30% en un año es lo normal) y alargaba `secundaria` a ~84 sesiones. Las
+ * acotamos a ventanas recientes fijas → length-invariant y horizontes
+ * coherentes (secundaria ⊂ fuerza). `primaria` NO se toca: ya es invariante
+ * (usa los últimos 2 swings) y la consume Estructura directamente.
+ *
+ * Tunables: 60 ≈ 3 meses (magnitud), 40 ≈ 2 meses (sub-tendencia reciente).
+ */
+const FUERZA_WINDOW = 60;
+const SECONDARY_WINDOW = 40;
+
+/**
+ * Detecta tendencia primaria sobre la estructura reciente (últimos swings, o
+ * % de closes como fallback) y secundaria sobre una ventana reciente fija.
+ * `fuerza` mide la magnitud del movimiento sobre una ventana reciente fija.
+ * Captura "tendencia de fondo vs movimiento reciente" sin que el resultado
+ * dependa de cuántas velas se pasen (ver FUERZA_WINDOW / SECONDARY_WINDOW).
  */
 export function detectTrend(candles: OHLCVCandle_t[]): TrendResult {
   if (candles.length < 20) {
@@ -84,16 +101,16 @@ export function detectTrend(candles: OHLCVCandle_t[]): TrendResult {
   const primaria =
     classifyTrend(findSwingPoints(candles)) ?? classifyByCloses(candles);
 
-  // Secundaria: último tercio de la serie (mínimo 20 velas)
-  const tailStart = Math.max(0, candles.length - Math.max(20, Math.floor(candles.length / 3)));
-  const tail = candles.slice(tailStart);
+  // Secundaria: ventana reciente FIJA (antes length/3, que crecía con la serie).
+  const secTail = candles.slice(-SECONDARY_WINDOW);
   const secundaria =
-    classifyTrend(findSwingPoints(tail)) ?? classifyByCloses(tail);
+    classifyTrend(findSwingPoints(secTail)) ?? classifyByCloses(secTail);
 
-  // Fuerza: magnitud del cambio direccional sobre la ventana completa.
-  // Usamos % cambio (close[-1] vs close[0]) normalizado a buckets.
-  const first = candles[0]!.c;
-  const last = candles[candles.length - 1]!.c;
+  // Fuerza: magnitud del cambio direccional sobre una ventana reciente FIJA
+  // (antes toda la serie, que con '1y' saturaba a 5). % cambio close[-W] vs close[-1].
+  const fuerzaTail = candles.slice(-FUERZA_WINDOW);
+  const first = fuerzaTail[0]!.c;
+  const last = fuerzaTail[fuerzaTail.length - 1]!.c;
   const changePct = Math.abs(((last - first) / first) * 100);
 
   let fuerza: 1 | 2 | 3 | 4 | 5 = 1;
