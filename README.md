@@ -11,9 +11,9 @@
 ```mermaid
 flowchart TB
     U[Usuario] -->|ticker| API[/api/agents/a4]
-    API --> MD[Finnhub + Yahoo · market data]
+    API --> MD[market data]
     MD -->|fan-out paralelo| A1[A1 · Activos<br/>sonnet-4-6]
-    MD["Finnhub /quote /profile2 /metric /company-news<br/>Yahoo /v8/chart (OHLCV + quote fallback)"]
+    MD["Finnhub /quote /profile2 /metric /company-news<br/>Yahoo /v8/chart (OHLCV + quote fallback)<br/>cripto: CMC∥CoinGecko→CoinStats + newsdata.io"]
     MD --> A2[A2 · Macro<br/>sonnet-4-6]
     MD --> A3["A3 · Price Action<br/>sonnet-4-6<br/><b>AISLADO</b>"]
     A1 -.anomalia.-> DEB[Debate A1×A2<br/>opus-4-6]
@@ -43,7 +43,7 @@ flowchart TB
 | UI base | shadcn/ui + componentes custom | Demo HTML como referencia visual |
 | Charts | TradingView Lightweight Charts + Recharts | Lightweight para precio, Recharts para sparklines |
 | LLM | `@anthropic-ai/sdk` | Modelos por agente — ver tabla abajo |
-| Datos | Finnhub free + Yahoo (no auth) | Finnhub: quote, profile2, metric, company-news · **60 req/min**. Yahoo `/v8/finance/chart`: OHLCV + quote fallback (sin cuota práctica) |
+| Datos | Finnhub free + Yahoo (no auth) + crypto | Finnhub: quote, profile2, metric, company-news · **60 req/min**. Yahoo `/v8/finance/chart`: OHLCV + quote fallback (sin cuota práctica). **Cripto** (Finnhub no cubre): fundamentals CoinMarketCap ∥ CoinGecko → CoinStats, noticias newsdata.io |
 | DB | Supabase (PostgreSQL + RLS) | Sprint 2 |
 | Auth | Supabase Auth | Sprint 2 |
 | Cache + ratelimit | Upstash Redis | TTL 30s para quotes |

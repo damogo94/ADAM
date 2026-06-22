@@ -8,8 +8,9 @@
  *
  * Refleja el flujo REAL del código (fuente de verdad: agents/pipeline.ts,
  * lib/market/snapshot.ts, lib/anthropic.ts):
- *   - Datos: OHLCV = SOLO Yahoo (velas) · quote Yahoo→Finnhub · Finnhub fund/news
- *     · FRED macro. (No "Finnhub→Yahoo": eso era incorrecto.)
+ *   - Datos: OHLCV = SOLO Yahoo (velas) · quote Yahoo→Finnhub · equity: Finnhub
+ *     fund/news · cripto: CMC∥CoinGecko→CoinStats fund + newsdata.io news (Finnhub
+ *     no cubre cripto) · FRED macro. (No "Finnhub→Yahoo": eso era incorrecto.)
  *   - A3 AISLADO: su único input es computeTechnical(OHLCV). SIN aristas de
  *     noticias/macro. Es el rasgo más importante del diagrama → divisor explícito.
  *   - Debate: SOLO A1×A2, condicional. A3 NO participa.
@@ -113,7 +114,8 @@ export function ArchitectureDiagram() {
         <Zone label="Datos">
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[1fr_auto_minmax(0,12rem)]">
             <div className="flex flex-col gap-1.5">
-              <Node kind="data" title="Finnhub" sub="fundamentales · noticias · (quote fallback)" />
+              <Node kind="data" title="Finnhub" sub="equity · fund + noticias · (quote fallback)" />
+              <Node kind="data" title="◉ Cripto" sub="fund CMC∥Gecko→CoinStats · news newsdata.io" />
               <Node kind="data" title="FRED" sub="macro (cache Supabase)" />
             </div>
             <IsolationDivider />

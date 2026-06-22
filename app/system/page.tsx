@@ -276,7 +276,7 @@ export default function SystemScreen() {
       <div className="mx-4 rounded-[15px] border border-white/5 bg-surface-2 px-3 py-2">
         <KV k="último análisis" v={lastAnalysis} />
         <KV k="modelos" v="Haiku 4.5 (narrate) · Sonnet 4.6 (A2 · Debate) · código (compute)" />
-        <KV k="data provider" v="Finnhub 60/min + Yahoo /v8/chart" />
+        <KV k="data provider" v="Yahoo /v8/chart · Finnhub 60/min · cripto: CMC ∥ CoinGecko → CoinStats + newsdata.io" />
         <KV k="cache" v="Upstash L1+L2 + prompt caching ephemeral 5min" />
         <KV k="timeout" v="25s/agente · maxDuration 60s · ~50s worst case" />
       </div>

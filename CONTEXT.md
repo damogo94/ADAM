@@ -214,8 +214,10 @@ postgres 3.4 (devDep, para scripts/apply-migration.mjs)
 - (Opus no se usa en Hobby plan. Revertir cuando movamos a Vercel Pro.)
 
 **Data providers:**
-- **Finnhub** — primary, 60 req/min free. Endpoints: quote, profile2, metric, company-news.
-- **Yahoo /v8/finance/chart** — sin auth. OHLCV diario + intraday + quote fallback. Sin cuota práctica.
+- **Finnhub** — primary (equity), 60 req/min free. Endpoints: quote, profile2, metric, company-news. NO cubre cripto.
+- **Yahoo /v8/finance/chart** — sin auth. OHLCV diario + intraday + quote fallback (universal, incl. cripto/forex). Sin cuota práctica.
+- **Cripto (A1)** — Finnhub no cubre cripto. Fundamentals vía cadena resiliente (`lib/market/crypto-fundamentals.ts`): **CoinMarketCap** primario ∥ **CoinGecko** en paralelo (aporta ATH + backup) → **CoinStats** último recurso. Noticias **newsdata.io** (`/crypto?coin=`). Detección + ids por-proveedor en `lib/market/crypto-registry.ts` (`isCryptoTicker`). Keys: `CMC_API_KEY`/`COINSTATS_API_KEY`/`NEWSDATA_API_KEY` (+ opcional `COINGECKO_API_KEY`).
+- **FRED** — macro snapshot diario cacheado (A2).
 - **Supabase** — live, project ref `qaakauberbibfgxthlro`, región Frankfurt.
 
 **Infra activa:**
@@ -267,7 +269,10 @@ postgres 3.4 (devDep, para scripts/apply-migration.mjs)
 
 /lib
   anthropic.ts                          ← SDK client + runAgent + retry+timeout config
-  /market/finnhub.ts                    ← Finnhub (quote/profile/metric/news) + Yahoo (OHLCV) — fuente única
+  /market/finnhub.ts                    ← Finnhub (quote/profile/metric/news) + Yahoo (OHLCV)
+  /market/snapshot.ts                   ← buildMarketSnapshot — fan-out + ensamblado (fuente única)
+  /market/{crypto-registry,crypto-fundamentals}.ts ← detección + orquestador cripto
+  /market/{coinmarketcap,coingecko,coinstats,newsdata}.ts ← proveedores cripto (fund + news)
   /supabase/{server,browser,admin,middleware}.ts
   ratelimit.ts                          ← Lazy Upstash limiters
   api-helpers.ts                        ← checkSameOrigin + sanitizeDbError + rateLimitByIP
@@ -295,8 +300,14 @@ public/.gitkeep                         ← defensive (Vercel output dir overrid
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-api03-...
 
-# Finnhub (https://finnhub.io/register — free 60/min)
+# Finnhub (https://finnhub.io/register — free 60/min) — equity, no cubre cripto
 FINNHUB_API_KEY=...
+
+# Cripto (A1) — Finnhub no cubre cripto. Cada uno degrada solo sin su key.
+CMC_API_KEY=...           # CoinMarketCap (primario fundamentals)
+COINSTATS_API_KEY=...     # CoinStats (último recurso fundamentals)
+NEWSDATA_API_KEY=...      # newsdata.io (noticias cripto)
+COINGECKO_API_KEY=...     # opcional — sube el rate limit de CoinGecko (ATH + backup)
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://qaakauberbibfgxthlro.supabase.co

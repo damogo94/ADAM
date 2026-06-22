@@ -41,6 +41,17 @@ export function fmtPriceCompact(value: number | null | undefined, currency = 'US
 }
 
 /**
+ * Market cap / valores grandes en notación compacta con prefijo $.
+ *   fmtMarketCap(1_300_000_000_000) → "$1.3T"
+ *   fmtMarketCap(8_500_000_000)     → "$8.5B"
+ *   fmtMarketCap(null)              → "—"
+ */
+export function fmtMarketCap(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return `$${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value)}`;
+}
+
+/**
  * Infiere la moneda de cotización desde el ticker.
  *
  *   AAPL, MSFT, SPY      → USD (default equities)
