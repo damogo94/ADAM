@@ -144,5 +144,11 @@ function buildIndicators(c: ComputeTechnicalOutput): Record<string, string> {
   };
   if (c.osciladores?.rsi14 != null) ind.rsi = `RSI14 ${c.osciladores.rsi14.toFixed(0)}`;
   if (c.mtf) ind.mtf = `4H ${c.mtf.alignment}`;
+  // Rango 52 semanas (opción C: entra en el map jsonb, sin columna/migración en
+  // signals_history). Solo si el compute lo trae (≥200 velas). El cap del schema
+  // es 6 → cabe junto a tendencia/medias/volumen/rsi/mtf sin desbordar.
+  if (c.rango_52s) {
+    ind.rango_52s = `${c.rango_52s.posicion_pct.toFixed(0)}% del rango · máx ${fmt(c.rango_52s.high)} / mín ${fmt(c.rango_52s.low)}`;
+  }
   return ind;
 }

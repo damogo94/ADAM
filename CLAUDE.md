@@ -129,3 +129,4 @@ Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `Debat
 - The literal `DISCLAIMER_LITERAL` string (separator is U+00B7).
 - The generated `types/db/supabase.ts` — don't hand-edit it or reintroduce `as any` casts on Supabase calls; regenerate after migrations instead.
 - `eslint` pinned to 8.x (peer of `eslint-config-next@14`) — bumping to 9 needs `eslint-config-next` to move too.
+- **A3 live candle window:** `lib/market/snapshot.ts` fetches `fallbackDaily(ticker, '1y')` (~252) and caps with `slice(-300)` (≥205). A3's `computeTechnical` runs SMA200 (needs ≥200), golden/death cross (≥205) and `rango_52s` (≥200) over those candles; reverting to `'3mo'` or dropping the slice below 205 silently kills all three in prod — unit tests still pass because they feed candles straight to `computeTechnical`, bypassing the fetch+slice. `cmt/scan` and `estructura` already pass `'1y'`.

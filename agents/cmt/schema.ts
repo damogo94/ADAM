@@ -13,8 +13,8 @@ export const CMT_OUTPUT_SCHEMA = z.object({
   stop_loss: z.number().nullable(),
   target_price: z.number().nullable(),
   risk_reward_ratio: z.number().nullable(),
-  indicators: z.record(z.string(), z.string()).refine((r) => Object.keys(r).length <= 5, {
-    message: 'indicators máximo 5 entradas',
+  indicators: z.record(z.string(), z.string()).refine((r) => Object.keys(r).length <= 6, {
+    message: 'indicators máximo 6 entradas',
   }),
   invalidation_factor: z.string().min(3).max(300),
 });
