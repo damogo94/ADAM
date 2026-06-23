@@ -37,6 +37,7 @@ import type {
   Confidence_t,
   ConfluenceResult,
 } from '@/agents/shared/types';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 
 /**
  * Subset del DebateOutput que necesita el cálculo de confluence.
@@ -53,6 +54,13 @@ export interface ComputeConfluenceInput {
   a2: A2Output_t | null;
   a3: A3Output_t | null;
   debate: DebateForConfluence | null;
+  /**
+   * Agente de Estructura (futuros · MTF). OPCIONAL y opt-in del usuario: cuando
+   * se pasa, computeConfluence cambia a la matemática de 4 patas (pesos + caps
+   * de 4) y su dirección entra en el alignment. Cuando es null/ausente, la ruta
+   * de 3 agentes es byte-idéntica a la histórica (cero regresión).
+   */
+  estructura?: EstructuraOutput_t | null;
 }
 
 // ─── Pesos y caps — constantes exportadas para tests ────────────────────────
@@ -68,6 +76,25 @@ export const WEIGHT_ALIGN = 0.3;
  * Index = aliveCount, value = cap máximo del score total.
  */
 export const ALIVE_CAPS = [0, 33, 66, 100] as const;
+
+// ─── Ruta de 4 patas — Estructura (futuros · MTF) opt-in ────────────────────
+
+/**
+ * Pesos cuando el Agente de Estructura está activo. Confirmados por el owner
+ * (2026-06-23): price-action dominante — el bloque técnico A3+EST=.45 manda
+ * sobre el fundamental A1A2=.30; tiene sentido para futuros. Suman 1.0.
+ */
+export const WEIGHT4_A1_A2 = 0.3;
+export const WEIGHT4_A3_SOLO = 0.25;
+export const WEIGHT4_ESTRUCTURA = 0.2;
+export const WEIGHT4_ALIGN = 0.25;
+
+/**
+ * Caps por agentes vivos en la ruta de 4. Index = aliveCount de
+ * {a1, a2, a3, estructura}. EST siempre está vivo en esta ruta (solo se entra
+ * cuando estructura !== null), así que aliveCount ∈ [1, 4].
+ */
+export const ALIVE_CAPS_4 = [0, 25, 50, 75, 100] as const;
 
 // ───────────────────────────────────────────────────────────────────────────
 // Score por nivel — funciones puras exportadas para tests independientes
@@ -159,28 +186,56 @@ export function scoreAlignment(
   a2: A2Output_t | null,
   a3: A3Output_t | null
 ): number {
-  const directions = [directionOfA1(a1), directionOfA2(a2), directionOfA3(a3)]
-    .filter((d): d is 'alcista' | 'bajista' => d === 'alcista' || d === 'bajista');
+  return alignmentScore([directionOfA1(a1), directionOfA2(a2), directionOfA3(a3)]);
+}
 
+/**
+ * Variante de 4 patas: añade la dirección del Agente de Estructura como un voto
+ * co-igual. Reusa la MISMA tabla gradual (`alignmentScore`), extendida al caso
+ * de 4 votos. EST 'compra'→alcista, 'venta'→bajista, 'ninguno'→cae al Daily.
+ */
+export function scoreAlignment4(
+  a1: A1Output_t | null,
+  a2: A2Output_t | null,
+  a3: A3Output_t | null,
+  estructura: EstructuraOutput_t | null
+): number {
+  return alignmentScore([
+    directionOfA1(a1),
+    directionOfA2(a2),
+    directionOfA3(a3),
+    directionOfEstructura(estructura),
+  ]);
+}
+
+/**
+ * Tabla gradual de alignment sobre el conjunto de direcciones NO neutrales.
+ * Reproduce EXACTAMENTE la tabla histórica de 3 agentes y la extiende a 4:
+ *
+ *   0 votos → 0 · 1 voto → 30
+ *   unánimes: 2 votos → 70 · 3+ votos → 100
+ *   con disenso: 1-1 → 0 · 2-1 → 30 · 3-1 → 60 · 2-2 → 0
+ *
+ * (Máx 4 agentes en ADAM, así que `total` nunca pasa de 4.)
+ */
+function alignmentScore(
+  raw: Array<'alcista' | 'bajista' | 'neutral' | null>
+): number {
+  const directions = raw.filter(
+    (d): d is 'alcista' | 'bajista' => d === 'alcista' || d === 'bajista'
+  );
   const total = directions.length;
   if (total === 0) return 0;
-
-  const alcistas = directions.filter((d) => d === 'alcista').length;
-  const bajistas = directions.filter((d) => d === 'bajista').length;
-  const dominant = Math.max(alcistas, bajistas);
-
-  // 3 agentes con dirección, todos coinciden → alineación plena
-  if (total === 3 && dominant === 3) return 100;
-  // 3 con dirección, split 2-1 → mucho ruido
-  if (total === 3 && dominant === 2) return 30;
-  // 2 con dirección, ambos al mismo lado → alta pero no plena (falta el 3º)
-  if (total === 2 && dominant === 2) return 70;
-  // 2 con dirección, discrepan → cero
-  if (total === 2 && dominant === 1) return 0;
-  // 1 solo opinando → no es alineación
   if (total === 1) return 30;
 
-  return 0;
+  const alcistas = directions.filter((d) => d === 'alcista').length;
+  const dominant = Math.max(alcistas, total - alcistas);
+  const minority = total - dominant;
+
+  if (minority === 0) return total === 2 ? 70 : 100; // unanimidad
+  if (total === 2) return 0; // 1-1
+  if (total === 3) return 30; // 2-1
+  return dominant === 3 ? 60 : 0; // 4 votos: 3-1 → 60, 2-2 → 0
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -226,6 +281,20 @@ function directionOfA3(a3: A3Output_t | null): 'alcista' | 'bajista' | 'neutral'
   return 'neutral';
 }
 
+function directionOfEstructura(
+  est: EstructuraOutput_t | null
+): 'alcista' | 'bajista' | 'neutral' | null {
+  if (!est) return null;
+  if (est.setup.direccion === 'compra') return 'alcista';
+  if (est.setup.direccion === 'venta') return 'bajista';
+  // setup 'ninguno' (esperando zona, sin gatillo…): no perdemos el sesgo de
+  // fondo — caemos a la dirección estructural del Daily, igual que A3 hold cae
+  // a tendencia.primaria. 'lateral' → neutral.
+  if (est.contexto.daily.direccion === 'alcista') return 'alcista';
+  if (est.contexto.daily.direccion === 'bajista') return 'bajista';
+  return 'neutral';
+}
+
 // ───────────────────────────────────────────────────────────────────────────
 // Helpers genéricos
 // ───────────────────────────────────────────────────────────────────────────
@@ -253,10 +322,43 @@ export function levelFromScore(score: number): Confidence_t {
 export function computeConfluence(
   input: ComputeConfluenceInput
 ): z.infer<typeof ConfluenceResult> {
-  const { a1, a2, a3, debate } = input;
+  const { a1, a2, a3, debate, estructura = null } = input;
 
   const a3Score = scoreA3Solo(a3);
   const a12Score = scoreA1A2(a1, a2, debate);
+
+  // ── Ruta de 4 patas: Estructura opt-in activo ────────────────────────────
+  if (estructura !== null) {
+    const estScore = clamp0to100(estructura.confianza);
+    const alignScore4 = scoreAlignment4(a1, a2, a3, estructura);
+
+    let total4 =
+      a12Score * WEIGHT4_A1_A2 +
+      a3Score * WEIGHT4_A3_SOLO +
+      estScore * WEIGHT4_ESTRUCTURA +
+      alignScore4 * WEIGHT4_ALIGN;
+
+    // EST siempre vivo aquí → aliveCount ∈ [1, 4].
+    const aliveCount4 = [a1, a2, a3, estructura].filter((x) => x !== null).length;
+    const cap4 = ALIVE_CAPS_4[aliveCount4] ?? 100;
+    total4 = Math.min(total4, cap4);
+
+    const score_total_pct4 = Math.max(0, Math.min(100, Math.round(total4)));
+
+    return {
+      a3_solo: { score: a3Score, nivel: 'baja' as const },
+      a1_a2: { score: a12Score, nivel: levelFromScore(a12Score) },
+      alineados: { score: alignScore4, nivel: levelFromScore(alignScore4) },
+      // EST_solo SÍ expone su nivel real (no fijado a 'baja' como a3_solo): es
+      // una lente opt-in que el usuario añade a propósito; mostrar su convicción
+      // estructural honesta es lo informativo. El agregado sigue cappeado.
+      estructura: { score: estScore, nivel: levelFromScore(estScore) },
+      score_total_pct: score_total_pct4,
+      nivel_final: levelFromScore(score_total_pct4),
+    };
+  }
+
+  // ── Ruta legacy de 3 agentes — byte-idéntica a la histórica ──────────────
   const alignScore = scoreAlignment(a1, a2, a3);
 
   // Score total ponderado

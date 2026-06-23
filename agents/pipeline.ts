@@ -54,11 +54,32 @@ import { readA2Cache } from '@/lib/a2-cache';
 // Tipos públicos del pipeline
 // ───────────────────────────────────────────────────────────────────────────
 
+/**
+ * Evento de progreso del pipeline. runADAM los emite vía `onEvent` a medida que
+ * cada agente ATERRIZA de verdad — sin hitos fabricados (línea roja de honestidad
+ * del proyecto). El endpoint /run los serializa como NDJSON para que la UI flipee
+ * cada card en su evento real (sustituye al carrusel teatral).
+ */
+export type PipelineEvent =
+  | {
+      type: 'agent';
+      agent: 'a1' | 'a2' | 'a3';
+      status: 'done' | 'anomaly' | 'error';
+      data: A1Output_t | A2Output_t | A3Output_t | null;
+    }
+  | { type: 'debate'; status: 'done' | 'skipped'; data: DebateOutput | null };
+
 export interface RunADAMOptions {
   /** Trace ID externo (ej. desde el endpoint). Si no se pasa, se genera. */
   traceId?: string;
   /** Callback para coste/tokens — recibe usage de cada llamada LLM. */
   onUsage?: (u: AgentUsage) => void;
+  /**
+   * Progreso en streaming: se invoca cuando cada agente aterriza (evento real,
+   * nunca fabricado). Default no-op → callers que no streamean (cron, tests
+   * legacy) no pagan nada.
+   */
+  onEvent?: (e: PipelineEvent) => void;
   /** Para tests: inyectar implementaciones mock de cada agente. */
   agents?: AgentImplementations;
   /**
@@ -154,6 +175,7 @@ export async function runADAM(
   const traceId = options.traceId ?? randomUUID();
   const startedAt = Date.now();
   const onUsage = options.onUsage;
+  const emit = options.onEvent ?? (() => {});
 
   // Inyectables: por defecto las funciones reales
   const A = {
@@ -174,6 +196,7 @@ export async function runADAM(
   if (a2) {
     // eslint-disable-next-line no-console
     console.log(`[pipeline] ${traceId} A2 from cache (no Anthropic call)`);
+    emit({ type: 'agent', agent: 'a2', status: a2.opportunity_detected ? 'anomaly' : 'done', data: a2 });
   }
 
   // ¿Narramos A2 con LLM? Solo si hubo cache miss y el caller no pidió skip.
@@ -222,6 +245,15 @@ export async function runADAM(
   const a1: A1Output_t | null = settled[0]!.status === 'fulfilled' ? settled[0]!.value : null;
   const a3: A3Output_t | null = settled[1]!.status === 'fulfilled' ? settled[1]!.value : null;
 
+  // Eventos reales: A1/A3 acaban de aterrizar (juntos tras el allSettled).
+  emit({
+    type: 'agent',
+    agent: 'a1',
+    status: a1 ? (a1.anomaly_detected ? 'anomaly' : 'done') : 'error',
+    data: a1,
+  });
+  emit({ type: 'agent', agent: 'a3', status: a3 ? 'done' : 'error', data: a3 });
+
   const failures: { agent: string; message: string }[] = [];
   if (settled[0]!.status === 'rejected') {
     failures.push({
@@ -239,8 +271,12 @@ export async function runADAM(
   // Recogemos A2 narrado (ya en vuelo, en paralelo con A1/A3).
   if (a2NarratePromise) {
     const r = await a2NarratePromise;
-    if (r.ok) a2 = r.value;
-    else failures.push({ agent: 'A2', message: extractErrorMsg(r.error) });
+    if (r.ok) {
+      a2 = r.value;
+      emit({ type: 'agent', agent: 'a2', status: a2.opportunity_detected ? 'anomaly' : 'done', data: a2 });
+    } else {
+      failures.push({ agent: 'A2', message: extractErrorMsg(r.error) });
+    }
   }
   // Si skipA2Narrate=true Y cache miss → a2 queda null. El standalone
   // endpoint del frontend llenará el hueco en el UI.
@@ -267,6 +303,7 @@ export async function runADAM(
       );
     }
   }
+  emit({ type: 'debate', status: debate ? 'done' : 'skipped', data: debate });
 
   // ── Step 4: Confluence determinístico (no LLM, no falla)
   const debateForCompute: DebateForConfluence | null = debate

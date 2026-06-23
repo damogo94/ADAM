@@ -36,10 +36,10 @@ import { cn } from '@/lib/utils';
  */
 
 interface StreamCfg {
-  key: 'a1' | 'a2' | 'a3';
+  key: 'a1' | 'a2' | 'a3' | 'est';
   badge: string;
   label: string;
-  /** A3 lleva divisor de aislamiento a su izquierda. */
+  /** A3/EST llevan divisor de aislamiento a su izquierda. */
   isolated?: boolean;
 }
 
@@ -49,6 +49,9 @@ const STREAMS: StreamCfg[] = [
   { key: 'a3', badge: 'A3', label: 'técnico · aislado', isolated: true },
 ];
 
+/** 4ª corriente opcional — Agente de Estructura (futuros · MTF), también aislada. */
+const EST_STREAM: StreamCfg = { key: 'est', badge: 'EST', label: 'estructura · MTF', isolated: true };
+
 interface ConfluenceHeroProps {
   /** Algún agente en `scanning` → run en vuelo (espera). */
   running: boolean;
@@ -57,13 +60,16 @@ interface ConfluenceHeroProps {
   /** Estados reales por-agente. Solo para atenuar en `error` o mantener viva una
    *  corriente que sigue `scanning`. NUNCA para fabricar un "done". */
   statuses: { a1: AgentStatus; a2: AgentStatus; a3: AgentStatus };
+  /** Estado del Agente de Estructura. Solo definido cuando el usuario lo activó
+   *  (opt-in) → entonces se pinta la 4ª corriente. undefined → no se muestra. */
+  estructuraStatus?: AgentStatus;
   /** Veredicto consolidado (reveal). null mientras corre. */
   a4: A4Output | null;
   /** Confluencia recalculada en cliente; preferida sobre la horneada en A4. */
   confluence: ConfluenceResult | null;
 }
 
-/** matchMedia(prefers-reduced-motion) — mismo patrón que scan-carousel. */
+/** matchMedia(prefers-reduced-motion) — patrón de reduced-motion compartido. */
 function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -166,7 +172,14 @@ function Stream({ cfg, status, reduced, delay }: { cfg: StreamCfg; status: Agent
   );
 }
 
-export function ConfluenceHero({ running, resolved, statuses, a4, confluence }: ConfluenceHeroProps) {
+export function ConfluenceHero({
+  running,
+  resolved,
+  statuses,
+  estructuraStatus,
+  a4,
+  confluence,
+}: ConfluenceHeroProps) {
   const reduced = useReducedMotion();
   const progress = useAsymptoticProgress(running && !resolved, resolved, reduced);
 
@@ -181,11 +194,15 @@ export function ConfluenceHero({ running, resolved, statuses, a4, confluence }: 
         <span className="text-white/45">{resolved ? 'resuelto' : 'consolidando'}</span>
       </div>
 
-      {/* Corrientes — ambientales y unificadas hasta el clímax. */}
+      {/* Corrientes — ambientales y unificadas hasta el clímax. La 4ª (EST) solo
+          aparece si el usuario activó el Agente de Estructura. */}
       <div className="flex items-start gap-2">
         <Stream cfg={STREAMS[0]!} status={statuses.a1} reduced={reduced} delay="0s" />
         <Stream cfg={STREAMS[1]!} status={statuses.a2} reduced={reduced} delay="0.8s" />
         <Stream cfg={STREAMS[2]!} status={statuses.a3} reduced={reduced} delay="1.4s" />
+        {estructuraStatus && (
+          <Stream cfg={EST_STREAM} status={estructuraStatus} reduced={reduced} delay="2s" />
+        )}
       </div>
 
       {/* Núcleo — se construye (espera) o resuelve (reveal). Transición CSS. */}

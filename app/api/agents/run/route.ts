@@ -102,94 +102,127 @@ export async function POST(req: NextRequest) {
       }
       const { snapshot, currentPrice } = built.data;
 
-      // ─── Ejecuta pipeline ──────────────────────────────────────
-      // skipA2Narrate=true: A2 SOLO desde cache. Frontend dispara
-      // /api/agents/a2 en paralelo para calentar el cache en su propio
-      // lambda. Evita saturar este lambda Hobby de 60s.
-      const usages: AgentUsage[] = [];
-      const result = await runADAM(ticker, snapshot, {
-        onUsage: (u) => usages.push(u),
-        skipA2Narrate: true,
+      // ─── Ejecuta pipeline en STREAMING (NDJSON) ────────────────
+      // El éxito ya no es un único JSON: emitimos un evento por agente a medida
+      // que aterriza (vía onEvent) + un evento `final` con A4/persistencia, para
+      // que la UI flipee cada card en su evento real. Los errores INTERNOS del
+      // pipeline (all_agents_failed / pipeline_failed) viajan como evento `fatal`
+      // dentro del stream — ya hemos comprometido el 200, no podemos volver a un
+      // status 5xx. Los gates previos (auth/CSRF/quota/body/market) siguen siendo
+      // JSON con su status. skipA2Narrate=true: A2 solo desde cache (su lambda
+      // paralelo la calienta). Evita saturar este lambda Hobby de 60s.
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const send = (obj: unknown) =>
+            controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
+          const usages: AgentUsage[] = [];
+          try {
+            const result = await runADAM(ticker, snapshot, {
+              onUsage: (u) => usages.push(u),
+              skipA2Narrate: true,
+              onEvent: send,
+            });
+
+            const tokensUsed = usages.reduce(
+              (acc, u) => acc + u.input_tokens + u.output_tokens,
+              0
+            );
+
+            // Captura individual de agent failures a Sentry (nivel warning: el
+            // pipeline degrada graciosamente). Sin esto un timeout crónico de A2
+            // era invisible en diagnóstico.
+            for (const f of result.meta.failures) {
+              Sentry.captureMessage(`pipeline agent failed: ${f.agent}`, {
+                level: 'warning',
+                tags: { agent: f.agent, ticker, traceId: result.meta.traceId },
+                extra: {
+                  message: f.message,
+                  durationMs: result.meta.durationMs,
+                  debateRan: result.meta.debateRan,
+                },
+              });
+            }
+
+            // ─── Persistir log (best-effort) ───────────────────────
+            // Devolvemos el id en `final`: en el primer análisis A2 llega null
+            // (cache fría) y la fila se hornea degradada; el frontend re-narra A4
+            // vía /api/agents/a4 con este id para cuadrar confluence_pct/etc.
+            let analysisId: string | null = null;
+            try {
+              const admin = createSupabaseAdmin();
+              const { data: inserted } = await admin
+                .from('analyses_log')
+                .insert({
+                  user_id: user.id,
+                  ticker,
+                  confluence_pct: result.output.confluence.score_total_pct,
+                  direction: result.output.direccion,
+                  confidence: result.output.confianza,
+                  a1_output: result.intermediates.a1,
+                  a2_output: result.intermediates.a2,
+                  a3_output: result.intermediates.a3,
+                  debate_output: result.intermediates.debate,
+                  a4_output: result.output,
+                  latency_ms: result.meta.durationMs,
+                  tokens_used: tokensUsed,
+                  usage_breakdown: usages,
+                  initial_price: currentPrice,
+                  initial_price_at: new Date().toISOString(),
+                })
+                .select('id')
+                .single();
+              analysisId = inserted?.id ?? null;
+            } catch (logErr) {
+              // eslint-disable-next-line no-console
+              console.error(
+                '[run] persist failed:',
+                logErr instanceof Error ? logErr.message : logErr
+              );
+            }
+
+            send({
+              type: 'final',
+              analysis_id: analysisId,
+              a4: result.output,
+              meta: result.meta,
+              partial: result.meta.failures.length > 0,
+              failures: result.meta.failures.length > 0 ? result.meta.failures : undefined,
+              chart_data:
+                snapshot.ohlcv_daily.length >= 5
+                  ? { daily: snapshot.ohlcv_daily.slice(-60) }
+                  : undefined,
+            });
+          } catch (pipeErr) {
+            if (pipeErr instanceof AllAgentsFailedError) {
+              send({
+                type: 'fatal',
+                error: 'all_agents_failed',
+                detail: pipeErr.message,
+                failures: pipeErr.failures,
+              });
+            } else {
+              const msg = pipeErr instanceof Error ? pipeErr.message : 'unknown';
+              Sentry.captureException(pipeErr, {
+                tags: { endpoint: 'api/agents/run', ticker },
+                extra: { user_id: user.id },
+              });
+              send({ type: 'fatal', error: 'pipeline_failed', detail: msg });
+            }
+          } finally {
+            controller.close();
+          }
+        },
       });
 
-      const tokensUsed = usages.reduce(
-        (acc, u) => acc + u.input_tokens + u.output_tokens,
-        0
-      );
-
-      // Captura individual de agent failures a Sentry — antes el pipeline
-      // tragaba estos via Promise.allSettled y NO llegaban a Sentry, por lo
-      // que un timeout cronico de A2 era invisible para diagnostico.
-      // Nivel 'warning' (no 'error') porque el pipeline degrada graciosamente
-      // con partial; el user ve el resultado de los agentes vivos.
-      for (const f of result.meta.failures) {
-        Sentry.captureMessage(`pipeline agent failed: ${f.agent}`, {
-          level: 'warning',
-          tags: {
-            agent: f.agent,
-            ticker,
-            traceId: result.meta.traceId,
-          },
-          extra: {
-            message: f.message,
-            durationMs: result.meta.durationMs,
-            debateRan: result.meta.debateRan,
-          },
-        });
-      }
-
-      // ─── Persistir log (best-effort) ───────────────────────────
-      // Capturamos el id insertado y lo devolvemos: en el primer análisis A2
-      // llega null (cache fría) y esta fila se hornea degradada. El frontend
-      // re-narra A4 vía /api/agents/a4 cuando A2 vuelve; con este id, ese
-      // endpoint actualiza la fila para que confluence_pct/direction/confidence
-      // persistidos (los que lee la calibración) coincidan con lo que ve el user.
-      let analysisId: string | null = null;
-      try {
-        const admin = createSupabaseAdmin();
-        const { data: inserted } = await admin
-          .from('analyses_log')
-          .insert({
-            user_id: user.id,
-            ticker,
-            confluence_pct: result.output.confluence.score_total_pct,
-            direction: result.output.direccion,
-            confidence: result.output.confianza,
-            a1_output: result.intermediates.a1,
-            a2_output: result.intermediates.a2,
-            a3_output: result.intermediates.a3,
-            debate_output: result.intermediates.debate,
-            a4_output: result.output,
-            latency_ms: result.meta.durationMs,
-            tokens_used: tokensUsed,
-            usage_breakdown: usages,
-            initial_price: currentPrice,
-            initial_price_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
-        analysisId = inserted?.id ?? null;
-      } catch (logErr) {
-        // eslint-disable-next-line no-console
-        console.error(
-          '[run] persist failed:',
-          logErr instanceof Error ? logErr.message : logErr
-        );
-      }
-
-      return NextResponse.json({
-        analysis_id: analysisId,
-        a1: result.intermediates.a1,
-        a2: result.intermediates.a2,
-        a3: result.intermediates.a3,
-        debate: result.intermediates.debate,
-        a4: result.output,
-        meta: result.meta,
-        partial: result.meta.failures.length > 0,
-        failures: result.meta.failures.length > 0 ? result.meta.failures : undefined,
-        chart_data: snapshot.ohlcv_daily.length >= 5
-          ? { daily: snapshot.ohlcv_daily.slice(-60) }
-          : undefined,
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/x-ndjson; charset=utf-8',
+          'Cache-Control': 'no-store, no-transform',
+          // Evita el buffering de proxies (nginx/Vercel) para que el stream fluya.
+          'X-Accel-Buffering': 'no',
+        },
       });
     } catch (err) {
       if (err instanceof AllAgentsFailedError) {
