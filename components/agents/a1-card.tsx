@@ -1,6 +1,5 @@
 import type { A1Output_t as A1Output } from '@/agents/shared/types';
-import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
-import { ScanCarousel } from '@/components/scan-carousel';
+import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { cn, fmtPct, fmtMarketCap } from '@/lib/utils';
 
@@ -60,7 +59,12 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
     >
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
-        <ScanCarousel tasks={[...(isCrypto ? CRYPTO_SCAN_TASKS : EQUITY_SCAN_TASKS)]} />
+        <ScanSteps
+          steps={(isCrypto ? CRYPTO_SCAN_TASKS : EQUITY_SCAN_TASKS).map((label) => ({
+            label,
+            done: false,
+          }))}
+        />
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">

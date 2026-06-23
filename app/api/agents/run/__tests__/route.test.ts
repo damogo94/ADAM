@@ -75,6 +75,31 @@ function fakeResult(overrides: Record<string, unknown> = {}) {
   } as unknown as Awaited<ReturnType<typeof runADAM>>;
 }
 
+/**
+ * Lee un Response NDJSON (el éxito de /run ahora es streaming) y devuelve los
+ * eventos parseados. Consumir el stream también garantiza que el `start` del
+ * ReadableStream (donde corre runADAM + persistencia) terminó.
+ */
+async function readStream(res: Response): Promise<Array<Record<string, unknown>>> {
+  const reader = res.body!.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  const events: Array<Record<string, unknown>> = [];
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop() ?? '';
+    for (const l of lines) if (l.trim()) events.push(JSON.parse(l));
+  }
+  if (buf.trim()) events.push(JSON.parse(buf));
+  return events;
+}
+
+const eventOfType = (events: Array<Record<string, unknown>>, type: string) =>
+  events.find((e) => e.type === type) as Record<string, unknown> | undefined;
+
 let supa: SupabaseMock;
 let adminBuilder: QueryBuilderMock;
 
@@ -118,16 +143,19 @@ beforeEach(() => {
 });
 
 describe('POST /api/agents/run — gates', () => {
-  it('200 en el camino feliz y persiste el análisis', async () => {
+  it('200 streaming: emite `final` con A4 + analysis_id y persiste', async () => {
     const res = await POST(makeRequest(URL, { body: { ticker: 'AAPL' } }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.a4).toMatchObject({ direccion: 'positivo' });
-    expect(json.partial).toBe(false);
+    expect(res.headers.get('Content-Type')).toContain('application/x-ndjson');
+    const events = await readStream(res);
+    const final = eventOfType(events, 'final')!;
+    expect(final).toBeDefined();
+    expect(final.a4).toMatchObject({ direccion: 'positivo' });
+    expect(final.partial).toBe(false);
     // Devuelve el id de la fila insertada (para que el re-narrate de A4 cierre
     // el A2 gap en persistencia).
-    expect(json.analysis_id).toBe('log-1');
-    // Persistencia con el contrato esperado
+    expect(final.analysis_id).toBe('log-1');
+    // Persistencia con el contrato esperado (corre dentro del stream `start`).
     expect(adminBuilder.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: 'user-1',
@@ -195,24 +223,30 @@ describe('POST /api/agents/run — pipeline', () => {
     expect(vi.mocked(runADAM)).not.toHaveBeenCalled();
   });
 
-  it('503 all_agents_failed si runADAM lanza AllAgentsFailedError', async () => {
+  it('all_agents_failed → 200 con evento `fatal` en el stream', async () => {
+    // Tras comprometer el 200 + empezar a streamear ya no se puede volver a un
+    // status 5xx: el fallo interno viaja como evento `fatal`.
     vi.mocked(runADAM).mockRejectedValue(
       new AllAgentsFailedError([{ agent: 'A1', message: 'x' }])
     );
     const res = await POST(makeRequest(URL, { body: { ticker: 'AAPL' } }));
-    expect(res.status).toBe(503);
-    expect((await res.json()).error).toBe('all_agents_failed');
+    expect(res.status).toBe(200);
+    const events = await readStream(res);
+    const fatal = eventOfType(events, 'fatal')!;
+    expect(fatal.error).toBe('all_agents_failed');
   });
 
-  it('500 pipeline_failed ante un throw genérico (y captura en Sentry)', async () => {
+  it('pipeline_failed → evento `fatal` + captura en Sentry', async () => {
     vi.mocked(runADAM).mockRejectedValue(new Error('boom'));
     const res = await POST(makeRequest(URL, { body: { ticker: 'AAPL' } }));
-    expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe('pipeline_failed');
+    expect(res.status).toBe(200);
+    const events = await readStream(res);
+    const fatal = eventOfType(events, 'fatal')!;
+    expect(fatal.error).toBe('pipeline_failed');
     expect(vi.mocked(Sentry.captureException)).toHaveBeenCalled();
   });
 
-  it('degradación parcial: 200 con partial=true y un captureMessage por fallo', async () => {
+  it('degradación parcial: `final` con partial=true y un captureMessage por fallo', async () => {
     vi.mocked(runADAM).mockResolvedValue(
       fakeResult({
         meta: {
@@ -225,13 +259,14 @@ describe('POST /api/agents/run — pipeline', () => {
     );
     const res = await POST(makeRequest(URL, { body: { ticker: 'AAPL' } }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.partial).toBe(true);
-    expect(json.failures).toHaveLength(1);
+    const events = await readStream(res);
+    const final = eventOfType(events, 'final')!;
+    expect(final.partial).toBe(true);
+    expect(final.failures).toHaveLength(1);
     expect(vi.mocked(Sentry.captureMessage)).toHaveBeenCalledTimes(1);
   });
 
-  it('la persistencia es best-effort: un fallo al guardar no rompe la respuesta', async () => {
+  it('la persistencia es best-effort: un fallo al guardar no rompe el stream', async () => {
     vi.mocked(createSupabaseAdmin).mockReturnValue({
       from: vi.fn(() => {
         throw new Error('db down');
@@ -239,10 +274,13 @@ describe('POST /api/agents/run — pipeline', () => {
     } as never);
     const res = await POST(makeRequest(URL, { body: { ticker: 'AAPL' } }));
     expect(res.status).toBe(200);
+    const events = await readStream(res);
+    expect(eventOfType(events, 'final')).toBeDefined();
   });
 
   it('normaliza el ticker a mayúsculas antes de correr el pipeline', async () => {
-    await POST(makeRequest(URL, { body: { ticker: 'aapl' } }));
+    const res = await POST(makeRequest(URL, { body: { ticker: 'aapl' } }));
+    await readStream(res); // consume → garantiza que el `start` (runADAM) corrió
     expect(vi.mocked(runADAM)).toHaveBeenCalledWith(
       'AAPL',
       expect.objectContaining({ ticker: 'AAPL' }),

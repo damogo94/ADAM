@@ -18,12 +18,23 @@
  * compute canónico.
  */
 
-import { computeConfluence as computeCanonical, type DebateForConfluence } from '@/agents/a4/compute';
+import {
+  computeConfluence as computeCanonical,
+  type DebateForConfluence,
+  WEIGHT_A3_SOLO,
+  WEIGHT_A1_A2,
+  WEIGHT_ALIGN,
+  WEIGHT4_A1_A2,
+  WEIGHT4_A3_SOLO,
+  WEIGHT4_ESTRUCTURA,
+  WEIGHT4_ALIGN,
+} from '@/agents/a4/compute';
 import type {
   A1Output_t as A1Output,
   A2Output_t as A2Output,
   A3Output_t as A3Output,
 } from '@/agents/shared/types';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
 
 export type ConfluenceLevel = 'baja' | 'media' | 'alta';
@@ -32,6 +43,8 @@ export interface ConfluenceResult {
   a3_solo: { score: number; pct: number };
   a1_a2: { score: number; pct: number };
   alineados: { score: number; pct: number };
+  /** 4ª pata — presente SOLO cuando el usuario activó el Agente de Estructura. */
+  estructura?: { score: number; pct: number };
   total_pct: number;
   level: ConfluenceLevel;
   direction: 'alcista' | 'bajista' | 'neutral';
@@ -42,7 +55,8 @@ export function computeConfluence(
   a1: A1Output | null,
   a2: A2Output | null,
   a3: A3Output | null,
-  debate: DebateOutput | null
+  debate: DebateOutput | null,
+  estructura: EstructuraOutput_t | null = null
 ): ConfluenceResult {
   const debateForCompute: DebateForConfluence | null = debate
     ? { convergence_score: debate.convergence_score, direccion: debate.direccion }
@@ -57,14 +71,25 @@ export function computeConfluence(
     a2: a2 as never,
     a3: a3 as never,
     debate: debateForCompute,
+    estructura,
   });
 
-  // Derivar dirección: prioriza el debate (validación cruzada A1×A2).
-  // Si no hay debate, deriva de A3 (técnico). Última opción: A1 vía anomaly_type.
+  // Pesos de la pata según la ruta activa (3 vs 4 patas). Solo afectan al `pct`
+  // de contribución mostrado por pata — el total ya viene cappeado del canónico.
+  const has4 = estructura !== null;
+  const wA3 = has4 ? WEIGHT4_A3_SOLO : WEIGHT_A3_SOLO;
+  const wA12 = has4 ? WEIGHT4_A1_A2 : WEIGHT_A1_A2;
+  const wAlign = has4 ? WEIGHT4_ALIGN : WEIGHT_ALIGN;
+
+  // Derivar dirección: prioriza el debate (validación cruzada A1×A2). Sin debate,
+  // deriva de A3 (técnico), luego de Estructura (también técnico/MTF), y por
+  // último de A1 vía anomaly_type.
   const direction: 'alcista' | 'bajista' | 'neutral' = (() => {
     if (debate?.direccion && debate.direccion !== 'neutral') return debate.direccion;
     if (a3?.operativa.signal === 'buy') return 'alcista';
     if (a3?.operativa.signal === 'sell') return 'bajista';
+    if (estructura?.setup.direccion === 'compra') return 'alcista';
+    if (estructura?.setup.direccion === 'venta') return 'bajista';
     if (a1?.anomaly_type === 'oportunidad') return 'alcista';
     if (a1?.anomaly_type === 'vulnerabilidad') return 'bajista';
     return 'neutral';
@@ -77,9 +102,17 @@ export function computeConfluence(
   const aligned = canonical.alineados.score >= 70;
 
   return {
-    a3_solo: { score: canonical.a3_solo.score, pct: Math.round(canonical.a3_solo.score * 0.3) },
-    a1_a2: { score: canonical.a1_a2.score, pct: Math.round(canonical.a1_a2.score * 0.4) },
-    alineados: { score: canonical.alineados.score, pct: Math.round(canonical.alineados.score * 0.3) },
+    a3_solo: { score: canonical.a3_solo.score, pct: Math.round(canonical.a3_solo.score * wA3) },
+    a1_a2: { score: canonical.a1_a2.score, pct: Math.round(canonical.a1_a2.score * wA12) },
+    alineados: { score: canonical.alineados.score, pct: Math.round(canonical.alineados.score * wAlign) },
+    ...(canonical.estructura
+      ? {
+          estructura: {
+            score: canonical.estructura.score,
+            pct: Math.round(canonical.estructura.score * WEIGHT4_ESTRUCTURA),
+          },
+        }
+      : {}),
     total_pct: canonical.score_total_pct,
     level: canonical.nivel_final,
     direction,

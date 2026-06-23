@@ -30,13 +30,14 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
   slate: 'border-slate/30',
 };
 
-// NOTA: el carrusel de tareas (scan-carousel.tsx) sigue siendo el readout
-// TEXTUAL honesto del estado scanning. Sobre él se superpone una fina línea
-// `animate-sweep` en `accent` (chrome ambiental) que ata las cards al lenguaje
-// visual del ConfluenceHero. Es decoración PURA: no afirma progreso ni
-// completado — el ✓/done viven solo en StatusDot, derivado del AgentStatus real.
-// `motion-reduce:hidden` la oculta (evita el parpadeo del keyframe infinito
-// cuando el bloque global de reduced-motion fuerza la duración a ~0).
+// NOTA: el readout del estado scanning es `ScanSteps` — una checklist estática
+// y HONESTA de lo que el agente computa (sin tareas rotando en un timer falso;
+// el carrusel teatral se retiró al pasar /run a streaming). El progreso real lo
+// da el stream NDJSON: la card flipea a contenido en cuanto su agente aterriza.
+// Sobre la card se superpone una fina línea `animate-sweep` en `accent` (chrome
+// ambiental) que la ata al lenguaje visual del ConfluenceHero — decoración PURA:
+// no afirma progreso ni completado; el ✓/done viven solo en StatusDot, derivado
+// del AgentStatus real. `motion-reduce:hidden` la oculta.
 
 interface AgentCardShellProps {
   accent: AgentAccent;

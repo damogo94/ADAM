@@ -16,14 +16,22 @@ import {
   scoreA3Solo,
   scoreA1A2,
   scoreAlignment,
+  scoreAlignment4,
   levelFromScore,
   ALIVE_CAPS,
+  ALIVE_CAPS_4,
   WEIGHT_A3_SOLO,
   WEIGHT_A1_A2,
   WEIGHT_ALIGN,
+  WEIGHT4_A1_A2,
+  WEIGHT4_A3_SOLO,
+  WEIGHT4_ESTRUCTURA,
+  WEIGHT4_ALIGN,
   type DebateForConfluence,
 } from '../compute';
 import type { A1Output_t, A2Output_t, A3Output_t } from '@/agents/shared/types';
+import { DISCLAIMER_LITERAL } from '@/agents/shared/types';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 
 // ───────────────────────────────────────────────────────────────────────────
 // Fixtures helpers — agentes mínimos válidos
@@ -110,6 +118,54 @@ function mkA3(overrides: Partial<A3Output_t> = {}): A3Output_t {
 
 function mkDebate(overrides: Partial<DebateForConfluence> = {}): DebateForConfluence {
   return { convergence_score: 70, direccion: 'alcista', ...overrides };
+}
+
+function mkEstructura(overrides: Partial<EstructuraOutput_t> = {}): EstructuraOutput_t {
+  const daily = {
+    timeframe: '1D' as const,
+    direccion: 'lateral' as const,
+    fase: 'indefinido' as const,
+    penultimo_alto: null,
+    ultimo_alto: null,
+    penultimo_bajo: null,
+    ultimo_bajo: null,
+    velas_analizadas: 200,
+  };
+  return {
+    ticker: 'TEST',
+    contexto: { weekly: null, daily, h4: null, h1: null },
+    rango_operativo: { desde: null, hasta: null, amplitud: null, zona_retesteo: null },
+    correlacion: { alineacion: 'neutral', descripcion: 'sin correlación' },
+    confluencia: {
+      precio_redondo: null,
+      distancia_redondo_pct: null,
+      barrera_vanilla: null,
+      vanilla_disponible: false,
+      setup_perfecto: false,
+      score: 0,
+      descripcion: 'sin confluencia',
+    },
+    setup: {
+      direccion: 'ninguno',
+      timeframe_zona: null,
+      timeframe_entrada: null,
+      gatillo: 'ninguno',
+      estado: 'sin_setup',
+    },
+    gestion: {
+      entrada: null,
+      entry_type: null,
+      stop_loss: null,
+      take_profit: null,
+      break_even_trigger: null,
+      ratio_riesgo_beneficio: null,
+    },
+    confianza: 50,
+    factor_invalidacion: 'factor de invalidación de prueba.',
+    narrative: 'narrativa de estructura suficientemente larga para validar.',
+    disclaimer: DISCLAIMER_LITERAL,
+    ...overrides,
+  };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -480,14 +536,187 @@ describe('levelFromScore', () => {
 });
 
 describe('Constantes exportadas — invariantes de diseño', () => {
-  it('pesos suman 1.0', () => {
+  it('pesos (3 patas) suman 1.0', () => {
     expect(WEIGHT_A3_SOLO + WEIGHT_A1_A2 + WEIGHT_ALIGN).toBeCloseTo(1.0, 5);
+  });
+
+  it('pesos (4 patas, Estructura) suman 1.0', () => {
+    expect(
+      WEIGHT4_A1_A2 + WEIGHT4_A3_SOLO + WEIGHT4_ESTRUCTURA + WEIGHT4_ALIGN
+    ).toBeCloseTo(1.0, 5);
   });
 
   it('ALIVE_CAPS es no decreciente en aliveCount', () => {
     for (let i = 1; i < ALIVE_CAPS.length; i++) {
       expect(ALIVE_CAPS[i]).toBeGreaterThanOrEqual(ALIVE_CAPS[i - 1]!);
     }
+  });
+
+  it('ALIVE_CAPS_4 es no decreciente y termina en 100', () => {
+    for (let i = 1; i < ALIVE_CAPS_4.length; i++) {
+      expect(ALIVE_CAPS_4[i]).toBeGreaterThanOrEqual(ALIVE_CAPS_4[i - 1]!);
+    }
+    expect(ALIVE_CAPS_4[4]).toBe(100);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// scoreAlignment4 — voto co-igual del Agente de Estructura (4ª pata)
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('scoreAlignment4', () => {
+  it('4 votos unánimes alcista → 100', () => {
+    const r = scoreAlignment4(
+      mkA1({ anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      mkA2({ opportunity_detected: true, regime_outlook: 'risk_on' }),
+      mkA3({ operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      mkEstructura({ setup: { ...mkEstructura().setup, direccion: 'compra' } })
+    );
+    expect(r).toBe(100);
+  });
+
+  it('3-1 split (3 alcista, EST venta) → 60', () => {
+    const r = scoreAlignment4(
+      mkA1({ anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      mkA2({ opportunity_detected: true, regime_outlook: 'risk_on' }),
+      mkA3({ operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      mkEstructura({ setup: { ...mkEstructura().setup, direccion: 'venta' } })
+    );
+    expect(r).toBe(60);
+  });
+
+  it('2-2 split → 0 (empate, ruido total)', () => {
+    const r = scoreAlignment4(
+      mkA1({ anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      mkA2({ opportunity_detected: true, regime_outlook: 'risk_on' }),
+      mkA3({ operativa: { ...mkA3().operativa, signal: 'sell' } }),
+      mkEstructura({ setup: { ...mkEstructura().setup, direccion: 'venta' } })
+    );
+    expect(r).toBe(0);
+  });
+
+  it('EST setup "ninguno" cae a la dirección del Daily', () => {
+    // setup ninguno pero Daily alcista → EST vota alcista (igual que A3 hold→tendencia)
+    const dailyAlcista = {
+      ...mkEstructura().contexto.daily,
+      direccion: 'alcista' as const,
+    };
+    const r = scoreAlignment4(
+      mkA1({ anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      mkA2({ opportunity_detected: false }), // neutral
+      mkA3({ operativa: { ...mkA3().operativa, signal: 'hold' } }), // neutral (tendencia lateral)
+      mkEstructura({ contexto: { weekly: null, daily: dailyAlcista, h4: null, h1: null } })
+    );
+    // A1 alcista + EST alcista (vía Daily) → 2 unánimes → 70
+    expect(r).toBe(70);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// computeConfluence — 4ª pata Estructura (co-igual, opt-in)
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('computeConfluence — Estructura co-igual', () => {
+  it('EST ausente → NO añade el campo `estructura` (ruta legacy de 3 patas)', () => {
+    const r = computeConfluence({ a1: mkA1(), a2: mkA2(), a3: mkA3(), debate: null });
+    expect(r.estructura).toBeUndefined();
+  });
+
+  it('REGRESIÓN: estructura ausente === estructura:null (byte-idéntico)', () => {
+    const base = {
+      a1: mkA1({ confidence: 75, anomaly_detected: true, anomaly_type: 'oportunidad' as const }),
+      a2: mkA2({ confidence: 65, opportunity_detected: true }),
+      a3: mkA3({ confidence: 80, operativa: { ...mkA3().operativa, signal: 'buy' as const } }),
+      debate: mkDebate({ convergence_score: 75 }),
+    };
+    expect(computeConfluence(base)).toEqual(computeConfluence({ ...base, estructura: null }));
+    expect(computeConfluence({ ...base, estructura: null }).estructura).toBeUndefined();
+  });
+
+  it('EST presente → añade `estructura` con su confianza como score', () => {
+    const r = computeConfluence({
+      a1: mkA1(),
+      a2: mkA2(),
+      a3: mkA3(),
+      debate: null,
+      estructura: mkEstructura({ confianza: 80 }),
+    });
+    expect(r.estructura).toBeDefined();
+    expect(r.estructura!.score).toBe(80);
+    // a diferencia de a3_solo (literal 'baja'), EST_solo expone su nivel real
+    expect(r.estructura!.nivel).toBe('alta');
+  });
+
+  it('4 patas alineadas y altas → nivel alta + alineados 100', () => {
+    const r = computeConfluence({
+      a1: mkA1({ confidence: 90, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: mkA2({ confidence: 90, opportunity_detected: true, regime_outlook: 'risk_on' }),
+      a3: mkA3({ confidence: 90, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: mkDebate({ convergence_score: 90, direccion: 'alcista' }),
+      estructura: mkEstructura({
+        confianza: 90,
+        setup: { ...mkEstructura().setup, direccion: 'compra' },
+      }),
+    });
+    expect(r.alineados.score).toBe(100);
+    expect(r.nivel_final).toBe('alta');
+  });
+
+  it('EST divergente baja el alignment (3-1 → 60) respecto a los 3 alcista', () => {
+    const r = computeConfluence({
+      a1: mkA1({ confidence: 80, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: mkA2({ confidence: 80, opportunity_detected: true, regime_outlook: 'risk_on' }),
+      a3: mkA3({ confidence: 80, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: mkDebate({ convergence_score: 80, direccion: 'alcista' }),
+      estructura: mkEstructura({
+        confianza: 80,
+        setup: { ...mkEstructura().setup, direccion: 'venta' },
+      }),
+    });
+    expect(r.alineados.score).toBe(60);
+  });
+
+  it('solo EST vivo → aliveCount 1 → cap a 25', () => {
+    const r = computeConfluence({
+      a1: null,
+      a2: null,
+      a3: null,
+      debate: null,
+      estructura: mkEstructura({
+        confianza: 100,
+        setup: { ...mkEstructura().setup, direccion: 'compra' },
+      }),
+    });
+    expect(r.score_total_pct).toBeLessThanOrEqual(ALIVE_CAPS_4[1]);
+  });
+
+  it('EST + A3 vivos (2) → cap a 50', () => {
+    const r = computeConfluence({
+      a1: null,
+      a2: null,
+      a3: mkA3({ confidence: 100, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: null,
+      estructura: mkEstructura({
+        confianza: 100,
+        setup: { ...mkEstructura().setup, direccion: 'compra' },
+      }),
+    });
+    expect(r.score_total_pct).toBeLessThanOrEqual(ALIVE_CAPS_4[2]);
+    expect(r.nivel_final).not.toBe('alta');
+  });
+
+  it('determinismo: mismo input con EST → mismo output', () => {
+    const input = {
+      a1: mkA1({ confidence: 70, anomaly_detected: true, anomaly_type: 'oportunidad' as const }),
+      a2: mkA2({ confidence: 60, opportunity_detected: true }),
+      a3: mkA3({ confidence: 75, operativa: { ...mkA3().operativa, signal: 'buy' as const } }),
+      debate: mkDebate({ convergence_score: 70 }),
+      estructura: mkEstructura({
+        confianza: 65,
+        setup: { ...mkEstructura().setup, direccion: 'compra' as const },
+      }),
+    };
+    expect(computeConfluence(input)).toEqual(computeConfluence(input));
   });
 });
 

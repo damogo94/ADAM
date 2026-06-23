@@ -1,6 +1,5 @@
 import type { A3Output_t as A3Output } from '@/agents/shared/types';
-import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
-import { ScanCarousel } from '@/components/scan-carousel';
+import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
 import { MiniCandleChart } from '@/components/mini-candle-chart';
 import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { cn } from '@/lib/utils';
@@ -37,8 +36,8 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
     >
       {status === 'idle' && <IdleState label="esperando activo..." />}
       {status === 'scanning' && (
-        <ScanCarousel
-          tasks={[
+        <ScanSteps
+          steps={[
             'estructura de tendencia',
             'higher-highs / higher-lows',
             'soportes y resistencias · pivots',
@@ -51,7 +50,7 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
             'volumen · divergencias',
             'cálculo R/B ≥ 1.5',
             'componiendo narrativa A3',
-          ]}
+          ].map((label) => ({ label, done: false }))}
         />
       )}
       {status === 'error' && (

@@ -517,6 +517,19 @@ export const ConfluenceResult = z
         nivel: Confidence,
       })
       .strict(),
+    // Estructura — 4ª pata OPCIONAL (Agente de Estructura, opt-in del usuario).
+    // Presente solo cuando el run incluyó Estructura; AUSENTE en la ruta de 3
+    // agentes (que queda byte-idéntica). Su `nivel` SÍ refleja la convicción
+    // estructural real (a diferencia de a3_solo, fijado a 'baja'): es una lente
+    // que el usuario añade deliberadamente, así que mostrar su nivel honesto es
+    // lo informativo. El score agregado sigue cappeado por agentes vivos.
+    estructura: z
+      .object({
+        score: z.number().int().min(0).max(100),
+        nivel: Confidence,
+      })
+      .strict()
+      .optional(),
     score_total_pct: z.number().int().min(0).max(100),
     nivel_final: Confidence,
   })

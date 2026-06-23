@@ -12,6 +12,7 @@ import { A2Card } from '@/components/agents/a2-card';
 import { A3Card } from '@/components/agents/a3-card';
 import { DebateCard } from '@/components/agents/debate-card';
 import { A4Card } from '@/components/agents/a4-card';
+import { EstructuraCard } from '@/components/agents/estructura-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
@@ -25,10 +26,25 @@ import type {
   A4Output_t as A4Output,
 } from '@/agents/shared/types';
 import type { A3Output } from '@/agents/a3/schema';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
 import type { AgentStatus } from '@/components/agent-card-shell';
 
 interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
+
+/** Eventos NDJSON que emite /api/agents/run (streaming). */
+type StreamEvent =
+  | { type: 'agent'; agent: 'a1' | 'a2' | 'a3'; status: AgentStatus; data: unknown }
+  | { type: 'debate'; status: 'done' | 'skipped'; data: unknown }
+  | {
+      type: 'final';
+      analysis_id?: string | null;
+      a4: A4Output;
+      partial?: boolean;
+      failures?: { agent: string; message: string }[];
+      chart_data?: { daily: Candle[] };
+    }
+  | { type: 'fatal'; error: string; detail?: string; failures?: { agent: string; message: string }[] };
 
 interface RunState {
   ticker: string | null;
@@ -42,6 +58,8 @@ interface RunState {
   a3: A3Output | null;
   debate: DebateOutput | null;
   a4: A4Output | null;
+  estructura: EstructuraOutput_t | null;
+  estructuraStatus: AgentStatus;
   error: UserError | null;
   partial: boolean;
   failures: { agent: string; message: string }[];
@@ -60,11 +78,36 @@ const INITIAL: RunState = {
   a3: null,
   debate: null,
   a4: null,
+  estructura: null,
+  estructuraStatus: 'idle',
   error: null,
   partial: false,
   failures: [],
   dailyCandles: [],
 };
+
+/**
+ * Fetch aislado del Agente de Estructura (futuros · MTF). Mismo contrato que
+ * /api/agents/a2 standalone: degrada a null en cualquier fallo (la pata es
+ * opt-in, nunca debe romper el análisis principal).
+ */
+async function fetchEstructura(
+  ticker: string,
+  signal?: AbortSignal
+): Promise<EstructuraOutput_t | null> {
+  try {
+    const r = await fetch('/api/agents/estructura', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+      signal,
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as EstructuraOutput_t;
+  } catch {
+    return null;
+  }
+}
 
 export default function AnalysisScreen() {
   return (
@@ -84,6 +127,12 @@ function AnalysisInner() {
   // Sin esto, las respuestas race y la última en llegar (potencialmente vieja)
   // clobbers el estado del análisis en curso.
   const abortRef = useRef<AbortController | null>(null);
+
+  // Agente de Estructura (futuros · MTF) — opt-in del usuario. Preferencia de
+  // sesión (persiste entre runs), por eso vive fuera de RunState. El ref espeja
+  // el flag para que una resolución tardía no re-añada la pata tras apagarla.
+  const [estEnabled, setEstEnabled] = useState(false);
+  const estEnabledRef = useRef(false);
 
   // Auto-trigger cuando viene desde /watchlist con ?ticker=X
   useEffect(() => {
@@ -110,7 +159,13 @@ function AnalysisInner() {
       a1Status: 'scanning',
       a2Status: 'scanning',
       a3Status: 'scanning',
+      estructuraStatus: estEnabled ? 'scanning' : 'idle',
     });
+
+    // ── Fetch paralelo /api/agents/estructura (opt-in) ─────────────────────
+    // Se dispara YA, en paralelo a /run y /a2, con su propio lambda de 60s.
+    // Degrada a null sin romper el run principal.
+    const estPromise = estEnabled ? fetchEstructura(ticker, ctrl.signal) : Promise.resolve(null);
 
     // ── Fetch principal /api/agents/run (A1+A3+Debate+A4) ───────────
     // A2 sale del pipeline (architectural decision 2026-05-21). El run
@@ -144,10 +199,10 @@ function AnalysisInner() {
     try {
       const res = await runPromise;
       if (ctrl.signal.aborted) return;
-      const data = await res.json();
-      if (ctrl.signal.aborted) return;
 
+      // Errores PRE-stream (gates, market data) siguen siendo JSON con status.
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}) as Record<string, unknown>);
         if (res.status === 401) {
           router.push('/login?next=/analysis');
           return;
@@ -160,54 +215,116 @@ function AnalysisInner() {
           a3Status: 'error',
           debateStatus: 'idle',
           a4Status: 'error',
+          estructuraStatus: estEnabled ? 'error' : 'idle',
           error: userErr,
           partial: false,
-          failures: data.failures ?? [],
+          failures: (data as { failures?: { agent: string; message: string }[] }).failures ?? [],
         }));
         return;
       }
 
-      const { analysis_id, a1, a2, a3, debate, a4, partial, failures, chart_data } = data as {
-        analysis_id?: string | null;
+      // EST (opt-in): se resuelve independiente de /run (su propio fetch).
+      if (estEnabled) {
+        void estPromise.then((est) => {
+          if (ctrl.signal.aborted || !estEnabledRef.current) return;
+          setState((s) => ({ ...s, estructura: est, estructuraStatus: est ? 'done' : 'error' }));
+        });
+      }
+
+      // ── Lectura del stream NDJSON: cada card flipea en su evento real ──────
+      // Acumulador para el cierre (re-narrate A4 + persistencia del A2 tardío).
+      const acc: {
         a1: A1Output | null;
         a2: A2Output | null;
         a3: A3Output | null;
         debate: DebateOutput | null;
-        a4: A4Output;
-        partial?: boolean;
-        failures?: { agent: string; message: string }[];
-        chart_data?: { daily: Candle[] };
+        analysisId: string | null;
+      } = { a1: null, a2: null, a3: null, debate: null, analysisId: null };
+      let fatal = false;
+
+      const applyEvent = (ev: StreamEvent) => {
+        if (ev.type === 'agent') {
+          if (ev.agent === 'a1') {
+            acc.a1 = ev.data as A1Output | null;
+            setState((s) => ({ ...s, a1: acc.a1, a1Status: ev.status }));
+          } else if (ev.agent === 'a3') {
+            acc.a3 = ev.data as A3Output | null;
+            setState((s) => ({ ...s, a3: acc.a3, a3Status: ev.status }));
+          } else if (ev.agent === 'a2') {
+            acc.a2 = ev.data as A2Output | null;
+            setState((s) => ({ ...s, a2: acc.a2, a2Status: ev.status }));
+          }
+        } else if (ev.type === 'debate') {
+          acc.debate = ev.data as DebateOutput | null;
+          setState((s) => ({ ...s, debate: acc.debate, debateStatus: acc.debate ? 'done' : 'idle' }));
+        } else if (ev.type === 'final') {
+          acc.analysisId = ev.analysis_id ?? null;
+          setState((s) => ({
+            ...s,
+            a4: ev.a4,
+            a4Status: 'done',
+            // Si algún evento de agente se perdió, no dejes su card en scanning.
+            a1Status:
+              s.a1Status === 'scanning'
+                ? s.a1
+                  ? s.a1.anomaly_detected
+                    ? 'anomaly'
+                    : 'done'
+                  : 'error'
+                : s.a1Status,
+            a3Status: s.a3Status === 'scanning' ? (s.a3 ? 'done' : 'error') : s.a3Status,
+            partial: !!ev.partial,
+            failures: ev.failures ?? [],
+            dailyCandles: ev.chart_data?.daily ?? s.dailyCandles,
+          }));
+        } else if (ev.type === 'fatal') {
+          fatal = true;
+          const userErr = resolveError({ error: ev.error, detail: ev.detail, failures: ev.failures });
+          setState((s) => ({
+            ...s,
+            a1Status: 'error',
+            a2Status: 'error',
+            a3Status: 'error',
+            a4Status: 'error',
+            error: userErr,
+            partial: false,
+            failures: ev.failures ?? [],
+          }));
+        }
       };
 
-      // Render inicial con lo que vino del pipeline. A2 puede llegar null
-      // si era primera petición del ticker (cache vacia) — luego lo updateo
-      // cuando termine a2Promise.
-      setState({
-        ticker,
-        a1Status: !a1 ? 'error' : a1.anomaly_detected ? 'anomaly' : 'done',
-        a2Status: a2
-          ? a2.opportunity_detected
-            ? 'anomaly'
-            : 'done'
-          : 'scanning', // A2 aun en vuelo (standalone)
-        a3Status: !a3 ? 'error' : 'done',
-        debateStatus: debate ? 'done' : 'idle',
-        a4Status: 'done',
-        a1,
-        a2,
-        a3,
-        debate,
-        a4,
-        error: null,
-        partial: !!partial,
-        failures: failures ?? [],
-        dailyCandles: chart_data?.daily ?? [],
-      });
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (ctrl.signal.aborted) return;
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            applyEvent(JSON.parse(line) as StreamEvent);
+          } catch {
+            /* línea parcial o no-JSON: la ignoramos */
+          }
+        }
+      }
+      if (buffer.trim()) {
+        try {
+          applyEvent(JSON.parse(buffer) as StreamEvent);
+        } catch {
+          /* noop */
+        }
+      }
 
-      // Si A2 venia del cache, no esperamos al standalone (el resultado
-      // standalone seria identico o redundante).
-      if (!a2) {
-        // Espera al fetch paralelo y actualiza la card de A2.
+      if (fatal || ctrl.signal.aborted) return;
+
+      // A2 standalone: si el stream no trajo A2 (caché fría), la llena su lambda
+      // paralelo. Igual que antes, re-narramos A4 con A1+A2+A3 completos.
+      if (!acc.a2) {
         const a2Standalone = await a2Promise;
         if (ctrl.signal.aborted) return;
         if (a2Standalone) {
@@ -216,19 +333,18 @@ function AnalysisInner() {
             a2: a2Standalone,
             a2Status: a2Standalone.opportunity_detected ? 'anomaly' : 'done',
           }));
-
-          // A4 (y su caja de A2) se horneó en /run con a2=null. Ahora que A2
-          // llegó, re-narramos A4 con A1+A2+A3 completos para que su narrativa
-          // y la confluencia que muestra sean coherentes. Best-effort: si falla
-          // o se aborta, dejamos el A4 anterior (la confluencia del indicador ya
-          // se recalcula en cliente con el A2 nuevo).
           try {
             const consRes = await fetch('/api/agents/a4', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              // analysisId → el consolidador ACTUALIZA la fila persistida (cierra
-              // el A2 gap en persistencia, no solo en el display de N0).
-              body: JSON.stringify({ ticker, a1, a2: a2Standalone, a3, debate, analysisId: analysis_id ?? undefined }),
+              body: JSON.stringify({
+                ticker,
+                a1: acc.a1,
+                a2: a2Standalone,
+                a3: acc.a3,
+                debate: acc.debate,
+                analysisId: acc.analysisId ?? undefined,
+              }),
               signal: ctrl.signal,
             });
             if (ctrl.signal.aborted) return;
@@ -240,7 +356,6 @@ function AnalysisInner() {
             /* best-effort: conservamos el A4 anterior */
           }
         } else {
-          // Si el standalone tambien fallo, marca como error
           setState((s) => ({ ...s, a2Status: 'error' }));
         }
       }
@@ -260,6 +375,35 @@ function AnalysisInner() {
     }
   }
 
+  /**
+   * Toggle del Agente de Estructura. "Un clic": si ya hay un ticker analizado,
+   * añade la pata EN VIVO (fetch aislado de EST para ese ticker) sin re-correr
+   * el resto. Apagarlo limpia la pata al instante.
+   */
+  function toggleEstructura() {
+    const next = !estEnabled;
+    setEstEnabled(next);
+    estEnabledRef.current = next;
+
+    if (!next) {
+      setState((s) => ({ ...s, estructura: null, estructuraStatus: 'idle' }));
+      return;
+    }
+
+    const current = state.ticker;
+    if (current && !state.estructura) {
+      setState((s) => ({ ...s, estructuraStatus: 'scanning' }));
+      void fetchEstructura(current).then((est) => {
+        if (!estEnabledRef.current) return;
+        setState((s) =>
+          s.ticker === current
+            ? { ...s, estructura: est, estructuraStatus: est ? 'done' : 'error' }
+            : s
+        );
+      });
+    }
+  }
+
   const isLoading =
     state.a1Status === 'scanning' || state.a2Status === 'scanning' || state.a3Status === 'scanning';
   const headerStatus = state.error
@@ -271,7 +415,9 @@ function AnalysisInner() {
         : 'offline';
 
   const confluence: ConfluenceResult | null =
-    state.a3 || state.a1 ? computeConfluence(state.a1, state.a2, state.a3, state.debate) : null;
+    state.a3 || state.a1 || state.estructura
+      ? computeConfluence(state.a1, state.a2, state.a3, state.debate, state.estructura)
+      : null;
 
   // Idle = aún no se ha lanzado ningún análisis y no hay error → onboarding.
   const isIdle = state.ticker === null && !state.error;
@@ -282,14 +428,33 @@ function AnalysisInner() {
 
       <AssetInput onSubmit={handleRun} disabled={isLoading} />
 
-      {/* Acceso al módulo independiente de price action multi-temporal (futuros). */}
-      <div className="mx-4 mt-2 flex items-center justify-end gap-1.5 font-mono text-[11px] text-white/55">
-        <span>¿futuros con estructura multi-temporal?</span>
+      {/* Agente de Estructura (futuros · MTF) — toggle opt-in para SUMAR la pata
+          a la confluencia con un clic, + acceso a la pantalla dedicada. */}
+      <div className="mx-4 mt-2 flex flex-wrap items-center justify-end gap-2 font-mono text-[11px]">
+        <button
+          type="button"
+          onClick={toggleEstructura}
+          aria-pressed={estEnabled}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
+            estEnabled
+              ? 'border-accent/60 bg-accent/10 text-accent'
+              : 'border-dashed border-white/20 text-white/55 hover:border-white/35 hover:text-white/80'
+          )}
+        >
+          <span
+            className={cn(
+              'h-1.5 w-1.5 rounded-full transition-colors',
+              estEnabled ? 'bg-accent' : 'bg-white/30'
+            )}
+          />
+          {estEnabled ? 'Estructura activa · futuros MTF' : '+ Sumar Estructura · futuros MTF'}
+        </button>
         <Link
           href="/estructura"
-          className="text-accent underline-offset-2 transition-colors hover:opacity-80 hover:underline"
+          className="text-white/45 underline-offset-2 transition-colors hover:text-white/70 hover:underline"
         >
-          Agente de Estructura →
+          pantalla dedicada →
         </Link>
       </div>
 
@@ -347,6 +512,7 @@ function AnalysisInner() {
           running={isLoading}
           resolved={state.a4Status === 'done'}
           statuses={{ a1: state.a1Status, a2: state.a2Status, a3: state.a3Status }}
+          estructuraStatus={estEnabled ? state.estructuraStatus : undefined}
           a4={state.a4}
           confluence={confluence}
         />
@@ -397,6 +563,21 @@ function AnalysisInner() {
               failureMessage={state.failures.find((f) => f.agent === 'A3')?.message}
             />
           </div>
+
+          {/* Estructura (opt-in) — 4ª pata, también aislada (futuros · MTF). */}
+          {estEnabled && (
+            <>
+              <FlowArrow>↓ estructura · futuros (MTF)</FlowArrow>
+              <SectionLabel>agente de estructura · aislado</SectionLabel>
+              <div className="px-4">
+                <EstructuraCard
+                  status={state.estructuraStatus}
+                  data={state.estructura}
+                  ticker={state.ticker}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Rail de síntesis: confluencia + A4. En lg sube arriba a la derecha

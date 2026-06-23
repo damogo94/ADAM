@@ -1,6 +1,5 @@
 import type { A2Output_t as A2Output } from '@/agents/shared/types';
-import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
-import { ScanCarousel } from '@/components/scan-carousel';
+import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
 import { cn } from '@/lib/utils';
 import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { DataSection, SignalBox } from './a1-card';
@@ -25,8 +24,8 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
     >
       {status === 'idle' && <IdleState label="standby" />}
       {status === 'scanning' && (
-        <ScanCarousel
-          tasks={[
+        <ScanSteps
+          steps={[
             'régimen económico actual',
             'ciclo · expansión / contracción',
             'curva de tipos · Fed funds',
@@ -38,7 +37,7 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
             'régimen risk-on / risk-off',
             'previsión 1Y / 3Y · rangos',
             'componiendo narrativa A2',
-          ]}
+          ].map((label) => ({ label, done: false }))}
         />
       )}
       {status === 'error' && (

@@ -19,6 +19,7 @@ import {
   runADAM,
   needsDebate,
   AllAgentsFailedError,
+  type PipelineEvent,
 } from '../pipeline';
 import {
   A4Output,
@@ -224,6 +225,44 @@ describe('runADAM — happy path', () => {
     expect(result.meta.debateRan).toBe(false);
     expect(result.meta.traceId).toBeDefined();
     expect(result.meta.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('emite onEvent por agente (a1/a2/a3) + debate skipped', async () => {
+    const events: PipelineEvent[] = [];
+    await runADAM('AAPL', mkSnapshot(), {
+      agents: {
+        narrateA1: vi.fn(async () => mkA1()),
+        narrateA2: vi.fn(async () => mkA2()),
+        narrateA3: vi.fn(async () => mkA3()),
+        narrateA4: vi.fn(async () => mkA4()),
+        runDebate: vi.fn(),
+      },
+      onEvent: (e) => events.push(e),
+    });
+
+    const agentEvents = events.filter((e) => e.type === 'agent');
+    expect(agentEvents.map((e) => e.type === 'agent' && e.agent).sort()).toEqual(['a1', 'a2', 'a3']);
+    // sin anomalía → no hay debate → evento 'skipped'
+    expect(events.some((e) => e.type === 'debate' && e.status === 'skipped')).toBe(true);
+  });
+
+  it('onEvent emite status=error con data=null cuando un agente cae', async () => {
+    const events: PipelineEvent[] = [];
+    await runADAM('AAPL', mkSnapshot(), {
+      agents: {
+        narrateA1: vi.fn(async () => {
+          throw new Error('A1 down');
+        }),
+        narrateA2: vi.fn(async () => mkA2()),
+        narrateA3: vi.fn(async () => mkA3()),
+        narrateA4: vi.fn(async () => mkA4()),
+        runDebate: vi.fn(),
+      },
+      onEvent: (e) => events.push(e),
+    });
+
+    const a1ev = events.find((e) => e.type === 'agent' && e.agent === 'a1');
+    expect(a1ev).toMatchObject({ status: 'error', data: null });
   });
 
   it('dispara debate si A1 anomalía detectada', async () => {

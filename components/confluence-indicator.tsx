@@ -37,6 +37,15 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           rightLabel={data ? labelFromScore(data.a1_a2.score) : '—'}
           rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-white/66'}
         />
+        {/* Estructura — 4ª fila, solo cuando el usuario activó el agente (opt-in). */}
+        {data?.estructura && (
+          <ConfluenceRow
+            label="Estructura"
+            score={data.estructura.score}
+            rightLabel={labelFromScore(data.estructura.score)}
+            rightCls={intensityFromScore(data.estructura.score)}
+          />
+        )}
         <ConfluenceRow
           label="Alineados"
           score={data?.alineados.score ?? 0}
