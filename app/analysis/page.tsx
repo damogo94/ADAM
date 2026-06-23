@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
 import { SectionLabel, FlowArrow } from '@/components/section-label';
+import { ConfluenceHero } from '@/components/analysis/confluence-hero';
 import { A1Card } from '@/components/agents/a1-card';
 import { A2Card } from '@/components/agents/a2-card';
 import { A3Card } from '@/components/agents/a3-card';
@@ -336,6 +337,19 @@ function AnalysisInner() {
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
         </div>
+      )}
+
+      {/* Hero de confluencia — el "momento running": tres corrientes ambientales
+          hacia un núcleo que resuelve en el veredicto. Visible desde submit hasta
+          done; oculto en idle y cuando hay error fatal (la caja de error manda). */}
+      {state.ticker !== null && !state.error && (
+        <ConfluenceHero
+          running={isLoading}
+          resolved={state.a4Status === 'done'}
+          statuses={{ a1: state.a1Status, a2: state.a2Status, a3: state.a3Status }}
+          a4={state.a4}
+          confluence={confluence}
+        />
       )}
 
       {/* Onboarding — solo en idle (sin análisis, sin error). Rellena el hueco. */}

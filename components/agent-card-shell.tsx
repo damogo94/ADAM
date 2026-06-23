@@ -30,11 +30,13 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
   slate: 'border-slate/30',
 };
 
-// NOTA: ACCENT_SWEEP eliminado en el rediseño visual del scanner. La línea
-// blanca recorrida (`animate-sweep`) se sustituyó por el carrusel de tareas
-// (components/scan-carousel.tsx), que comunica progreso de forma textual y
-// no decorativa. Si en el futuro se quisiera el sweep como capa adicional,
-// el keyframe `sweep` sigue declarado en tailwind.config.ts.
+// NOTA: el carrusel de tareas (scan-carousel.tsx) sigue siendo el readout
+// TEXTUAL honesto del estado scanning. Sobre él se superpone una fina línea
+// `animate-sweep` en `accent` (chrome ambiental) que ata las cards al lenguaje
+// visual del ConfluenceHero. Es decoración PURA: no afirma progreso ni
+// completado — el ✓/done viven solo en StatusDot, derivado del AgentStatus real.
+// `motion-reduce:hidden` la oculta (evita el parpadeo del keyframe infinito
+// cuando el bloque global de reduced-motion fuerza la duración a ~0).
 
 interface AgentCardShellProps {
   accent: AgentAccent;
@@ -96,6 +98,14 @@ export function AgentCardShell({
   if (!collapsible) {
     return (
       <div className={cardCls}>
+        {/* Línea de barrido ambiental — chrome accent atado al ConfluenceHero.
+            Solo en scanning; decoración pura (no afirma nada). reduced-motion la oculta. */}
+        {isScanning && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 z-10 h-px bg-accent/40 animate-sweep motion-reduce:hidden"
+          />
+        )}
         <header
           className={cn('flex items-center gap-1.5 border-b border-white/5 px-2.5 py-2', ACCENT_BG[accent])}
         >
