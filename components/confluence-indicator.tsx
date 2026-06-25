@@ -14,10 +14,13 @@ interface ConfluenceIndicatorProps {
  * es un trazo blanco simple — sin gradient ni glow colorado.
  */
 export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
-  const total = data?.total_pct ?? 0;
-  // null en estado vacío (sin análisis) → NO inventamos un nivel "baja"
-  // fantasma. El número ya muestra "—"; el texto mostrará "—" también.
-  const level = data?.level ?? null;
+  // Titular del panel (Fase 1 · ejes separados): la cifra grande es la CONFIANZA
+  // ACCIONABLE (|net|×f(κ)); κ se muestra como eje propio debajo. Nivel y barra
+  // derivan de actionable. Null-guard: datos sin ejes nuevos caen al total_pct
+  // viejo. (Sin análisis → '—', sin nivel "baja" fantasma.)
+  const actionable = data?.actionable_pct ?? data?.total_pct ?? 0;
+  const kappa = data?.kappa ?? null;
+  const level = data ? labelFromScore(actionable) : null;
 
   return (
     <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
@@ -61,7 +64,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
             'h-full transition-[width,opacity] duration-700 ease-out bg-white',
             level === 'alta' ? 'opacity-100' : level === 'media' ? 'opacity-70' : 'opacity-40'
           )}
-          style={{ width: `${total}%` }}
+          style={{ width: `${actionable}%` }}
         />
       </div>
 
@@ -90,7 +93,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
                   : 'text-white/66'
           )}
         >
-          {total > 0 ? `${total}%` : '—'}
+          {actionable > 0 ? `${actionable}%` : '—'}
         </div>
         <div
           className={cn(
@@ -104,8 +107,26 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
                   : 'text-white/66'
           )}
         >
-          confianza · {level === null ? '—' : level}
+          accionable · {level === null ? '—' : level}
         </div>
+        {/* κ — eje de coherencia, dedicado. Oculto si no hay ejes nuevos. */}
+        {kappa !== null && (
+          <div className="mt-2 flex items-center justify-center gap-1.5 border-t border-white/5 pt-2">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-white/55">κ coherencia</span>
+            <span className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    i <= Math.round(kappa * 5) ? 'bg-accent' : 'bg-white/15'
+                  )}
+                />
+              ))}
+            </span>
+            <span className="font-mono text-[11px] tabular-nums text-white/66">{Math.round(kappa * 100)}%</span>
+          </div>
+        )}
       </div>
     </div>
   );
