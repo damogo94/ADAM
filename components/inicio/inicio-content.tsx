@@ -107,6 +107,34 @@ function IllustrativeTag() {
   );
 }
 
+/**
+ * Roster (voz educativa). Diferenciado por TIPOGRAFÍA, no color: A3 lleva el
+ * tratamiento "aislado" (borde discontinuo + etiqueta) reforzando el invariante
+ * de aislamiento en la UI; CMT ocupa fila completa (vigía autónomo, no analista
+ * por-ticker). Sin hues por agente (firewall + tipográfica-no-cromática).
+ */
+const ROSTER = [
+  { tag: 'A1', role: 'Fundamental', line: 'Los números de la empresa. Sin el relato de moda.' },
+  { tag: 'A2', role: 'Macro', line: 'El contexto que mueve al mercado. No el ruido macro.' },
+  {
+    tag: 'A3',
+    role: 'Técnico',
+    line: 'Solo el precio. Ni noticias ni opiniones. A propósito.',
+    isolated: true,
+  },
+  {
+    tag: 'A4',
+    role: 'Consenso',
+    line: 'No un agente más: junta las tres lecturas en un veredicto. Cuando discrepan, lo resuelve a la vista.',
+  },
+  {
+    tag: 'CMT',
+    role: 'Vigía',
+    line: 'Vigila tu watchlist y te avisa. Sin gastar ni un token.',
+    span: true,
+  },
+] as const;
+
 export function InicioContent() {
   const v = EXAMPLE.verdict;
 
@@ -119,18 +147,61 @@ export function InicioContent() {
         {/* ── 1 · Hero — arco narrativo scroll-pinned (5 capítulos) ───── */}
         <HeroArc />
 
-        {/* ── 2 · ¿Qué es ADAM? ─────────────────────────────────────── */}
+        {/* ── 2 · Roster — quién mira y quién decide ─────────────────── */}
         <section className="mx-auto max-w-3xl px-5 pt-24">
           <Reveal>
-            <SectionHeading eyebrow="¿Qué es ADAM?" title="Un copiloto de análisis" />
+            <SectionHeading eyebrow="El sistema" title="Quién mira y quién decide" />
+          </Reveal>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {ROSTER.map((r, i) => {
+              const isolated = 'isolated' in r && r.isolated;
+              const span = 'span' in r && r.span;
+              return (
+                <Reveal key={r.tag} delay={i * 0.05} className={span ? 'sm:col-span-2' : undefined}>
+                  <div
+                    className={
+                      'flex h-full items-start gap-3 rounded-xl border p-4 ' +
+                      (isolated
+                        ? 'border-dashed border-white/35 bg-white/[0.04]'
+                        : 'border-white/10 bg-white/[0.03]')
+                    }
+                  >
+                    <Badge>{r.tag}</Badge>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-white">{r.role}</h3>
+                        {isolated && (
+                          <span className="rounded bg-white/15 px-1 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-white/80">
+                            aislado
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm leading-relaxed text-white/66">{r.line}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── 3 · El motor: Claude / la cuenta: código ───────────────── */}
+        <section className="mx-auto max-w-3xl px-5 pt-24">
+          <Reveal>
+            <SectionHeading eyebrow="Cómo razona" title="El motor: Claude. La cuenta: código." />
             <p className="max-w-2xl text-lg leading-relaxed text-white/75">
-              Cinco especialistas miran el mismo activo desde ángulos distintos y consolidan lo que
-              ven en un único veredicto que entiendes de un vistazo.
+              Los agentes usan Claude (Haiku y Sonnet) para una sola cosa: poner en palabras lo que
+              ven. Los números —indicadores, niveles, confluencia, confianza— los calcula{' '}
+              <strong className="font-semibold text-white">código determinista</strong>, no el
+              modelo. Así el veredicto no depende de la inspiración del día.
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
+              Datos en crudo del mercado: Finnhub y Yahoo (precio + fundamentales), FRED (macro).
             </p>
           </Reveal>
         </section>
 
-        {/* ── 3 · Ejemplo ilustrativo (pieza central) ───────────────── */}
+        {/* ── 4 · Ejemplo ilustrativo (prueba) ──────────────────────── */}
         <section id="ejemplo" className="mx-auto max-w-4xl px-5 pt-24 scroll-mt-20">
           <Reveal>
             <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
