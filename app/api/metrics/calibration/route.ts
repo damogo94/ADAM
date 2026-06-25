@@ -30,6 +30,13 @@ function confluenceBucket(pct: number): '0-30' | '31-60' | '61-100' {
   return '61-100';
 }
 
+/** κ ∈ [0,1] → bucket cualitativo (mismos cortes que los niveles: 0.34 / 0.67). */
+function kappaBucket(k: number): 'baja' | 'media' | 'alta' {
+  if (k >= 0.67) return 'alta';
+  if (k >= 0.34) return 'media';
+  return 'baja';
+}
+
 export async function GET() {
   // Barrera real en servidor: auth + allowlist (default-deny). Estas métricas
   // son cross-user (service-role bypassa RLS) → SOLO usuarios de la allowlist.
@@ -43,7 +50,7 @@ export async function GET() {
   const { data: rows, error } = await admin
     .from('signal_outcomes')
     .select(
-      'analysis_id, horizon_days, hit, return_pct, analyses_log!inner(direction, confidence, confluence_pct)'
+      'analysis_id, horizon_days, hit, return_pct, analyses_log!inner(direction, confidence, confluence_pct, actionable_pct, kappa)'
     )
     .limit(5000);
 
@@ -60,6 +67,8 @@ export async function GET() {
       direction: string;
       confidence: string;
       confluence_pct: number;
+      actionable_pct: number | null;
+      kappa: number | null;
     };
   };
   const data = (rows ?? []) as Row[];
@@ -81,6 +90,14 @@ export async function GET() {
     '31-60': emptyBucket(),
     '61-100': emptyBucket(),
   };
+  // Ejes nuevos (Fase 1). Solo cuentan filas con los campos (análisis post-deploy);
+  // las viejas traen null → quedan fuera del bucket (no inventamos calibración).
+  const by_actionable: ByKey = {
+    '0-30': emptyBucket(),
+    '31-60': emptyBucket(),
+    '61-100': emptyBucket(),
+  };
+  const by_kappa: ByKey = { baja: emptyBucket(), media: emptyBucket(), alta: emptyBucket() };
   const total = emptyBucket();
 
   for (const r of data) {
@@ -111,6 +128,21 @@ export async function GET() {
       bcfl.n++;
       if (r.hit) bcfl.hits++;
     }
+    // Ejes nuevos — null-guard: filas pre-Fase-1 no entran.
+    if (a.actionable_pct != null) {
+      const ba = by_actionable[confluenceBucket(a.actionable_pct)];
+      if (ba) {
+        ba.n++;
+        if (r.hit) ba.hits++;
+      }
+    }
+    if (a.kappa != null) {
+      const bk = by_kappa[kappaBucket(a.kappa)];
+      if (bk) {
+        bk.n++;
+        if (r.hit) bk.hits++;
+      }
+    }
   }
 
   finalize(total);
@@ -118,6 +150,8 @@ export async function GET() {
   for (const k of Object.keys(by_direction)) finalize(by_direction[k]!);
   for (const k of Object.keys(by_confidence)) finalize(by_confidence[k]!);
   for (const k of Object.keys(by_confluence)) finalize(by_confluence[k]!);
+  for (const k of Object.keys(by_actionable)) finalize(by_actionable[k]!);
+  for (const k of Object.keys(by_kappa)) finalize(by_kappa[k]!);
 
   return NextResponse.json({
     total,
@@ -125,5 +159,7 @@ export async function GET() {
     by_direction,
     by_confidence,
     by_confluence,
+    by_actionable,
+    by_kappa,
   });
 }

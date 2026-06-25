@@ -43,6 +43,9 @@ describe('GET /api/metrics/calibration · allowlist', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveProperty('total');
+    // Ejes nuevos (Fase 1) presentes en la respuesta.
+    expect(body).toHaveProperty('by_actionable');
+    expect(body).toHaveProperty('by_kappa');
     expect(createSupabaseAdmin).toHaveBeenCalledTimes(1);
   });
 
