@@ -70,7 +70,7 @@ function tercileSpread(rows: Row[], rank: (r: Row) => number) {
 /** Correlación punto-biserial entre un valor continuo y hit_net (0/1). */
 function pointBiserial(rows: Row[], val: (r: Row) => number): number {
   const xs = rows.map(val);
-  const ys = rows.map((r) => (r.hitNet ? 1 : 0));
+  const ys: number[] = rows.map((r) => (r.hitNet ? 1 : 0));
   const n = xs.length;
   const mx = xs.reduce((a, b) => a + b, 0) / n;
   const my = ys.reduce((a, b) => a + b, 0) / n;

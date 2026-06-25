@@ -111,9 +111,10 @@ const actionable = (net: number, kappa: number) => (Math.abs(net) < GMIN ? 0 : M
 
 test('experimento Fase 1b — split de importancia + dampening A1/A2', async () => {
   const env = loadEnv();
-  const supa = createClient(env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-  });
+  const url = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY en .env.local');
+  const supa = createClient(url, key, { auth: { persistSession: false } });
   const { data, error } = await supa
     .from('signal_outcomes')
     .select('horizon_days, return_pct, hit, analyses_log(initial_price, a1_output, a2_output, a3_output, debate_output)');
