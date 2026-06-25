@@ -5,30 +5,35 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 /**
- * Hero3D — escena "confluencia": tres anillos (A1 · A2 · A3) en orientaciones
- * distintas que rotan en torno a un núcleo común, con un halo de puntos tenue.
- * Es la tesis del producto hecha visual: tres lecturas convergiendo en una.
+ * Hero3D — escena "confluencia": cuatro anillos (A1 · A2 · A3 + Estructura
+ * opt-in, más tenue) en orientaciones distintas que rotan en torno a un núcleo
+ * común, con un halo de puntos tenue. Es la tesis del producto hecha visual:
+ * varias lecturas convergiendo en una.
  *
- * Tintes índigo / violeta / teal que dialogan con la aurora del fondo; el
- * canvas es transparente (alpha) para que la aurora se vea a través. Materiales
- * `basic` con blending aditivo (glow barato, sin luces). dpr capado.
+ * Tintes índigo / violeta / teal + sky (Estructura) que dialogan con la aurora
+ * del fondo; el canvas es transparente (alpha) para que la aurora se vea a
+ * través. Materiales `basic` con blending aditivo (glow barato, sin luces).
+ * dpr capado.
  *
  * Se carga vía dynamic(ssr:false) desde inicio-content → three/R3F solo se
  * descargan en /inicio.
  */
 
-const HUES = ['#818cf8', '#c084fc', '#2dd4bf'] as const; // índigo · violeta · teal
+// índigo · violeta · teal (A1·A2·A3) + sky (Estructura · 4ª pata opt-in)
+const HUES = ['#818cf8', '#c084fc', '#2dd4bf', '#38bdf8'] as const;
 
 function Ring({
   color,
   axis,
   speed,
   tilt,
+  opacity = 0.8,
 }: {
   color: string;
   axis: 'x' | 'y' | 'z';
   speed: number;
   tilt: [number, number, number];
+  opacity?: number;
 }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((_, delta) => {
@@ -40,7 +45,7 @@ function Ring({
       <meshBasicMaterial
         color={color}
         transparent
-        opacity={0.8}
+        opacity={opacity}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -107,6 +112,8 @@ function Scene() {
       <Ring color={HUES[0]} axis="y" speed={0.35} tilt={[0, 0, 0]} />
       <Ring color={HUES[1]} axis="x" speed={0.3} tilt={[Math.PI / 2.4, 0, 0]} />
       <Ring color={HUES[2]} axis="z" speed={0.26} tilt={[0, Math.PI / 2.6, Math.PI / 3]} />
+      {/* 4ª pata · Estructura (opt-in, futuros) — orbita más tenue */}
+      <Ring color={HUES[3]} axis="y" speed={0.2} tilt={[Math.PI / 3.5, Math.PI / 4, 0]} opacity={0.5} />
       <Core />
       <Halo />
     </group>

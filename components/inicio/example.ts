@@ -7,7 +7,8 @@
  * (agents/shared/types.ts: A1Output/A2Output/A3Output/A4Output) y respetan los
  * umbrales de confluencia (0-33 baja · 34-66 media · 67-100 alta).
  *
- * Caso: tres lecturas alineadas al alza con convicción alta → confluencia alta.
+ * Caso: tres lecturas alineadas al alza con convicción alta → veredicto positivo
+ * con confianza accionable alta (κ coherencia alta).
  */
 
 export interface ExampleLens {
@@ -29,6 +30,10 @@ export interface Example {
   lenses: ExampleLens[];
   verdict: {
     direccion: 'POSITIVO' | 'NEGATIVO' | 'NEUTRAL';
+    /** Eje principal del titular: confianza accionable = |net|·f(κ), 0-100. */
+    actionable_pct: number;
+    /** κ — coherencia entre agentes (0-1). */
+    kappa: number;
     confluence_pct: number;
     nivel: 'alta' | 'media' | 'baja';
     confianza: 'alta' | 'media' | 'baja';
@@ -81,11 +86,13 @@ export const EXAMPLE: Example = {
   ],
   verdict: {
     direccion: 'POSITIVO',
+    actionable_pct: 71,
+    kappa: 0.9,
     confluence_pct: 78,
     nivel: 'alta',
     confianza: 'alta',
     porque:
-      'Las tres lecturas apuntan arriba con fuerza y se confirman entre sí → confluencia alta al alza.',
+      'Las tres lecturas apuntan arriba y se confirman entre sí (κ alta) → veredicto positivo con confianza accionable alta.',
     accion:
       'Convicción alta y niveles definidos: entrada cerca de 212, invalidación por debajo de 203.',
     riesgo:

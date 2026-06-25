@@ -42,7 +42,7 @@ const OFRECE = [
   },
   {
     title: 'Confluencia cuantificada',
-    body: 'Un score y un nivel —baja, media o alta— en lugar de una opinión vaga.',
+    body: 'Un veredicto firmado con su coherencia entre agentes (κ) y una confianza accionable —baja, media o alta— en vez de una opinión vaga.',
   },
   {
     title: 'Señales sobre lo tuyo',
@@ -257,11 +257,19 @@ export function InicioContent() {
                 </div>
                 <div>
                   <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
-                    Confluencia
+                    Accionable
                   </p>
                   <p className="mt-1 font-mono text-2xl font-bold text-white">
-                    {v.confluence_pct}%{' '}
+                    {v.actionable_pct}%{' '}
                     <span className="text-base font-medium uppercase text-emerald">{v.nivel}</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
+                    κ coherencia
+                  </p>
+                  <p className="mt-1 font-mono text-2xl font-bold text-white">
+                    {v.kappa.toFixed(2)}
                   </p>
                 </div>
                 <p className="ml-auto max-w-xs text-sm leading-relaxed text-white/70">{v.porque}</p>

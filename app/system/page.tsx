@@ -111,7 +111,7 @@ export default function SystemScreen() {
         <div className="mt-2 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
           <span className="font-mono text-[12px] text-white">sistema operativo</span>
-          <span className="ml-auto font-mono text-[12px] text-white/66">v0.4.0 · refactor F1+F2.2</span>
+          <span className="ml-auto font-mono text-[12px] text-white/66">v0.5.0 · ejes A4 + Estructura 4ª pata</span>
         </div>
         <div className="mt-1 font-mono text-[12px] text-white/66 leading-snug">
           Pipeline determinístico: math en código (computeTechnical · computeConfluence) ·
@@ -320,13 +320,17 @@ export default function SystemScreen() {
           refactor F1 — math fuera del LLM
         </div>
         <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-white/85" />
-        <KV k="computeConfluence()" v="scoring 30/40/30 · capping por agentes vivos · niveles deterministas" cls="text-white/85" />
+        <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-white/85" />
+        <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coherencia · accionable = |net|·f(κ)" cls="text-white/85" />
+        <KV k="Estructura · 4ª pata" v="opt-in · re-narra A4 a 4 patas + persiste estructura_output (mig 0017)" cls="text-white/85" />
+        <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché A2 + backfill A4 server-side (cierra el gap de A2)" cls="text-white/85" />
+        <KV k="track-record · por agente" v="acierto direccional A1/A2/A3/Estructura en /metrics — medición, aún no repondera" cls="text-white/85" />
         <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-white/85" />
         <KV k="A2 edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-white/85" />
-        <KV k="trace ID" v="UUID propagado a los 4 agentes para correlación de logs" cls="text-white/85" />
-        <KV k="endpoint" v="/api/agents/run (pipeline integrado)" cls="text-white/85" />
+        <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-white/85" />
+        <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-white/85" />
         <KV k="osciladores A3" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-white/85" />
-        <KV k="tests · CI" v="464 unitarios · GitHub Actions typecheck+lint+test" cls="text-emerald" />
+        <KV k="tests · CI" v="692 unitarios · GitHub Actions typecheck+lint+test" cls="text-emerald" />
       </div>
 
       <SectionLabel>arquitectura</SectionLabel>
