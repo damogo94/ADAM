@@ -27,6 +27,54 @@ function serverClient(opts: { user: { id: string } | null; authorized: boolean }
   };
 }
 
+// A3 válido con signal 'buy' (→ dirección alcista) y ATR para el umbral.
+const A3_BUY = {
+  ticker: 'AAPL',
+  timeframes_analizados: ['1D'],
+  tendencia: { primaria: 'alcista', secundaria: 'alcista', fuerza: 3 },
+  soportes: [],
+  resistencias: [],
+  patron_detectado: null,
+  medias: { sma20: null, sma50: null, sma200: null, vwap: null, golden_cross: false, death_cross: false },
+  volumen: { estado: 'estable', comentario: 'volumen ok' },
+  velas_relevantes: [],
+  operativa: {
+    signal: 'buy',
+    entrada: 100,
+    stop_loss: 95,
+    target: 110,
+    atr_actual: 2,
+    ratio_riesgo_beneficio: 2,
+    horizonte: 'swing',
+  },
+  factor_invalidacion: 'factor de invalidación de prueba.',
+  confidence: 70,
+  narrative: 'narrativa A3 suficientemente larga para validar.',
+};
+
+function outcomeRow(over: Record<string, unknown> = {}, logOver: Record<string, unknown> = {}) {
+  return {
+    analysis_id: 'an-1',
+    horizon_days: 7,
+    hit: true,
+    return_pct: 5, // +5% > umbral 2% → alcista acierta
+    analyses_log: {
+      direction: 'positivo',
+      confidence: 'media',
+      confluence_pct: 50,
+      actionable_pct: 40,
+      kappa: 0.5,
+      initial_price: 100,
+      a1_output: null,
+      a2_output: null,
+      a3_output: A3_BUY,
+      estructura_output: null,
+      ...logOver,
+    },
+    ...over,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   // admin: signal_outcomes.select(...).limit(...) → sin filas (suficiente).
@@ -46,7 +94,28 @@ describe('GET /api/metrics/calibration · allowlist', () => {
     // Ejes nuevos (Fase 1) presentes en la respuesta.
     expect(body).toHaveProperty('by_actionable');
     expect(body).toHaveProperty('by_kappa');
+    // Opción C · track-record per-agente.
+    expect(body).toHaveProperty('by_agent');
+    expect(body.by_agent).toHaveProperty('a3');
     expect(createSupabaseAdmin).toHaveBeenCalledTimes(1);
+  });
+
+  it('atribuye el acierto direccional al agente que tomó postura (A3 buy → alcista, +5% → hit)', async () => {
+    vi.mocked(createSupabaseServer).mockResolvedValue(
+      serverClient({ user: { id: 'u1' }, authorized: true }) as never
+    );
+    const builder = makeBuilder({ then: { data: [outcomeRow()], error: null } });
+    vi.mocked(createSupabaseAdmin).mockReturnValue({ from: vi.fn(() => builder) } as never);
+
+    const res = await GET();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    // A3 opinó alcista y el activo subió +5% → cuenta y acierta.
+    expect(body.by_agent.a3).toMatchObject({ n: 1, hits: 1, hit_rate_pct: 100 });
+    // A1/A2/Estructura ausentes (null) → sin postura → no cuentan.
+    expect(body.by_agent.a1.n).toBe(0);
+    expect(body.by_agent.a2.n).toBe(0);
+    expect(body.by_agent.estructura.n).toBe(0);
   });
 
   it('autenticado pero NO en allowlist → 403 y NO toca los datos (llamada directa bloqueada)', async () => {

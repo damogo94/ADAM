@@ -48,6 +48,8 @@ interface Calibration {
   // Ejes nuevos (Fase 1) — opcionales por back-compat con el endpoint viejo.
   by_actionable?: Record<string, CalibrationBucket>;
   by_kappa?: Record<string, CalibrationBucket>;
+  // Opción C · track-record per-agente (medición; aún no repondera).
+  by_agent?: Record<string, CalibrationBucket>;
 }
 
 const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'compute' }[] = [
@@ -254,6 +256,31 @@ export default function SystemScreen() {
             <KV
               k="κ baja"
               v={`${calibration.by_kappa?.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.baja?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="acierto direccional · por agente"
+              v="track-record (medición — aún no repondera)"
+              cls="text-white/45"
+            />
+            <KV
+              k="· A1 activo"
+              v={`${calibration.by_agent?.a1?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a1?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="· A2 macro"
+              v={`${calibration.by_agent?.a2?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a2?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="· A3 técnico"
+              v={`${calibration.by_agent?.a3?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a3?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="· Estructura"
+              v={`${calibration.by_agent?.estructura?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.estructura?.n ?? 0}`}
               cls="text-white/85"
             />
           </>
