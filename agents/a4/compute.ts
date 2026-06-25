@@ -267,10 +267,12 @@ function alignmentScore(
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Direction helpers — privados
+// Direction helpers — exportados como ÚNICA fuente de verdad de la dirección
+// implícita de cada agente. Los reusa la atribución per-agente de /metrics
+// (track-record por agente) para no derivar la dirección con lógica duplicada.
 // ───────────────────────────────────────────────────────────────────────────
 
-function directionOfA1(a1: A1Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
+export function directionOfA1(a1: A1Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
   if (!a1) return null;
   if (a1.anomaly_type === 'oportunidad') return 'alcista';
   if (a1.anomaly_type === 'vulnerabilidad') return 'bajista';
@@ -279,7 +281,7 @@ function directionOfA1(a1: A1Output_t | null): 'alcista' | 'bajista' | 'neutral'
   return 'neutral';
 }
 
-function directionOfA2(a2: A2Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
+export function directionOfA2(a2: A2Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
   if (!a2) return null;
   // Lectura prioritaria del nuevo campo `regime_outlook` (cuando el LLM
   // empieza a emitirlo). Permite a A2 expresar régimen bajista — antes
@@ -296,7 +298,7 @@ function directionOfA2(a2: A2Output_t | null): 'alcista' | 'bajista' | 'neutral'
   return 'neutral';
 }
 
-function directionOfA3(a3: A3Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
+export function directionOfA3(a3: A3Output_t | null): 'alcista' | 'bajista' | 'neutral' | null {
   if (!a3) return null;
   if (a3.operativa.signal === 'buy') return 'alcista';
   if (a3.operativa.signal === 'sell') return 'bajista';
@@ -309,7 +311,7 @@ function directionOfA3(a3: A3Output_t | null): 'alcista' | 'bajista' | 'neutral'
   return 'neutral';
 }
 
-function directionOfEstructura(
+export function directionOfEstructura(
   est: EstructuraOutput_t | null
 ): 'alcista' | 'bajista' | 'neutral' | null {
   if (!est) return null;

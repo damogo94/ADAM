@@ -45,6 +45,11 @@ interface Calibration {
   by_direction: Record<string, CalibrationBucket>;
   by_confidence: Record<string, CalibrationBucket>;
   by_confluence: Record<string, CalibrationBucket>;
+  // Ejes nuevos (Fase 1) — opcionales por back-compat con el endpoint viejo.
+  by_actionable?: Record<string, CalibrationBucket>;
+  by_kappa?: Record<string, CalibrationBucket>;
+  // Opción C · track-record per-agente (medición; aún no repondera).
+  by_agent?: Record<string, CalibrationBucket>;
 }
 
 const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'compute' }[] = [
@@ -219,6 +224,63 @@ export default function SystemScreen() {
             <KV
               k="confluence 0-30"
               v={`${calibration.by_confluence['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['0-30']?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            {/* Ejes nuevos (Fase 1): ¿hit-rate sube con actionable? ¿y con κ?
+                Comparar contra los buckets de confluence de arriba. */}
+            <KV
+              k="accionable 61-100"
+              v={`${calibration.by_actionable?.['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['61-100']?.n ?? 0}`}
+              cls="text-white"
+            />
+            <KV
+              k="accionable 31-60"
+              v={`${calibration.by_actionable?.['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['31-60']?.n ?? 0}`}
+              cls="text-white"
+            />
+            <KV
+              k="accionable 0-30"
+              v={`${calibration.by_actionable?.['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['0-30']?.n ?? 0}`}
+              cls="text-white"
+            />
+            <KV
+              k="κ alta"
+              v={`${calibration.by_kappa?.alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.alta?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="κ media"
+              v={`${calibration.by_kappa?.media?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.media?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="κ baja"
+              v={`${calibration.by_kappa?.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.baja?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="acierto direccional · por agente"
+              v="track-record (medición — aún no repondera)"
+              cls="text-white/45"
+            />
+            <KV
+              k="· A1 activo"
+              v={`${calibration.by_agent?.a1?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a1?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="· A2 macro"
+              v={`${calibration.by_agent?.a2?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a2?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="· A3 técnico"
+              v={`${calibration.by_agent?.a3?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a3?.n ?? 0}`}
+              cls="text-white/85"
+            />
+            <KV
+              k="· Estructura"
+              v={`${calibration.by_agent?.estructura?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.estructura?.n ?? 0}`}
               cls="text-white/85"
             />
           </>

@@ -60,6 +60,8 @@ interface RunState {
   a4: A4Output | null;
   estructura: EstructuraOutput_t | null;
   estructuraStatus: AgentStatus;
+  /** id de la fila persistida (evento `final`) — lo usa el re-narrado con EST. */
+  analysisId: string | null;
   error: UserError | null;
   partial: boolean;
   failures: { agent: string; message: string }[];
@@ -80,6 +82,7 @@ const INITIAL: RunState = {
   a4: null,
   estructura: null,
   estructuraStatus: 'idle',
+  analysisId: null,
   error: null,
   partial: false,
   failures: [],
@@ -142,6 +145,44 @@ function AnalysisInner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoTicker]);
+
+  /**
+   * Re-narra A4 server-side con la pata de Estructura (4 patas) y/o un A2
+   * tardío, y persiste la fila vía analysisId. Best-effort: si falla, se
+   * conserva el A4 anterior. Unifica el cierre del run y el toggle de EST.
+   */
+  async function reconsolidateA4(params: {
+    ticker: string;
+    a1: A1Output | null;
+    a2: A2Output | null;
+    a3: A3Output | null;
+    debate: DebateOutput | null;
+    estructura: EstructuraOutput_t | null;
+    analysisId: string | null;
+    signal?: AbortSignal;
+  }): Promise<void> {
+    try {
+      const r = await fetch('/api/agents/a4', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticker: params.ticker,
+          a1: params.a1,
+          a2: params.a2,
+          a3: params.a3,
+          debate: params.debate,
+          estructura: params.estructura,
+          analysisId: params.analysisId ?? undefined,
+        }),
+        signal: params.signal,
+      });
+      if (!r.ok) return;
+      const cj = (await r.json()) as { a4?: A4Output };
+      if (cj.a4) setState((s) => ({ ...s, a4: cj.a4! }));
+    } catch {
+      /* best-effort: conservamos el A4 anterior */
+    }
+  }
 
   async function handleRun(rawTicker: string) {
     // Cancela cualquier request anterior en vuelo
@@ -263,6 +304,7 @@ function AnalysisInner() {
             ...s,
             a4: ev.a4,
             a4Status: 'done',
+            analysisId: acc.analysisId,
             // Si algún evento de agente se perdió, no dejes su card en scanning.
             a1Status:
               s.a1Status === 'scanning'
@@ -322,42 +364,44 @@ function AnalysisInner() {
 
       if (fatal || ctrl.signal.aborted) return;
 
-      // A2 standalone: si el stream no trajo A2 (caché fría), la llena su lambda
-      // paralelo. Igual que antes, re-narramos A4 con A1+A2+A3 completos.
+      // Cierre: incorpora el A2 tardío (caché fría) y/o la pata de Estructura
+      // (opt-in). Ambos alimentan UNA sola re-consolidación de A4 server-side
+      // (que además persiste la fila: A2, confluencia a 4 patas, estructura_output).
+      let a2Final = acc.a2;
       if (!acc.a2) {
-        const a2Standalone = await a2Promise;
+        a2Final = await a2Promise;
         if (ctrl.signal.aborted) return;
-        if (a2Standalone) {
+        if (a2Final) {
+          const a2v = a2Final; // narrowing estable dentro del closure de setState
           setState((s) => ({
             ...s,
-            a2: a2Standalone,
-            a2Status: a2Standalone.opportunity_detected ? 'anomaly' : 'done',
+            a2: a2v,
+            a2Status: a2v.opportunity_detected ? 'anomaly' : 'done',
           }));
-          try {
-            const consRes = await fetch('/api/agents/a4', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                ticker,
-                a1: acc.a1,
-                a2: a2Standalone,
-                a3: acc.a3,
-                debate: acc.debate,
-                analysisId: acc.analysisId ?? undefined,
-              }),
-              signal: ctrl.signal,
-            });
-            if (ctrl.signal.aborted) return;
-            if (consRes.ok) {
-              const cj = (await consRes.json()) as { a4?: A4Output };
-              if (cj.a4) setState((s) => ({ ...s, a4: cj.a4! }));
-            }
-          } catch {
-            /* best-effort: conservamos el A4 anterior */
-          }
         } else {
           setState((s) => ({ ...s, a2Status: 'error' }));
         }
+      }
+
+      // EST: si el usuario la activó, espera su lambda paralelo. El ref evita
+      // sumarla si la apagó mientras corría.
+      const estFinal = estEnabled && estEnabledRef.current ? await estPromise : null;
+      if (ctrl.signal.aborted) return;
+
+      // Re-consolida solo si hay algo nuevo respecto al A4 horneado en /run:
+      // un A2 que llegó tarde, o la pata de Estructura.
+      const a2WasLate = !acc.a2 && !!a2Final;
+      if (a2WasLate || estFinal) {
+        await reconsolidateA4({
+          ticker,
+          a1: acc.a1,
+          a2: a2Final,
+          a3: acc.a3,
+          debate: acc.debate,
+          estructura: estFinal,
+          analysisId: acc.analysisId,
+          signal: ctrl.signal,
+        });
       }
     } catch (e) {
       if (ctrl.signal.aborted) return; // AbortError esperado, no es fallo
@@ -400,6 +444,20 @@ function AnalysisInner() {
             ? { ...s, estructura: est, estructuraStatus: est ? 'done' : 'error' }
             : s
         );
+        // Suma la pata a A4: re-narra a 4 patas (la cita) y persiste la fila
+        // (estructura_output + confluencia 4 patas). Si no hubo análisis previo
+        // (sin analysisId) igual re-narra la tarjeta, best-effort.
+        if (est && state.ticker === current) {
+          void reconsolidateA4({
+            ticker: current,
+            a1: state.a1,
+            a2: state.a2,
+            a3: state.a3,
+            debate: state.debate,
+            estructura: est,
+            analysisId: state.analysisId,
+          });
+        }
       });
     }
   }

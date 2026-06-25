@@ -58,6 +58,7 @@ export type Database = {
           created_at: string
           debate_output: Json | null
           direction: Database["public"]["Enums"]["direction_t"]
+          estructura_output: Json | null
           id: string
           initial_price: number | null
           initial_price_at: string | null
@@ -80,6 +81,7 @@ export type Database = {
           created_at?: string
           debate_output?: Json | null
           direction: Database["public"]["Enums"]["direction_t"]
+          estructura_output?: Json | null
           id?: string
           initial_price?: number | null
           initial_price_at?: string | null
@@ -102,6 +104,7 @@ export type Database = {
           created_at?: string
           debate_output?: Json | null
           direction?: Database["public"]["Enums"]["direction_t"]
+          estructura_output?: Json | null
           id?: string
           initial_price?: number | null
           initial_price_at?: string | null

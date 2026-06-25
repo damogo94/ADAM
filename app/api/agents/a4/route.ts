@@ -17,12 +17,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
-import { narrateA4 } from '@/agents/a4/narrate';
-import { computeConfluence, type DebateForConfluence } from '@/agents/a4/compute';
+import { type DebateForConfluence } from '@/agents/a4/compute';
+import { consolidateAndPersistA4 } from '@/agents/a4/consolidate';
 import { createSupabaseServer } from '@/lib/supabase/server';
-import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
+import { EstructuraOutput } from '@/agents/estructura/schema';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -42,6 +42,9 @@ const RequestSchema = z.object({
   a2: A2Output.nullable(),
   a3: A3Output.nullable(),
   debate: DebateLite.nullable().optional(),
+  // Estructura (futuros · MTF) opt-in. Cuando viene, A4 se re-narra a 4 patas
+  // y, si hay analysisId, se persiste estructura_output.
+  estructura: EstructuraOutput.nullable().optional(),
   // Si viene, este endpoint ACTUALIZA la fila de analyses_log con el A4
   // re-narrado (cierra el first-run A2 gap en persistencia). Opcional para
   // back-compat: sin id, solo re-narra y devuelve (comportamiento previo).
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { ticker, a1, a2, a3, debate, analysisId } = parsed.data;
+    const { ticker, a1, a2, a3, debate, estructura, analysisId } = parsed.data;
 
     // Necesitamos al menos un agente vivo para que A4 tenga algo que consolidar.
     if (!a1 && !a2 && !a3) {
@@ -80,45 +83,21 @@ export async function POST(req: NextRequest) {
       ? { convergence_score: debate.convergence_score, direccion: debate.direccion }
       : null;
 
-    const confluence = computeConfluence({ a1, a2, a3, debate: debateForCompute });
-    const a4 = await narrateA4({
+    // Consolida + (si viene analysisId) persiste el A4 re-narrado. Cierra el
+    // first-run A2 gap en PERSISTENCIA: la fila horneada con A2 null pasa a
+    // reflejar el A4 completo (confluence_pct/direction/confidence + ejes Fase 1
+    // net_pct/kappa/actionable_pct). Lógica compartida con el cron de
+    // reconciliación de A2 — ver agents/a4/consolidate.ts.
+    const a4 = await consolidateAndPersistA4({
       ticker,
       a1,
       a2,
       a3,
       debate: debateForCompute,
-      confluence,
-      failures: [],
+      estructura: estructura ?? null,
+      analysisId: analysisId ?? null,
+      userId: user.id,
     });
-
-    // Cierra el first-run A2 gap en PERSISTENCIA: actualiza la fila ya insertada
-    // por /api/agents/run (que se horneó con A2 null) para que las columnas que
-    // lee la calibración (confluence_pct/direction/confidence) y los JSON
-    // reflejen el A4 completo. Admin + filtro user_id = scoping seguro sin
-    // depender de una policy UPDATE en RLS. Best-effort: un fallo aquí NO rompe
-    // la re-narración que el frontend necesita.
-    if (analysisId) {
-      try {
-        const admin = createSupabaseAdmin();
-        await admin
-          .from('analyses_log')
-          .update({
-            a2_output: a2,
-            a4_output: a4,
-            confluence_pct: a4.confluence.score_total_pct,
-            confidence: a4.confianza,
-            direction: a4.direccion,
-          })
-          .eq('id', analysisId)
-          .eq('user_id', user.id);
-      } catch (updErr) {
-        // eslint-disable-next-line no-console
-        console.error(
-          '[a4-consolidate] persist update failed:',
-          updErr instanceof Error ? updErr.message : updErr
-        );
-      }
-    }
 
     return NextResponse.json({ a4 });
   } catch (err) {
