@@ -28,7 +28,7 @@ import {
   DISCLAIMER_LITERAL,
 } from '@/agents/shared/types';
 import type { z } from 'zod';
-import type { DebateForConfluence } from './compute';
+import { mandatedDirection, type DebateForConfluence } from './compute';
 
 export interface NarrateA4Input {
   ticker: string;
@@ -145,11 +145,23 @@ export async function narrateA4(
     onUsage,
   });
 
-  // Merge final: lo prosaico + ticker + confluence + disclaimer literal
+  // Backstop opción C: el LLM no puede contradecir el SIGNO del veredicto
+  // firmado (net). Si la confluencia trae `net_pct` (ejes nuevos) y la dirección
+  // mandada por la matemática NO es neutral, se fuerza a coincidir — el LLM solo
+  // conserva libertad (puede emitir neutral) cuando |net| < G_MIN. Guardado a
+  // `net_pct` presente → back-compat: confluencias viejas (sin net_pct) no se
+  // tocan y conservan la dirección del LLM tal cual.
+  const mandated =
+    input.confluence.net_pct !== undefined ? mandatedDirection(input.confluence.net_pct) : null;
+  const direccion = mandated && mandated !== 'neutral' ? mandated : narrated.direccion;
+
+  // Merge final: lo prosaico + ticker + confluence + disclaimer literal.
+  // `direccion` se sobrescribe DESPUÉS del spread (backstop por encima del LLM).
   return {
     ticker: input.ticker,
     confluence: input.confluence,
     ...narrated,
+    direccion,
     disclaimer: DISCLAIMER_LITERAL,
   };
 }

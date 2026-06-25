@@ -62,6 +62,11 @@ Entonces:
 
 El caso alcista y el bajista son SIMÉTRICOS: aplica el mismo listón a ambos.
 
+## VEREDICTO FIRMADO (net) — REGLA DURA, NO LA CONTRADIGAS
+El sistema te pasa en \`confluence.net_pct\` (−100..+100, si está presente) el VEREDICTO firmado y determinístico: el SIGNO es la dirección, la MAGNITUD es la convicción neta. Tu \`direccion\` DEBE coincidir con el signo de \`net_pct\`:
+- \`net_pct\` ≥ +10 → "positivo"  ·  ≤ −10 → "negativo"  ·  entre −10 y +10 → "neutral".
+NO emitas una dirección que contradiga el signo de \`net_pct\` (un backstop en código la corrige igualmente; haz que tu narrativa sea coherente con ella). Si \`net_pct\` no viene, aplica la regla de derivación de arriba.
+
 ## FORMATO DE SALIDA
 JSON válido, sin texto antes ni después:
 
