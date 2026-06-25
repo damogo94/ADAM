@@ -1,11 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AuroraBackground } from './aurora-background';
-import { HeroFallback } from './hero-fallback';
+import { HeroArc } from './hero-arc';
 import { EXAMPLE } from './example';
 
 /**
@@ -18,18 +17,12 @@ import { EXAMPLE } from './example';
  * paso (eliminado).
  *
  * Fondo aurora (AuroraBackground) detrás de todo, evoluciona con el scroll.
- * Hero 3D reelaborado (motivo confluencia) vía dynamic(ssr:false) → three/R3F
- * solo se descargan aquí. prefers-reduced-motion: aurora estática + sin reveals
- * + sin canvas (HeroFallback).
+ * El hero es el arco narrativo scroll-pinned de 5 capítulos (HeroArc), que
+ * encapsula el R3F (dynamic ssr:false) y su fallback reduced-motion.
  *
  * Copy/posicionamiento derivado del repo (README, CONTEXT, DISCLAIMER_LITERAL,
  * agents/shared/atlas-capital-style.ts).
  */
-
-const Hero3D = dynamic(() => import('./hero-3d').then((m) => m.Hero3D), {
-  ssr: false,
-  loading: () => <HeroFallback />,
-});
 
 const OFRECE = [
   {
@@ -115,45 +108,16 @@ function IllustrativeTag() {
 }
 
 export function InicioContent() {
-  const reduce = useReducedMotion();
   const v = EXAMPLE.verdict;
 
   return (
     <>
       <AuroraBackground />
-      <main className="relative min-h-screen overflow-x-hidden pb-28">
-        {/* ── 1 · Hero ──────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-14 md:pt-20">
-          <div className="grid items-center gap-10 md:grid-cols-2">
-            <div>
-              <p className="font-mono text-[12px] uppercase tracking-[0.25em] text-white/66">
-                Anomaly Detection &amp; Analysis Module
-              </p>
-              <h1 className="mt-3 font-sans text-5xl font-extrabold tracking-[0.12em] text-white md:text-6xl">
-                A.D.A.M.
-              </h1>
-              <p className="mt-5 max-w-md text-lg leading-relaxed text-white/85">
-                Escribe un ticker. ADAM cruza fundamentales, macro y técnico, y te devuelve una
-                lectura con su nivel de confianza — y el porqué.
-              </p>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/66">
-                No es un broker. No ejecuta órdenes ni mueve tu capital.
-              </p>
-              <Link
-                href="/analysis"
-                className="mt-7 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-black transition-opacity hover:opacity-80"
-              >
-                Abrir análisis
-                <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-
-            {/* Caja contenida del 3D — da tamaño al Canvas (no full-screen). */}
-            <div className="relative mx-auto h-[280px] w-full max-w-[420px] md:h-[420px]">
-              {reduce ? <HeroFallback /> : <Hero3D />}
-            </div>
-          </div>
-        </section>
+      {/* overflow-x-CLIP (no -hidden): recorta horizontal sin crear un scroll
+          container, que rompería el `position: sticky` del hero scroll-pinned. */}
+      <main className="relative min-h-screen overflow-x-clip pb-28">
+        {/* ── 1 · Hero — arco narrativo scroll-pinned (5 capítulos) ───── */}
+        <HeroArc />
 
         {/* ── 2 · ¿Qué es ADAM? ─────────────────────────────────────── */}
         <section className="mx-auto max-w-3xl px-5 pt-24">

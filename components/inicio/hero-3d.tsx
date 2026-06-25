@@ -2,50 +2,75 @@
 
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
+import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
 
 /**
- * Hero3D — escena "confluencia": cuatro anillos (A1 · A2 · A3 + Estructura
- * opt-in, más tenue) en orientaciones distintas que rotan en torno a un núcleo
- * común, con un halo de puntos tenue. Es la tesis del producto hecha visual:
- * varias lecturas convergiendo en una.
+ * Hero3D — escena "confluencia" re-tonada al re-skin de precisión.
  *
- * Tintes índigo / violeta / teal + sky (Estructura) que dialogan con la aurora
- * del fondo; el canvas es transparente (alpha) para que la aurora se vea a
- * través. Materiales `basic` con blending aditivo (glow barato, sin luces).
- * dpr capado.
+ * Anillos MONOCROMOS (ink, diferenciados por OPACIDAD y orientación, no por
+ * hue) que orbitan un núcleo común con un halo de puntos. El `progress`
+ * (MotionValue 0→1, scrub del scroll del hero-arc) lleva la escena de
+ * DIFUSO/ruido → RESUELTO:
+ *   - difuso (0): anillos tenues + giro inquieto, grupo expandido, halo disperso,
+ *     núcleo apagado.
+ *   - resuelto (1): anillos nítidos + giro calmo, grupo compacto, halo condensado,
+ *     núcleo brillante con el acento de marca (la "señal" que emerge).
  *
- * Se carga vía dynamic(ssr:false) desde inicio-content → three/R3F solo se
- * descargan en /inicio.
+ * Honestidad: es un motivo ABSTRACTO ruido→señal, NO un análisis fingido. Sin
+ * `progress` → resolución plena (idle resuelto, p.ej. en reduced-motion no se monta).
+ *
+ * accent único #5B8AF0 reservado al núcleo resuelto; nada más compite con él
+ * (firewall: nada de emerald/rose/amber aquí). Canvas transparente (alpha),
+ * materiales `basic` + blending aditivo (glow barato). dynamic(ssr:false) →
+ * three/R3F solo se descargan en /inicio.
  */
 
-// índigo · violeta · teal (A1·A2·A3) + sky (Estructura · 4ª pata opt-in)
-const HUES = ['#818cf8', '#c084fc', '#2dd4bf', '#38bdf8'] as const;
+const INK = '#f5f5f7';
+const ACCENT = '#5b8af0';
+
+// 4 anillos: A1·A2·A3 + Estructura (el 4º, más tenue). Diferenciados por
+// opacidad base y orientación — NO por color (tipográfica-no-cromática).
+const RINGS: { axis: 'x' | 'y' | 'z'; speed: number; tilt: [number, number, number]; base: number }[] = [
+  { axis: 'y', speed: 0.3, tilt: [0, 0, 0], base: 0.6 },
+  { axis: 'x', speed: 0.26, tilt: [Math.PI / 2.4, 0, 0], base: 0.46 },
+  { axis: 'z', speed: 0.22, tilt: [0, Math.PI / 2.6, Math.PI / 3], base: 0.34 },
+  { axis: 'y', speed: 0.16, tilt: [Math.PI / 3.5, Math.PI / 4, 0], base: 0.22 },
+];
+
+/** Lee el progreso (0→1) defensivamente; sin MotionValue → 1 (resuelto). */
+function read(progress: MotionValue<number> | undefined): number {
+  if (!progress) return 1;
+  const v = progress.get();
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+}
 
 function Ring({
-  color,
-  axis,
-  speed,
-  tilt,
-  opacity = 0.8,
+  index,
+  progress,
 }: {
-  color: string;
-  axis: 'x' | 'y' | 'z';
-  speed: number;
-  tilt: [number, number, number];
-  opacity?: number;
+  index: number;
+  progress?: MotionValue<number>;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const cfg = RINGS[index]!;
   useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation[axis] += delta * speed;
+    const m = ref.current;
+    if (!m) return;
+    const p = read(progress);
+    // giro: más rápido/inquieto cuando difuso, calmo al resolverse
+    m.rotation[cfg.axis] += delta * cfg.speed * (1 + (1 - p) * 1.8);
+    const mat = m.material as THREE.MeshBasicMaterial;
+    // opacidad: el anillo aparece al resolverse
+    mat.opacity = cfg.base * (0.16 + 0.84 * p);
   });
   return (
-    <mesh ref={ref} rotation={tilt}>
+    <mesh ref={ref} rotation={cfg.tilt}>
       <torusGeometry args={[1.5, 0.012, 16, 140]} />
       <meshBasicMaterial
-        color={color}
+        color={INK}
         transparent
-        opacity={opacity}
+        opacity={cfg.base}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -53,22 +78,31 @@ function Ring({
   );
 }
 
-function Core() {
+function Core({ progress }: { progress?: MotionValue<number> }) {
   const ref = useRef<THREE.Mesh>(null);
+  const color = useMemo(() => new THREE.Color(INK), []);
+  const accent = useMemo(() => new THREE.Color(ACCENT), []);
   useFrame((state) => {
-    if (!ref.current) return;
-    ref.current.scale.setScalar(0.42 + Math.sin(state.clock.elapsedTime * 1.4) * 0.04);
-    ref.current.rotation.y += 0.01;
+    const m = ref.current;
+    if (!m) return;
+    const p = read(progress);
+    const pulse = 0.42 + Math.sin(state.clock.elapsedTime * 1.4) * 0.04;
+    m.scale.setScalar(pulse * (0.7 + 0.3 * p)); // crece al resolverse
+    m.rotation.y += 0.01;
+    const mat = m.material as THREE.MeshBasicMaterial;
+    mat.opacity = 0.35 + 0.55 * p; // brilla al resolverse
+    // color: ink (difuso) → acento de marca (resuelto) = la señal que emerge
+    mat.color.copy(color).lerp(accent, p);
   });
   return (
     <mesh ref={ref}>
       <icosahedronGeometry args={[1, 0]} />
-      <meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.7} />
+      <meshBasicMaterial color={INK} wireframe transparent opacity={0.5} />
     </mesh>
   );
 }
 
-function Halo() {
+function Halo({ progress }: { progress?: MotionValue<number> }) {
   const ref = useRef<THREE.Points>(null);
   const positions = useMemo(() => {
     const N = 500;
@@ -86,41 +120,50 @@ function Halo() {
     return arr;
   }, []);
   useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.y -= delta * 0.05;
+    const pts = ref.current;
+    if (!pts) return;
+    const p = read(progress);
+    pts.rotation.y -= delta * 0.05;
+    // disperso/ruidoso cuando difuso → condensado y tenue al resolverse
+    pts.scale.setScalar(1.4 - 0.4 * p);
+    const mat = pts.material as THREE.PointsMaterial;
+    mat.opacity = 0.5 - 0.22 * p;
   });
   return (
     <points ref={ref}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial color="#ffffff" size={0.02} sizeAttenuation transparent opacity={0.45} depthWrite={false} />
+      <pointsMaterial color={INK} size={0.02} sizeAttenuation transparent opacity={0.45} depthWrite={false} />
     </points>
   );
 }
 
-function Scene() {
+function Scene({ progress }: { progress?: MotionValue<number> }) {
   const group = useRef<THREE.Group>(null);
   useFrame((state) => {
     const g = group.current;
     if (!g) return;
+    const p = read(progress);
     // parallax suave hacia el puntero
     g.rotation.x = THREE.MathUtils.lerp(g.rotation.x, state.pointer.y * 0.3, 0.04);
     g.rotation.y = THREE.MathUtils.lerp(g.rotation.y, state.pointer.x * 0.3, 0.04);
+    // grupo expandido (difuso) → compacto (resuelto)
+    const s = 1.32 - 0.32 * p;
+    g.scale.setScalar(s);
   });
   return (
     <group ref={group}>
-      <Ring color={HUES[0]} axis="y" speed={0.35} tilt={[0, 0, 0]} />
-      <Ring color={HUES[1]} axis="x" speed={0.3} tilt={[Math.PI / 2.4, 0, 0]} />
-      <Ring color={HUES[2]} axis="z" speed={0.26} tilt={[0, Math.PI / 2.6, Math.PI / 3]} />
-      {/* 4ª pata · Estructura (opt-in, futuros) — orbita más tenue */}
-      <Ring color={HUES[3]} axis="y" speed={0.2} tilt={[Math.PI / 3.5, Math.PI / 4, 0]} opacity={0.5} />
-      <Core />
-      <Halo />
+      {RINGS.map((_, i) => (
+        <Ring key={i} index={i} progress={progress} />
+      ))}
+      <Core progress={progress} />
+      <Halo progress={progress} />
     </group>
   );
 }
 
-export function Hero3D() {
+export function Hero3D({ progress }: { progress?: MotionValue<number> }) {
   return (
     <Canvas
       style={{ touchAction: 'pan-y' }}
@@ -128,7 +171,7 @@ export function Hero3D() {
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 0, 5.5], fov: 45 }}
     >
-      <Scene />
+      <Scene progress={progress} />
     </Canvas>
   );
 }
