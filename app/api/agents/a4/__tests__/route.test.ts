@@ -77,12 +77,14 @@ describe('POST /api/agents/a4 (consolidador)', () => {
     const res = await POST(makeRequest(URL, { body: { ticker: 'AAPL', a1: VALID_A1, a2: null, a3: null } }));
     expect(res.status).toBe(200);
     expect((await res.json()).a4).toMatchObject({ direccion: 'neutral' });
-    // narrateA4 recibe (un solo arg) ticker + la confluencia determinística
+    // narrateA4 recibe ticker + la confluencia determinística (arg 1) y las
+    // opciones (arg 2, traceId) — vía el helper compartido consolidateAndPersistA4.
     expect(vi.mocked(narrateA4)).toHaveBeenCalledWith(
       expect.objectContaining({
         ticker: 'AAPL',
         confluence: expect.objectContaining({ score_total_pct: expect.any(Number) }),
-      })
+      }),
+      expect.anything()
     );
   });
 
@@ -100,8 +102,17 @@ describe('POST /api/agents/a4 (consolidador)', () => {
     );
     expect(res.status).toBe(200);
     // Cierra el A2 gap persistido: columnas que lee la calibración + JSON.
+    // Los ejes Fase 1 (net_pct/kappa/actionable_pct) DEBEN persistirse junto al
+    // confluence_pct o quedan stale — regresión que el refactor a consolidate.ts arregla.
     expect(adminBuilder.update).toHaveBeenCalledWith(
-      expect.objectContaining({ confluence_pct: 42, direction: 'neutral', confidence: 'baja' })
+      expect.objectContaining({
+        confluence_pct: 42,
+        direction: 'neutral',
+        confidence: 'baja',
+        net_pct: expect.any(Number),
+        kappa: expect.any(Number),
+        actionable_pct: expect.any(Number),
+      })
     );
     // Scoping seguro: solo la fila del propio usuario.
     expect(adminBuilder.eq).toHaveBeenCalledWith('id', '00000000-0000-0000-0000-000000000001');
