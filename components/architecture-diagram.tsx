@@ -165,7 +165,7 @@ export function ArchitectureDiagram() {
           <Node
             kind="compute"
             title="computeConfluence"
-            sub="30/40/30 · A1/A2[+debate] + A3 · capping por agentes vivos"
+            sub="30/40/30 (4 patas con Estructura: 30/25/20/25) · net + κ + accionable · capping"
             tag="sin LLM"
           />
         </Zone>
