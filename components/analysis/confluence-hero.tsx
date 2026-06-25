@@ -183,8 +183,12 @@ export function ConfluenceHero({
   const reduced = useReducedMotion();
   const progress = useAsymptoticProgress(running && !resolved, resolved, reduced);
 
-  const pct = confluence?.total_pct ?? a4?.confluence.score_total_pct ?? null;
-  const level = confluence?.level ?? null;
+  // Reveal (Fase 1 · ejes separados): el núcleo resuelve en la CONFIANZA
+  // ACCIONABLE + κ (coherencia). Null-guard: análisis sin ejes nuevos caen al
+  // total_pct viejo.
+  const actionable =
+    confluence?.actionable_pct ?? confluence?.total_pct ?? a4?.confluence.score_total_pct ?? null;
+  const kappa = confluence?.kappa ?? null;
   const estPct = Math.round(progress * 100);
 
   return (
@@ -217,11 +221,16 @@ export function ConfluenceHero({
         aria-live="polite"
       >
         {resolved ? (
-          <div className="flex items-baseline justify-center gap-2 text-center">
+          <div className="flex items-baseline justify-center gap-2.5 text-center">
             <span className="font-mono text-[14px] font-bold tabular-nums text-white">
-              {pct !== null ? `${pct}%` : '—'}
+              {actionable !== null ? `${actionable}%` : '—'}
             </span>
-            {level && <span className="font-mono text-[12px] uppercase tracking-wider text-accent">{level}</span>}
+            <span className="font-mono text-[11px] uppercase tracking-wider text-white/45">accionable</span>
+            {kappa !== null && (
+              <span className="font-mono text-[12px] uppercase tracking-wider text-accent">
+                κ {Math.round(kappa * 100)}%
+              </span>
+            )}
           </div>
         ) : (
           <>
