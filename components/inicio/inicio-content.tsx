@@ -24,25 +24,6 @@ import { EXAMPLE } from './example';
  * agents/shared/atlas-capital-style.ts).
  */
 
-const OFRECE = [
-  {
-    title: 'Varias perspectivas en segundos',
-    body: 'Micro, macro y técnico en una sola pasada sobre el mismo ticker.',
-  },
-  {
-    title: 'Sin sesgo de narrativa',
-    body: 'El agente técnico trabaja aislado: solo ve el precio. Nunca noticias ni opiniones de los demás.',
-  },
-  {
-    title: 'Confluencia cuantificada',
-    body: 'Un veredicto firmado con su coherencia entre agentes (κ) y una confianza accionable —baja, media o alta— en vez de una opinión vaga.',
-  },
-  {
-    title: 'Señales sobre lo tuyo',
-    body: 'Un escáner determinista prioriza tu watchlist por urgencia, sin coste de tokens.',
-  },
-] as const;
-
 const NO_OFRECE = [
   'No es asesoramiento financiero personalizado.',
   'No ejecuta operaciones ni mueve tu capital. A.D.A.M. nunca es tu broker.',
@@ -334,24 +315,7 @@ export function InicioContent() {
           </Reveal>
         </section>
 
-        {/* ── 4 · ¿Qué ofrece? ──────────────────────────────────────── */}
-        <section className="mx-auto max-w-3xl px-5 pt-24">
-          <Reveal>
-            <SectionHeading eyebrow="¿Qué ofrece?" title="Para qué te sirve" />
-          </Reveal>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {OFRECE.map((b, i) => (
-              <Reveal key={b.title} delay={i * 0.05}>
-                <div className="h-full rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                  <h3 className="font-medium text-white">{b.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-white/66">{b.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 4b · Agente de Estructura (módulo independiente) ──────── */}
+        {/* ── 5 · Agente de Estructura (módulo independiente) ───────── */}
         <section className="mx-auto max-w-3xl px-5 pt-24">
           <Reveal>
             <SectionHeading eyebrow="Además · para futuros" title="Agente de Estructura" />
@@ -374,7 +338,7 @@ export function InicioContent() {
           </Reveal>
         </section>
 
-        {/* ── 5 · ¿Qué NO ofrece? ───────────────────────────────────── */}
+        {/* ── 6 · ¿Qué NO ofrece? ───────────────────────────────────── */}
         <section id="limites" className="mx-auto max-w-3xl px-5 pt-24 scroll-mt-20">
           <Reveal>
             <div className="rounded-2xl border border-white/20 bg-black/30 p-6 backdrop-blur-sm md:p-8">
@@ -398,12 +362,19 @@ export function InicioContent() {
           </Reveal>
         </section>
 
-        {/* ── 6 · CTA final ─────────────────────────────────────────── */}
+        {/* ── 7 · Cierre — mantra + entrada real ────────────────────── */}
         <section className="mx-auto max-w-3xl px-5 pt-24 text-center">
           <Reveal>
-            <h2 className="font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
-              ¿Listo para verlo con tu ticker?
+            <p className="mx-auto max-w-xl font-sans text-xl font-medium leading-relaxed text-white/75 md:text-2xl">
+              Del ruido, los hechos. De los hechos, un consenso.{' '}
+              <span className="text-white">Del consenso, tu decisión.</span>
+            </p>
+            <h2 className="mt-12 font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
+              Analiza un ticker
             </h2>
+            <p className="mt-2 font-mono text-[12px] uppercase tracking-wider text-white/55">
+              Datos de hoy · análisis real · en segundos
+            </p>
             <Link
               href="/analysis"
               className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-black transition-opacity hover:opacity-80"
