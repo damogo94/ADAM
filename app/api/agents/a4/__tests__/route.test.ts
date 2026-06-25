@@ -29,6 +29,7 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { narrateA4 } from '@/agents/a4/narrate';
 import { NextResponse } from 'next/server';
+import { DISCLAIMER_LITERAL } from '@/agents/shared/types';
 
 const URL = 'http://localhost:3000/api/agents/a4';
 
@@ -51,6 +52,56 @@ const VALID_A1 = {
   anomaly_description: '',
   confidence: 50,
   narrative: 'Narrativa de prueba suficientemente larga para A1.',
+};
+
+// EstructuraOutput válido mínimo (pasa el schema strict, incl. disclaimer literal).
+const VALID_EST = {
+  ticker: 'AAPL',
+  contexto: {
+    weekly: null,
+    daily: {
+      timeframe: '1D',
+      direccion: 'alcista',
+      fase: 'impulso',
+      penultimo_alto: null,
+      ultimo_alto: null,
+      penultimo_bajo: null,
+      ultimo_bajo: null,
+      velas_analizadas: 200,
+    },
+    h4: null,
+    h1: null,
+  },
+  rango_operativo: { desde: null, hasta: null, amplitud: null, zona_retesteo: null },
+  correlacion: { alineacion: 'confirmada', descripcion: 'tendencias alineadas' },
+  confluencia: {
+    precio_redondo: null,
+    distancia_redondo_pct: null,
+    barrera_vanilla: null,
+    vanilla_disponible: false,
+    setup_perfecto: false,
+    score: 60,
+    descripcion: 'confluencia razonable',
+  },
+  setup: {
+    direccion: 'compra',
+    timeframe_zona: '4H',
+    timeframe_entrada: '1H',
+    gatillo: 'W',
+    estado: 'listo',
+  },
+  gestion: {
+    entrada: 100,
+    entry_type: 'limit',
+    stop_loss: 95,
+    take_profit: 115,
+    break_even_trigger: 105,
+    ratio_riesgo_beneficio: 3,
+  },
+  confianza: 70,
+  factor_invalidacion: 'pierde el último bajo del 4H.',
+  narrative: 'narrativa de estructura suficientemente larga para validar.',
+  disclaimer: DISCLAIMER_LITERAL,
 };
 
 let supa: SupabaseMock;
@@ -117,6 +168,33 @@ describe('POST /api/agents/a4 (consolidador)', () => {
     // Scoping seguro: solo la fila del propio usuario.
     expect(adminBuilder.eq).toHaveBeenCalledWith('id', '00000000-0000-0000-0000-000000000001');
     expect(adminBuilder.eq).toHaveBeenCalledWith('user_id', 'user-1');
+  });
+
+  it('con estructura → re-narra a 4 patas (la cita) y persiste estructura_output', async () => {
+    const res = await POST(
+      makeRequest(URL, {
+        body: {
+          ticker: 'AAPL',
+          a1: VALID_A1,
+          a2: null,
+          a3: null,
+          estructura: VALID_EST,
+          analysisId: '00000000-0000-0000-0000-000000000002',
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    // narrateA4 recibe la pata de Estructura para citarla en la narrativa.
+    expect(vi.mocked(narrateA4)).toHaveBeenCalledWith(
+      expect.objectContaining({ estructura: expect.objectContaining({ ticker: 'AAPL' }) }),
+      expect.anything()
+    );
+    // La fila persiste el output crudo de EST (paridad de auditoría con a1/a2/a3).
+    expect(adminBuilder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        estructura_output: expect.objectContaining({ confianza: 70 }),
+      })
+    );
   });
 
   it('sin analysisId → NO toca analyses_log (back-compat)', async () => {

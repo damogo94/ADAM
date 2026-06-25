@@ -38,6 +38,7 @@ import { narrateA2 } from '@/agents/a2/narrate';
 import { getMacroSnapshot } from '@/lib/market/macro';
 import { consolidateAndPersistA4 } from '@/agents/a4/consolidate';
 import { type DebateForConfluence } from '@/agents/a4/compute';
+import { EstructuraOutput } from '@/agents/estructura/schema';
 import {
   A1Output,
   A2Output,
@@ -124,7 +125,7 @@ export async function GET(req: NextRequest) {
     const cutoffISO = new Date(Date.now() - BACKFILL_WINDOW_HOURS * 3_600_000).toISOString();
     const { data: rows, error } = await admin
       .from('analyses_log')
-      .select('id, user_id, ticker, a1_output, a3_output, debate_output, created_at')
+      .select('id, user_id, ticker, a1_output, a3_output, debate_output, estructura_output, created_at')
       .is('a2_output', null)
       .not('a3_output', 'is', null)
       .gte('created_at', cutoffISO)
@@ -151,6 +152,12 @@ export async function GET(req: NextRequest) {
 
       const debate = parseDebate(row.debate_output);
 
+      // Si la fila ya tenía EST (4ª pata sumada antes de que A2 resolviera), la
+      // preservamos: sin esto, re-consolidar recomputaría la confluencia a 3
+      // patas y dejaría estructura_output huérfano respecto al score.
+      const estParsed = EstructuraOutput.safeParse(row.estructura_output);
+      const estructura = estParsed.success ? estParsed.data : null;
+
       let a2: A2Output_t | null = null;
       try {
         a2 = await narrateA2(row.ticker, macroStub(row.ticker, macro), { timeoutMs: 30_000 });
@@ -171,6 +178,7 @@ export async function GET(req: NextRequest) {
           a2,
           a3: a3Parsed.data,
           debate,
+          estructura,
           analysisId: row.id,
           userId: row.user_id,
         });

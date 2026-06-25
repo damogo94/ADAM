@@ -28,6 +28,7 @@ import {
   DISCLAIMER_LITERAL,
 } from '@/agents/shared/types';
 import type { z } from 'zod';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import { mandatedDirection, type DebateForConfluence } from './compute';
 
 export interface NarrateA4Input {
@@ -36,6 +37,12 @@ export interface NarrateA4Input {
   a2: A2Output_t | null;
   a3: A3Output_t | null;
   debate: DebateForConfluence | null;
+  /**
+   * Agente de Estructura (futuros · MTF). Opt-in: solo presente cuando el
+   * usuario sumó la 4ª pata. Cuando viene, A4 la cita como pata co-igual y la
+   * confluence pasada ya es de 4 patas.
+   */
+  estructura?: EstructuraOutput_t | null;
   confluence: z.infer<typeof ConfluenceResult>;
   /** Mensajes de los agentes que cayeron — para que A4 contextualice. */
   failures?: { agent: string; message: string }[];
@@ -82,6 +89,17 @@ function trimDebate(d: DebateForConfluence) {
   };
 }
 
+function trimEstructura(e: EstructuraOutput_t) {
+  return {
+    ticker: e.ticker,
+    confianza: e.confianza,
+    direccion_setup: e.setup.direccion, // compra / venta / ninguno
+    estado_setup: e.setup.estado,
+    correlacion_mtf: e.correlacion.alineacion,
+    narrative: e.narrative,
+  };
+}
+
 export async function narrateA4(
   input: NarrateA4Input,
   options: NarrateA4Options = {}
@@ -124,6 +142,15 @@ export async function narrateA4(
     '## Debate (si existe) — extracto:',
     input.debate ? JSON.stringify(trimDebate(input.debate), null, 2) : 'No se disparó debate.',
     '',
+    // Estructura (futuros · MTF): 4ª pata co-igual, opt-in. Cuando viene, la
+    // confluence de arriba ya es de 4 patas y A4 DEBE citarla en la narrativa.
+    ...(input.estructura
+      ? [
+          '## Estructura (futuros · MTF) — extracto [4ª PATA ACTIVA, cítala]:',
+          JSON.stringify(trimEstructura(input.estructura), null, 2),
+          '',
+        ]
+      : []),
     'PRODUCE SOLO los campos prosaicos (resumenes, direccion, confianza,',
     'accion_sugerida, riesgo_clave). El sistema añadirá ticker, confluence',
     'y disclaimer.',

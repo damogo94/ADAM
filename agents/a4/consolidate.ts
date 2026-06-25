@@ -16,6 +16,7 @@ import 'server-only';
 import { narrateA4 } from '@/agents/a4/narrate';
 import { computeConfluence, type DebateForConfluence } from '@/agents/a4/compute';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type {
   A1Output_t,
   A2Output_t,
@@ -29,6 +30,11 @@ export interface ConsolidateA4Input {
   a2: A2Output_t | null;
   a3: A3Output_t | null;
   debate: DebateForConfluence | null;
+  /**
+   * Agente de Estructura (futuros · MTF). Opt-in: cuando viene, la confluencia
+   * se calcula a 4 patas, A4 la cita y se persiste estructura_output.
+   */
+  estructura?: EstructuraOutput_t | null;
   /**
    * Si viene (junto con userId), persiste el A4 re-narrado en analyses_log.
    * Sin id → solo consolida y devuelve (no toca la BD).
@@ -46,10 +52,14 @@ export interface ConsolidateA4Input {
 export async function consolidateAndPersistA4(
   input: ConsolidateA4Input
 ): Promise<A4Output_t> {
-  const { ticker, a1, a2, a3, debate, analysisId, userId, traceId } = input;
+  const { ticker, a1, a2, a3, debate, estructura = null, analysisId, userId, traceId } = input;
 
-  const confluence = computeConfluence({ a1, a2, a3, debate });
-  const a4 = await narrateA4({ ticker, a1, a2, a3, debate, confluence, failures: [] }, { traceId });
+  // estructura presente → ruta de 4 patas en computeConfluence; A4 la cita.
+  const confluence = computeConfluence({ a1, a2, a3, debate, estructura });
+  const a4 = await narrateA4(
+    { ticker, a1, a2, a3, debate, estructura, confluence, failures: [] },
+    { traceId }
+  );
 
   if (analysisId && userId) {
     try {
@@ -59,6 +69,9 @@ export async function consolidateAndPersistA4(
         .update({
           a2_output: a2,
           a4_output: a4,
+          // estructura_output solo se setea cuando hay EST; sin ella NO la
+          // pisamos a null (preserva un EST sumado en una re-narración previa).
+          ...(estructura ? { estructura_output: estructura } : {}),
           confluence_pct: a4.confluence.score_total_pct,
           // Ejes Fase 1 — DEBEN ir junto a confluence_pct o quedan incoherentes
           // (el confluence se recomputa con A2 completo pero los ejes no).

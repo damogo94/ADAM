@@ -22,6 +22,7 @@ import { consolidateAndPersistA4 } from '@/agents/a4/consolidate';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
+import { EstructuraOutput } from '@/agents/estructura/schema';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -41,6 +42,9 @@ const RequestSchema = z.object({
   a2: A2Output.nullable(),
   a3: A3Output.nullable(),
   debate: DebateLite.nullable().optional(),
+  // Estructura (futuros · MTF) opt-in. Cuando viene, A4 se re-narra a 4 patas
+  // y, si hay analysisId, se persiste estructura_output.
+  estructura: EstructuraOutput.nullable().optional(),
   // Si viene, este endpoint ACTUALIZA la fila de analyses_log con el A4
   // re-narrado (cierra el first-run A2 gap en persistencia). Opcional para
   // back-compat: sin id, solo re-narra y devuelve (comportamiento previo).
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { ticker, a1, a2, a3, debate, analysisId } = parsed.data;
+    const { ticker, a1, a2, a3, debate, estructura, analysisId } = parsed.data;
 
     // Necesitamos al menos un agente vivo para que A4 tenga algo que consolidar.
     if (!a1 && !a2 && !a3) {
@@ -90,6 +94,7 @@ export async function POST(req: NextRequest) {
       a2,
       a3,
       debate: debateForCompute,
+      estructura: estructura ?? null,
       analysisId: analysisId ?? null,
       userId: user.id,
     });
