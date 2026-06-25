@@ -96,6 +96,34 @@ export const WEIGHT4_ALIGN = 0.25;
  */
 export const ALIVE_CAPS_4 = [0, 25, 50, 75, 100] as const;
 
+// ─── Fase 1 · Separación de ejes: VEREDICTO firmado (net) + κ + accionable ───
+
+/**
+ * Pesos del VEREDICTO firmado (net) — "base A renormalizada": los pesos de
+ * bloque previos SIN el sumando de alineamiento (que pasa a ser el eje κ
+ * independiente), renormalizados a suma 1.
+ *   3 patas: a12 0.40 / a3 0.30        → /0.70 → 0.571 / 0.429
+ *   4 patas: a12 0.30 / a3 0.25 / est 0.20 → /0.75 → 0.400 / 0.333 / 0.267
+ */
+export const WNET3 = { a12: 0.571, a3: 0.429 } as const;
+export const WNET4 = { a12: 0.4, a3: 0.333, est: 0.267 } as const;
+
+/**
+ * f(κ) = K_FLOOR + (1 − K_FLOOR)·κ. Una señal totalmente contestada (κ=0)
+ * conserva K_FLOOR de su convicción accionable; coincidencia total (κ=1) la
+ * conserva entera. Parámetro de CALIBRACIÓN: default conservador 0.5; ajustar
+ * contra el eval harness cuando exista (no es load-bearing para separar ejes).
+ */
+export const K_FLOOR = 0.5;
+
+/**
+ * Gate "sin señal": si la magnitud bruta disponible (media ponderada de
+ * |contribución| sobre bloques vivos) < G_MIN, todos los bloques están casi
+ * mudos → κ es inestable → actionable = 0. También es la banda muerta de la
+ * dirección: |net| < G_MIN ⇒ dirección mandada = neutral. CALIBRAR.
+ */
+export const G_MIN = 10;
+
 // ───────────────────────────────────────────────────────────────────────────
 // Score por nivel — funciones puras exportadas para tests independientes
 // ───────────────────────────────────────────────────────────────────────────
@@ -296,6 +324,85 @@ function directionOfEstructura(
 }
 
 // ───────────────────────────────────────────────────────────────────────────
+// Eje VEREDICTO firmado (net) — helpers privados
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Signo direccional de un bloque: alcista +1, bajista −1, neutral/null 0. */
+function dirSign(d: 'alcista' | 'bajista' | 'neutral' | null): -1 | 0 | 1 {
+  return d === 'alcista' ? 1 : d === 'bajista' ? -1 : 0;
+}
+
+/**
+ * Dirección del bloque A1+A2 (que NO existía como número único: scoreA1A2 es una
+ * magnitud fusionada). Decisión del owner "debate→consenso": si el debate corrió,
+ * su dirección (validación cruzada real); si no, consenso de A1 y A2 (neutral si
+ * discrepan o si alguno es neutral).
+ */
+function directionOfA12(
+  a1: A1Output_t | null,
+  a2: A2Output_t | null,
+  debate: DebateForConfluence | null
+): 'alcista' | 'bajista' | 'neutral' {
+  if (debate) return debate.direccion;
+  const dirs = [directionOfA1(a1), directionOfA2(a2)].filter(
+    (d): d is 'alcista' | 'bajista' => d === 'alcista' || d === 'bajista'
+  );
+  if (dirs.length === 0) return 'neutral';
+  if (dirs.every((d) => d === 'alcista')) return 'alcista';
+  if (dirs.every((d) => d === 'bajista')) return 'bajista';
+  return 'neutral';
+}
+
+/**
+ * Combina los bloques VIVOS en el veredicto firmado. Cada bloque aporta
+ * `w · (signo · score)`. Un bloque neutral-pero-vivo aporta 0 al numerador pero
+ * MANTIENE su peso en el denominador (diluye) — así "convicción sin dirección"
+ * deja de inflar (fix de la fuga). Un agente caído (null) NO entra como bloque
+ * (el cap por agentes vivos es la defensa de panel incompleto, no el net).
+ * Devuelve net firmado (cappeado por |net|) y la magnitud bruta disponible.
+ */
+function combineNet(
+  blocks: Array<{ w: number; c: number }>,
+  cap: number
+): { net: number; rawMag: number } {
+  const wsum = blocks.reduce((s, b) => s + b.w, 0);
+  if (wsum === 0) return { net: 0, rawMag: 0 };
+  const net = blocks.reduce((s, b) => s + b.w * b.c, 0) / wsum;
+  const rawMag = blocks.reduce((s, b) => s + b.w * Math.abs(b.c), 0) / wsum;
+  const capped = Math.sign(net) * Math.min(Math.abs(net), cap);
+  return { net: capped, rawMag };
+}
+
+/** Calcula net_pct + kappa + actionable_pct a partir de bloques + alignScore + cap. */
+function computeAxes(
+  blocks: Array<{ w: number; c: number }>,
+  alignScore: number,
+  cap: number
+): { net_pct: number; kappa: number; actionable_pct: number } {
+  const { net, rawMag } = combineNet(blocks, cap);
+  const kappa = alignScore / 100;
+  const fKappa = K_FLOOR + (1 - K_FLOOR) * kappa;
+  // Gate G_MIN: panel casi mudo → κ inestable → no dispares confluencia.
+  const actionable = rawMag < G_MIN ? 0 : Math.abs(net) * fKappa;
+  return {
+    net_pct: Math.round(net),
+    kappa: Math.round(kappa * 100) / 100,
+    actionable_pct: Math.max(0, Math.min(100, Math.round(actionable))),
+  };
+}
+
+/**
+ * Dirección MANDADA por el veredicto firmado (banda muerta G_MIN). El backstop
+ * de A4 (opción C) fuerza `direccion` a coincidir con esto cuando NO es neutral;
+ * el LLM solo conserva libertad (puede emitir neutral) si |net| < G_MIN.
+ */
+export function mandatedDirection(netPct: number): 'positivo' | 'negativo' | 'neutral' {
+  if (netPct >= G_MIN) return 'positivo';
+  if (netPct <= -G_MIN) return 'negativo';
+  return 'neutral';
+}
+
+// ───────────────────────────────────────────────────────────────────────────
 // Helpers genéricos
 // ───────────────────────────────────────────────────────────────────────────
 
@@ -345,6 +452,14 @@ export function computeConfluence(
 
     const score_total_pct4 = Math.max(0, Math.min(100, Math.round(total4)));
 
+    // Eje VEREDICTO firmado (net) + κ + accionable. Bloques vivos (agente
+    // presente); EST siempre vivo aquí. El cap de |net| reusa cap4.
+    const blocks4: Array<{ w: number; c: number }> = [];
+    if (a1 || a2) blocks4.push({ w: WNET4.a12, c: dirSign(directionOfA12(a1, a2, debate)) * a12Score });
+    if (a3) blocks4.push({ w: WNET4.a3, c: dirSign(directionOfA3(a3)) * a3Score });
+    blocks4.push({ w: WNET4.est, c: dirSign(directionOfEstructura(estructura)) * estScore });
+    const axes4 = computeAxes(blocks4, alignScore4, cap4);
+
     return {
       a3_solo: { score: a3Score, nivel: 'baja' as const },
       a1_a2: { score: a12Score, nivel: levelFromScore(a12Score) },
@@ -355,6 +470,8 @@ export function computeConfluence(
       estructura: { score: estScore, nivel: levelFromScore(estScore) },
       score_total_pct: score_total_pct4,
       nivel_final: levelFromScore(score_total_pct4),
+      ...axes4,
+      schema_version: 2 as const,
     };
   }
 
@@ -373,6 +490,13 @@ export function computeConfluence(
   // Redondeo final entero
   const score_total_pct = Math.max(0, Math.min(100, Math.round(total)));
 
+  // Eje VEREDICTO firmado (net) + κ + accionable. Bloques vivos (agente
+  // presente). El cap de |net| reusa el mismo `cap` por agentes vivos.
+  const blocks3: Array<{ w: number; c: number }> = [];
+  if (a1 || a2) blocks3.push({ w: WNET3.a12, c: dirSign(directionOfA12(a1, a2, debate)) * a12Score });
+  if (a3) blocks3.push({ w: WNET3.a3, c: dirSign(directionOfA3(a3)) * a3Score });
+  const axes = computeAxes(blocks3, alignScore, cap);
+
   return {
     // a3_solo.nivel está fijado a 'baja' por invariante de diseño en
     // ConfluenceResult (agents/shared/types.ts:416): "A3 sola NUNCA llega a
@@ -384,5 +508,7 @@ export function computeConfluence(
     alineados: { score: alignScore, nivel: levelFromScore(alignScore) },
     score_total_pct,
     nivel_final: levelFromScore(score_total_pct),
+    ...axes,
+    schema_version: 2 as const,
   };
 }

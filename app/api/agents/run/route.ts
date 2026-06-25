@@ -157,6 +157,10 @@ export async function POST(req: NextRequest) {
                   user_id: user.id,
                   ticker,
                   confluence_pct: result.output.confluence.score_total_pct,
+                  // Fase 1 · ejes separados (nullable; computeConfluence siempre los emite).
+                  net_pct: result.output.confluence.net_pct ?? null,
+                  kappa: result.output.confluence.kappa ?? null,
+                  actionable_pct: result.output.confluence.actionable_pct ?? null,
                   direction: result.output.direccion,
                   confidence: result.output.confianza,
                   a1_output: result.intermediates.a1,

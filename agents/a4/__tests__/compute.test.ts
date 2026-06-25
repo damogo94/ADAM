@@ -27,10 +27,13 @@ import {
   WEIGHT4_A3_SOLO,
   WEIGHT4_ESTRUCTURA,
   WEIGHT4_ALIGN,
+  WNET3,
+  WNET4,
+  mandatedDirection,
   type DebateForConfluence,
 } from '../compute';
 import type { A1Output_t, A2Output_t, A3Output_t } from '@/agents/shared/types';
-import { DISCLAIMER_LITERAL } from '@/agents/shared/types';
+import { DISCLAIMER_LITERAL, ConfluenceResult } from '@/agents/shared/types';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -789,5 +792,103 @@ describe('REGRESIÓN — Alineados funciona sin debate', () => {
       debate: null,
     });
     expect(withA3Buy.alineados.score).toBe(30);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// FASE 1 — Separación de ejes: net (veredicto firmado) + κ + accionable
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('Fase 1 — net / κ / actionable', () => {
+  it('1 · señal contestada (A1 alcista 95 vs A3 bajista 95): net retiene tilt, κ=0, actionable descontado, NO colapsa a 0', () => {
+    const r = computeConfluence({
+      a1: mkA1({ confidence: 95, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: null,
+      a3: mkA3({ confidence: 95, operativa: { ...mkA3().operativa, signal: 'sell' } }),
+      debate: null,
+    });
+    // A3 (bajista, mayor peso técnico) inclina el net a negativo; no se aniquila.
+    expect(r.net_pct!).toBeLessThan(0);
+    expect(r.net_pct).not.toBe(0);
+    // κ marca la discrepancia 1-1.
+    expect(r.kappa).toBe(0);
+    // actionable = |net| × f(0) = |net| × 0.5 → descontado pero > 0.
+    expect(r.actionable_pct!).toBeGreaterThan(0);
+    expect(r.actionable_pct!).toBeLessThan(Math.abs(r.net_pct!));
+  });
+
+  it('2 · FIX de la fuga: A3 en hold+lateral NO mete su confianza en net (90 vs 10 → mismo net)', () => {
+    const base = {
+      a1: mkA1({ confidence: 50, anomaly_detected: true, anomaly_type: 'oportunidad' as const }),
+      a2: null,
+      debate: null,
+    };
+    const holdLateral = (conf: number) =>
+      mkA3({
+        confidence: conf,
+        operativa: { ...mkA3().operativa, signal: 'hold' as const },
+        tendencia: { primaria: 'lateral' as const, secundaria: 'lateral' as const, fuerza: 1 },
+      });
+    const hi = computeConfluence({ ...base, a3: holdLateral(90) });
+    const lo = computeConfluence({ ...base, a3: holdLateral(10) });
+    // Sin dirección (hold+lateral) → A3 aporta 0 al net, sea cual sea su confianza.
+    expect(hi.net_pct).toBe(lo.net_pct);
+    // Contraste: el score VIEJO sí se fugaba (scoreA3Solo devuelve 90 vs 10).
+    expect(hi.score_total_pct).not.toBe(lo.score_total_pct);
+  });
+
+  it('3 · confluencia perfecta (todos alcistas): κ≈1 y actionable ≈ |net|', () => {
+    const r = computeConfluence({
+      a1: mkA1({ confidence: 80, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: mkA2({ confidence: 80, opportunity_detected: true, regime_outlook: 'risk_on' }),
+      a3: mkA3({ confidence: 80, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: null,
+    });
+    expect(r.kappa).toBe(1);
+    expect(r.net_pct!).toBeGreaterThan(0);
+    // f(κ=1) = 1 → actionable = |net|.
+    expect(r.actionable_pct).toBe(Math.abs(r.net_pct!));
+  });
+
+  it('4 · gate G_MIN: panel casi mudo (confianzas ~0) → actionable = 0 (sin señal)', () => {
+    const r = computeConfluence({
+      a1: mkA1({ confidence: 5, anomaly_detected: true, anomaly_type: 'oportunidad' }),
+      a2: mkA2({ confidence: 5, opportunity_detected: true, regime_outlook: 'risk_on' }),
+      a3: mkA3({ confidence: 5, operativa: { ...mkA3().operativa, signal: 'buy' } }),
+      debate: null,
+    });
+    expect(r.actionable_pct).toBe(0);
+  });
+
+  it('5 · renormalización: los pesos del net suman 1 en ambas rutas (3 y 4 patas)', () => {
+    expect(WNET3.a12 + WNET3.a3).toBeCloseTo(1.0, 3);
+    expect(WNET4.a12 + WNET4.a3 + WNET4.est).toBeCloseTo(1.0, 3);
+  });
+
+  it('6 · persistencia: filas viejas (sin ejes) siguen validando; las nuevas traen campos + schema_version', () => {
+    // Fila NUEVA: computeConfluence siempre emite los ejes + schema_version=2.
+    const fresh = computeConfluence({ a1: mkA1(), a2: mkA2(), a3: mkA3(), debate: null });
+    expect(typeof fresh.net_pct).toBe('number');
+    expect(typeof fresh.kappa).toBe('number');
+    expect(typeof fresh.actionable_pct).toBe('number');
+    expect(fresh.schema_version).toBe(2);
+    expect(() => ConfluenceResult.parse(fresh)).not.toThrow();
+
+    // Fila VIEJA (v1, sin los campos nuevos) → sigue validando (campos opcionales).
+    const legacyRow = {
+      a3_solo: { score: 40, nivel: 'baja' as const },
+      a1_a2: { score: 34, nivel: 'media' as const },
+      alineados: { score: 30, nivel: 'media' as const },
+      score_total_pct: 35,
+      nivel_final: 'media' as const,
+    };
+    expect(() => ConfluenceResult.parse(legacyRow)).not.toThrow();
+  });
+
+  it('backstop (opción C): mandatedDirection mapea net→dirección con banda muerta G_MIN', () => {
+    expect(mandatedDirection(40)).toBe('positivo');
+    expect(mandatedDirection(-40)).toBe('negativo');
+    expect(mandatedDirection(5)).toBe('neutral'); // |net| < G_MIN (10)
+    expect(mandatedDirection(-5)).toBe('neutral');
   });
 });

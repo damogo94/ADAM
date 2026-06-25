@@ -532,6 +532,20 @@ export const ConfluenceResult = z
       .optional(),
     score_total_pct: z.number().int().min(0).max(100),
     nivel_final: Confidence,
+    // ── Fase 1 · separación de ejes (veredicto / confluencia) ───────────────
+    // Campos OPCIONALES y ADITIVOS: presentes en análisis nuevos (schema_version
+    // 2), ausentes en los previos. `score_total_pct`/`nivel_final` se conservan
+    // EN PARALELO durante esta fase para no romper las 232 filas históricas ni
+    // la calibración (signal_outcomes). Por eso son `.optional()`: un a4_output
+    // viejo (sin estos campos) sigue validando.
+    /** Veredicto FIRMADO: signo = dirección, |net| = convicción neta. Eje 1. */
+    net_pct: z.number().int().min(-100).max(100).optional(),
+    /** κ — coherencia entre agentes (= alineados.score / 100). Eje 2. */
+    kappa: z.number().min(0).max(1).optional(),
+    /** Confianza accionable = |net| × f(κ). Es lo que muestra el titular. */
+    actionable_pct: z.number().int().min(0).max(100).optional(),
+    /** Versión de semántica: 2 = trae los ejes separados. Ausente = v1 (legacy). */
+    schema_version: z.literal(2).optional(),
   })
   .strict();
 export type ConfluenceResult_t = z.infer<typeof ConfluenceResult>;

@@ -49,6 +49,13 @@ export interface ConfluenceResult {
   level: ConfluenceLevel;
   direction: 'alcista' | 'bajista' | 'neutral';
   aligned: boolean;
+  // ── Fase 1 · ejes separados (presentes en análisis nuevos) ───────────────
+  /** Veredicto firmado −100..+100 (signo = dirección, |net| = convicción). */
+  net_pct?: number;
+  /** κ — coherencia entre agentes (0..1). */
+  kappa?: number;
+  /** Confianza accionable 0..100 = |net| × f(κ). */
+  actionable_pct?: number;
 }
 
 export function computeConfluence(
@@ -117,5 +124,8 @@ export function computeConfluence(
     level: canonical.nivel_final,
     direction,
     aligned,
+    net_pct: canonical.net_pct,
+    kappa: canonical.kappa,
+    actionable_pct: canonical.actionable_pct,
   };
 }

@@ -52,6 +52,7 @@ export type Database = {
           a2_output: Json | null
           a3_output: Json | null
           a4_output: Json
+          actionable_pct: number | null
           confidence: Database["public"]["Enums"]["confidence_t"]
           confluence_pct: number
           created_at: string
@@ -60,7 +61,9 @@ export type Database = {
           id: string
           initial_price: number | null
           initial_price_at: string | null
+          kappa: number | null
           latency_ms: number | null
+          net_pct: number | null
           ticker: string
           tokens_used: number | null
           usage_breakdown: Json | null
@@ -71,6 +74,7 @@ export type Database = {
           a2_output?: Json | null
           a3_output?: Json | null
           a4_output: Json
+          actionable_pct?: number | null
           confidence: Database["public"]["Enums"]["confidence_t"]
           confluence_pct: number
           created_at?: string
@@ -79,7 +83,9 @@ export type Database = {
           id?: string
           initial_price?: number | null
           initial_price_at?: string | null
+          kappa?: number | null
           latency_ms?: number | null
+          net_pct?: number | null
           ticker: string
           tokens_used?: number | null
           usage_breakdown?: Json | null
@@ -90,6 +96,7 @@ export type Database = {
           a2_output?: Json | null
           a3_output?: Json | null
           a4_output?: Json
+          actionable_pct?: number | null
           confidence?: Database["public"]["Enums"]["confidence_t"]
           confluence_pct?: number
           created_at?: string
@@ -98,7 +105,9 @@ export type Database = {
           id?: string
           initial_price?: number | null
           initial_price_at?: string | null
+          kappa?: number | null
           latency_ms?: number | null
+          net_pct?: number | null
           ticker?: string
           tokens_used?: number | null
           usage_breakdown?: Json | null
