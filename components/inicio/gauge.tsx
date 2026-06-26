@@ -29,11 +29,12 @@ function tickPoint(frac: number, r: number) {
   return { x: 52 + r * Math.cos(a), y: 52 + r * Math.sin(a) };
 }
 
-export function Gauge({ value, hex }: { value: number; hex: string }) {
+export function Gauge({ value, hex, replay = 0 }: { value: number; hex: string; replay?: number }) {
   const reduce = useReducedMotion();
   const num = useMotionValue(value);
   const arc = useMotionValue(value);
   const numRef = useRef<HTMLSpanElement>(null);
+  const prevReplay = useRef(replay);
   const dashoffset = useTransform(arc, (v) => C * (1 - v / 100));
 
   useMotionValueEvent(num, 'change', (v) => {
@@ -41,10 +42,17 @@ export function Gauge({ value, hex }: { value: number; hex: string }) {
   });
 
   useEffect(() => {
+    const replayed = prevReplay.current !== replay;
+    prevReplay.current = replay;
     if (reduce) {
       num.set(value);
       arc.set(value);
       return;
+    }
+    // [recalcular] (mismos datos): reinicia a 0 y vuelve a contar al MISMO valor.
+    if (replayed) {
+      num.set(0);
+      arc.set(0);
     }
     const c1 = animate(num, value, { duration: 0.8, ease: EASE });
     const c2 = animate(arc, value, { type: 'spring', stiffness: 90, damping: 18 });
@@ -52,7 +60,7 @@ export function Gauge({ value, hex }: { value: number; hex: string }) {
       c1.stop();
       c2.stop();
     };
-  }, [value, reduce, num, arc]);
+  }, [value, replay, reduce, num, arc]);
 
   return (
     <div className="relative h-[104px] w-[104px] shrink-0">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { animate, motion, useMotionTemplate, useMotionValue, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatKappa } from './lib/format';
@@ -21,23 +21,30 @@ export function KappaRule({
   kappa,
   markerClass,
   zoneClass,
+  replay = 0,
 }: {
   kappa: number;
   markerClass: string;
   zoneClass: string;
+  replay?: number;
 }) {
   const reduce = useReducedMotion();
   const x = useMotionValue(kappa * 100);
   const left = useMotionTemplate`${x}%`;
+  const prevReplay = useRef(replay);
 
   useEffect(() => {
+    const replayed = prevReplay.current !== replay;
+    prevReplay.current = replay;
     if (reduce) {
       x.set(kappa * 100);
       return;
     }
+    // [recalcular]: el marcador parte de 0 y vuelve a la MISMA posición.
+    if (replayed) x.set(0);
     const controls = animate(x, kappa * 100, { duration: 0.7, ease: EASE });
     return () => controls.stop();
-  }, [kappa, reduce, x]);
+  }, [kappa, replay, reduce, x]);
 
   // Zona donde cae κ (umbrales 0,34 / 0,67 — espejo de los de confluencia).
   const zone = kappa >= 0.67 ? 'alta' : kappa >= 0.34 ? 'media' : 'baja';

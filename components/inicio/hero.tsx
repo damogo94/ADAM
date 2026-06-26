@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Graticule } from './decor/graticule';
+import { SignalTrace } from './decor/signal-trace';
 import { Instrument } from './instrument';
 import { arw, btnBase, btnGhost, btnPrimary } from './lib/ui';
 
@@ -49,6 +50,7 @@ export function Hero() {
       className="relative mx-auto w-full max-w-6xl px-5 pb-16 pt-10 sm:px-10 md:pb-24 md:pt-16"
     >
       <Graticule parallax />
+      <SignalTrace className="pointer-events-none absolute inset-x-0 bottom-[10%] z-0 h-28 w-full opacity-[0.13]" />
       <div className="relative z-10 grid items-center gap-10 md:gap-14 lg:grid-cols-[1.04fr_0.96fr]">
         {/* IZQUIERDA — copy */}
         <div className="max-w-xl">
