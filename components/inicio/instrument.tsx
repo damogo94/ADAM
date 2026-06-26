@@ -100,12 +100,20 @@ function IllustrativeTag({ className }: { className?: string }) {
   );
 }
 
-function Lens({ lens }: { lens: Scenario['lenses'][number] }) {
+function Lens({
+  lens,
+  onHover,
+}: {
+  lens: Scenario['lenses'][number];
+  onHover?: (hovered: boolean) => void;
+}) {
   return (
     <div
       data-conv="lens"
+      onMouseEnter={onHover ? () => onHover(true) : undefined}
+      onMouseLeave={onHover ? () => onHover(false) : undefined}
       className={cn(
-        'flex min-h-[9.5rem] flex-col bg-surface px-4 py-4',
+        'flex min-h-[9.5rem] flex-col bg-surface px-4 py-4 transition-colors',
         lens.isolated && 'iso-stripe',
       )}
     >
@@ -154,9 +162,18 @@ function Lens({ lens }: { lens: Scenario['lenses'][number] }) {
   );
 }
 
+interface Delta {
+  kFrom: number;
+  kTo: number;
+  aFrom: number;
+  aTo: number;
+}
+
 export function Instrument() {
   const [active, setActive] = useState(0);
   const [recalc, setRecalc] = useState(0);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [delta, setDelta] = useState<Delta | null>(null);
   const scn = SCENARIOS[active]!;
   const v = scn.verdict;
   const tone = toneFor(v.direccion);
@@ -167,6 +184,17 @@ export function Instrument() {
 
   const cardRef = useSpotlightTilt();
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const prevVerdict = useRef({ k: v.kappa, a: v.actionable_pct });
+
+  // G · "qué cambió": al conmutar, anuncia el delta de κ/confianza ~3,5s.
+  useEffect(() => {
+    const prev = prevVerdict.current;
+    prevVerdict.current = { k: v.kappa, a: v.actionable_pct };
+    if (prev.k === v.kappa && prev.a === v.actionable_pct) return;
+    setDelta({ kFrom: prev.k, kTo: v.kappa, aFrom: prev.a, aTo: v.actionable_pct });
+    const t = setTimeout(() => setDelta(null), 3500);
+    return () => clearTimeout(t);
+  }, [active, v.kappa, v.actionable_pct]);
 
   function selectTab(i: number, focus = true) {
     setActive(i);
@@ -190,8 +218,20 @@ export function Instrument() {
     }
   }
 
+  // I · atajos: 1/2/3 conmutan, R recalcula. Solo activos con el foco DENTRO del
+  // instrumento (bubbling desde tabs/botón) → cumple WCAG 2.1.4.
+  function onShortcut(e: React.KeyboardEvent) {
+    if (e.key >= '1' && e.key <= String(SCENARIOS.length)) {
+      e.preventDefault();
+      selectTab(Number(e.key) - 1, false);
+    } else if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      setRecalc((r) => r + 1);
+    }
+  }
+
   return (
-    <div className="w-full">
+    <div className="w-full" onKeyDown={onShortcut}>
       {/* sr-only live region: resumen curado, NO el diff entero */}
       <span className="sr-only" aria-live="polite">
         {`${scn.ticker}: ${tone.word}, accionable ${v.actionable_pct} sobre 100, coincidencia ${v.confianza}.`}
@@ -228,7 +268,22 @@ export function Instrument() {
           );
         })}
       </div>
-      <p className="mb-4 font-mono text-[0.8rem] text-ink/58">{scn.hint}</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        {delta ? (
+          <p aria-hidden className="font-mono text-[0.8rem] text-accent">
+            κ {formatKappa(delta.kFrom)} → {formatKappa(delta.kTo)} · confianza {delta.aFrom} →{' '}
+            {delta.aTo}
+          </p>
+        ) : (
+          <p className="font-mono text-[0.8rem] text-ink/58">{scn.hint}</p>
+        )}
+        <span
+          aria-hidden
+          className="hidden font-mono text-[0.62rem] uppercase tracking-[0.08em] text-ink/40 sm:inline"
+        >
+          1·2·3 escenarios · R recalcular
+        </span>
+      </div>
 
       {/* La card / instrumento — tilt 3D bajo el puntero (vars --rx/--ry) */}
       <div
@@ -253,7 +308,13 @@ export function Instrument() {
         />
 
         {/* convergencia de las tres lentes → veredicto (accent, hace literal κ) */}
-        <ConvergenceLayer cardRef={cardRef} active={active} kappa={v.kappa} replay={recalc} />
+        <ConvergenceLayer
+          cardRef={cardRef}
+          active={active}
+          kappa={v.kappa}
+          replay={recalc}
+          highlight={hovered}
+        />
 
         <div className="relative z-10">
           {/* top: ticker + precio */}
@@ -290,8 +351,8 @@ export function Instrument() {
 
           {/* las tres lentes */}
           <div className="grid grid-cols-1 gap-px bg-ink/10 sm:grid-cols-3">
-            {scn.lenses.map((lens) => (
-              <Lens key={lens.tag} lens={lens} />
+            {scn.lenses.map((lens, i) => (
+              <Lens key={lens.tag} lens={lens} onHover={(h) => setHovered(h ? i : null)} />
             ))}
           </div>
 
@@ -299,7 +360,12 @@ export function Instrument() {
           <div className={cn('border-t px-5 py-5', tone.panelBorder, tone.panelBg)}>
             <div className="flex items-center gap-5">
               <span data-conv="gauge">
-                <Gauge value={v.actionable_pct} hex={tone.hex} replay={recalc} />
+                <Gauge
+                  value={v.actionable_pct}
+                  hex={tone.hex}
+                  replay={recalc}
+                  restless={v.actionable_pct < 40}
+                />
               </span>
               <div className="min-w-0">
                 <span className={cn('inline-flex items-center gap-2 text-[1.2rem] font-bold tracking-tight', tone.text)}>

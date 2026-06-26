@@ -29,7 +29,18 @@ function tickPoint(frac: number, r: number) {
   return { x: 52 + r * Math.cos(a), y: 52 + r * Math.sin(a) };
 }
 
-export function Gauge({ value, hex, replay = 0 }: { value: number; hex: string; replay?: number }) {
+export function Gauge({
+  value,
+  hex,
+  replay = 0,
+  restless = false,
+}: {
+  value: number;
+  hex: string;
+  replay?: number;
+  /** Baja convicción: el arco nunca se asienta del todo (micro-temblor). */
+  restless?: boolean;
+}) {
   const reduce = useReducedMotion();
   const num = useMotionValue(value);
   const arc = useMotionValue(value);
@@ -56,11 +67,27 @@ export function Gauge({ value, hex, replay = 0 }: { value: number; hex: string; 
     }
     const c1 = animate(num, value, { duration: 0.8, ease: EASE });
     const c2 = animate(arc, value, { type: 'spring', stiffness: 90, damping: 18 });
+    // J · aguja inquieta: tras asentarse, oscila ±0,8 alrededor del valor (la
+    // baja convicción se VE). Solo el arco; la cifra no cambia (±0,8 redondea
+    // igual). Amplitud mínima y lenta: "inseguridad", no "bug".
+    let osc: ReturnType<typeof animate> | undefined;
+    let restlessTimer: ReturnType<typeof setTimeout> | undefined;
+    if (restless) {
+      restlessTimer = setTimeout(() => {
+        osc = animate(arc, [value, value - 0.8, value + 0.8, value], {
+          duration: 2.6,
+          ease: 'easeInOut',
+          repeat: Infinity,
+        });
+      }, 1000);
+    }
     return () => {
       c1.stop();
       c2.stop();
+      osc?.stop();
+      if (restlessTimer) clearTimeout(restlessTimer);
     };
-  }, [value, replay, reduce, num, arc]);
+  }, [value, replay, reduce, restless, num, arc]);
 
   return (
     <div className="relative h-[104px] w-[104px] shrink-0">

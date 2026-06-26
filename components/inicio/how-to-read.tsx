@@ -1,45 +1,29 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Reveal } from './decor/reveal';
 import { Eyebrow } from './section-heading';
-import { EXAMPLE } from './example';
+import { SCENARIOS } from './example';
 import { toneFor } from './lib/tone';
-import { formatKappa } from './lib/format';
+import { capitalize, formatKappa } from './lib/format';
+import { Gauge } from './gauge';
 
 /**
- * HowToRead — "Cómo se ve un análisis": sección didáctica que enseña a LEER el
- * veredicto (el instrumento manipulable vive en el hero; aquí no se duplica).
- * Las tres métricas clave del escenario por defecto se revelan con montaje
- * cinematográfico + un barrido (scanline) de calibración al entrar en vista, y
- * un desplegable explica accionable/κ/confluencia. reduced-motion → sin barrido.
+ * HowToRead — "Cómo se ve un análisis": sección didáctica (el instrumento
+ * manipulable vive en el hero; aquí no se duplica).
+ *
+ * F · Comparador: los TRES escenarios lado a lado (71 / 24 / 34) para ver de un
+ * vistazo que la confianza NO es fija — se calibra según cuánto coincidan las
+ * lecturas. Los gauges cuentan al entrar en vista, con un barrido (scanline) de
+ * calibración. Un desplegable explica accionable/κ/confluencia.
+ * reduced-motion → sin barrido ni count-up (estado final directo).
  */
 export function HowToRead() {
   const reduce = useReducedMotion();
-  const v = EXAMPLE.verdict;
-  const tone = toneFor(v.direccion);
-
-  const metrics = [
-    {
-      label: 'Confianza accionable',
-      value: String(v.actionable_pct),
-      valueClass: tone.text,
-      def: 'Cuánto fiarte del resultado, de 0 a 100. Combina la fuerza de la señal con cuánto coinciden los agentes.',
-    },
-    {
-      label: 'κ coincidencia',
-      value: formatKappa(v.kappa),
-      valueClass: 'text-ink',
-      def: 'Cuánto se confirman entre sí las tres lecturas, de 0 a 1. Si chocan, baja.',
-    },
-    {
-      label: 'Confluencia',
-      value: String(v.confluence_pct),
-      valueClass: 'text-ink',
-      def: 'El respaldo conjunto de la conclusión. Umbrales: ≥67 alta · ≥34 media · <34 baja.',
-    },
-  ];
+  const cardRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(cardRef, { once: true, amount: 0.4 });
 
   return (
     <section
@@ -55,11 +39,11 @@ export function HowToRead() {
               id="ejemplo-title"
               className="mt-4 font-sans text-fluid-h2 font-bold tracking-[-0.015em] text-ink"
             >
-              Cómo leer un veredicto.
+              La confianza no es fija.
             </h2>
             <p className="mt-4 max-w-xl text-fluid-lead leading-[1.55] text-ink/72">
-              Tres números resumen toda la lectura. No necesitas dominar cada término: aquí tienes
-              qué significan y cómo se relacionan.
+              La misma máquina, tres veredictos. La confianza se calibra según cuánto coincidan las
+              lecturas — y eso es justo lo que A.D.A.M. te dice.
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber/[0.08] px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-amber">
@@ -69,8 +53,11 @@ export function HowToRead() {
         </div>
       </Reveal>
 
-      {/* montaje: tarjeta con barrido de calibración (scanline) al entrar */}
-      <div className="relative overflow-hidden rounded-card border border-ink/10 bg-surface shadow-e2 edge-hi">
+      {/* F · comparador de los 3 escenarios — barrido de calibración al entrar */}
+      <div
+        ref={cardRef}
+        className="relative overflow-hidden rounded-card border border-ink/10 bg-surface shadow-e2 edge-hi"
+      >
         {!reduce ? (
           <motion.span
             aria-hidden="true"
@@ -83,19 +70,32 @@ export function HowToRead() {
         ) : null}
 
         <div className="grid gap-px bg-ink/10 sm:grid-cols-3">
-          {metrics.map((m, i) => (
-            <Reveal key={m.label} delay={0.12 + i * 0.14}>
-              <div className="flex h-full flex-col bg-surface px-6 py-6">
-                <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink/45">
-                  {m.label}
-                </span>
-                <span className={cn('mt-2 font-mono text-3xl font-semibold', m.valueClass)}>
-                  {m.value}
-                </span>
-                <p className="mt-3 text-[0.86rem] leading-relaxed text-ink/58">{m.def}</p>
-              </div>
-            </Reveal>
-          ))}
+          {SCENARIOS.map((s, i) => {
+            const tone = toneFor(s.verdict.direccion);
+            const label = s.verdict.direccion_label ?? capitalize(s.verdict.direccion);
+            return (
+              <Reveal key={s.id} delay={0.12 + i * 0.12}>
+                <div className="flex h-full flex-col items-center gap-3 bg-surface px-6 py-7 text-center">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md border border-ink/15 bg-surface-2 px-2 py-0.5 font-mono text-[0.8rem] font-semibold tracking-[0.1em]">
+                      {s.ticker}
+                    </span>
+                    <span className="font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink/45">
+                      {s.tabLabel}
+                    </span>
+                  </div>
+                  <Gauge value={s.verdict.actionable_pct} hex={tone.hex} replay={inView ? 1 : 0} />
+                  <span className={cn('inline-flex items-center gap-1.5 text-[0.95rem] font-bold', tone.text)}>
+                    <span aria-hidden="true">{tone.glyph}</span>
+                    {label}
+                  </span>
+                  <span className="font-mono text-[0.7rem] text-ink/45">
+                    κ {formatKappa(s.verdict.kappa)}
+                  </span>
+                </div>
+              </Reveal>
+            );
+          })}
         </div>
       </div>
 

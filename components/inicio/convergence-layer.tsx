@@ -27,11 +27,14 @@ export function ConvergenceLayer({
   active,
   kappa,
   replay,
+  highlight = null,
 }: {
   cardRef: RefObject<HTMLElement>;
   active: number;
   kappa: number;
   replay: number;
+  /** Índice de lente resaltada (hover): su hilo brilla, los otros se atenúan. */
+  highlight?: number | null;
 }) {
   const reduce = useReducedMotion();
   const [geo, setGeo] = useState<Geo | null>(null);
@@ -93,20 +96,26 @@ export function ConvergenceLayer({
       viewBox={`0 0 ${geo.w} ${geo.h}`}
       fill="none"
     >
-      {paths.map((d, i) => (
-        <motion.path
-          key={`${active}-${replay}-${i}`}
-          d={d}
-          stroke="var(--accent)"
-          strokeOpacity={meet ? 0.4 : 0.26}
-          strokeWidth={1}
-          pathLength={1}
-          strokeDasharray={1}
-          initial={reduce ? { strokeDashoffset: 0 } : { strokeDashoffset: 1 }}
-          animate={{ strokeDashoffset: 0 }}
-          transition={{ duration: 0.7, ease: EASE, delay: reduce ? 0 : 0.12 + i * 0.08 }}
-        />
-      ))}
+      {paths.map((d, i) => {
+        const baseOp = meet ? 0.4 : 0.26;
+        const op = highlight === null ? baseOp : highlight === i ? 0.65 : 0.1;
+        return (
+          <motion.path
+            key={`${active}-${replay}-${i}`}
+            d={d}
+            stroke="var(--accent)"
+            strokeWidth={highlight === i ? 1.5 : 1}
+            pathLength={1}
+            strokeDasharray={1}
+            initial={{ strokeDashoffset: reduce ? 0 : 1, strokeOpacity: op }}
+            animate={{ strokeDashoffset: 0, strokeOpacity: op }}
+            transition={{
+              strokeDashoffset: { duration: 0.7, ease: EASE, delay: reduce ? 0 : 0.12 + i * 0.08 },
+              strokeOpacity: { duration: 0.25, ease: 'easeOut' },
+            }}
+          />
+        );
+      })}
       {meet ? (
         <motion.circle
           key={`dot-${active}-${replay}`}
