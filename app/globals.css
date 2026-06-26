@@ -25,8 +25,10 @@
   }
 
   body {
-    /* Body/UI en Inter; interlineado cómodo (1.5). */
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Body/UI en Inter (self-host vía next/font → var(--font-sans)). */
+    font-family: var(--font-sans), 'Inter', system-ui, -apple-system, sans-serif;
+    /* Inter es variable → optical sizing automático por tamaño. */
+    font-optical-sizing: auto;
     line-height: 1.5;
   }
 
@@ -58,6 +60,52 @@
 
 @layer utilities {
   .text-mono {
-    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    font-family: var(--font-mono), 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  }
+
+  /* ── Decoración "instrumento de precisión" (chrome — NUNCA market-color) ──
+     Todas usan solo borde/ink/accent. La retícula de calibre vive aquí porque
+     el background-image en capas es engorroso en Tailwind puro; el componente
+     <Graticule> le pone posición, opacidad, máscara y parallax. */
+  .graticule-bg {
+    background-image:
+      linear-gradient(var(--bdr) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bdr) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  /* Retícula más fina para fondos de carril (pipeline "el código calcula"). */
+  .graticule-bg-fine {
+    background-image:
+      linear-gradient(var(--bdr) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bdr) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  /* Hairline con luz cenital: 1px de realce en el borde superior (materialidad
+     "metal mecanizado"). Estático, coste cero. Se compone sobre el borde real. */
+  .edge-hi {
+    box-shadow: inset 0 1px 0 0 rgba(245, 245, 247, 0.06);
+  }
+
+  /* Trama diagonal del agente AISLADO (A3) — refuerza el invariante de
+     aislamiento. Token-based (sin hex sueltos): surface base + 1px de elevación. */
+  .iso-stripe {
+    background-color: var(--surface);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 11px,
+      var(--surface-2) 11px,
+      var(--surface-2) 12px
+    );
+  }
+  .iso-stripe-2 {
+    background-color: var(--surface-2);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 11px,
+      var(--surface-3) 11px,
+      var(--surface-3) 12px
+    );
   }
 }

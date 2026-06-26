@@ -63,9 +63,39 @@ const config: Config = {
         // Body + wordmark (el logotipo "A.D.A.M." usa Inter extrabold + tracking
         // ancho desde la retirada de Orbitron — coherente con "Instrumento de
         // precisión", sin familia de fuente decorativa extra).
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Self-host vía next/font (app/layout.tsx) → variables CSS, con fallback.
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
         // Technical data / números / tickers
-        mono: ['"IBM Plex Mono"', '"JetBrains Mono"', 'monospace'],
+        mono: ['var(--font-mono)', '"IBM Plex Mono"', '"JetBrains Mono"', 'monospace'],
+      },
+      // ─── Escala tipográfica fluida — 8 roles deliberados (clamp) ──────────
+      // SSOT de tamaño de tipo del landing /inicio. El tracking se aplica con
+      // utilidades `tracking-*` por uso (no se hornea aquí, para no chocar con
+      // ellas). Mapea 1:1 a --fs-* del prototipo (design/adam-inicio.html).
+      fontSize: {
+        'fluid-caption': ['0.75rem', { lineHeight: '1.4' }], // 12px · micro-readout mono
+        'fluid-label': ['0.8125rem', { lineHeight: '1.4' }], // 13px · eyebrow/label mono
+        'fluid-body': ['1rem', { lineHeight: '1.6' }],
+        'fluid-lead': ['clamp(1.0625rem, 0.99rem + 0.38vw, 1.25rem)', { lineHeight: '1.55' }],
+        'fluid-h3': ['clamp(1.125rem, 1.06rem + 0.34vw, 1.375rem)', { lineHeight: '1.3' }],
+        'fluid-h2': ['clamp(1.5rem, 1.24rem + 1.1vw, 2.25rem)', { lineHeight: '1.1' }],
+        'fluid-h1': ['clamp(2.25rem, 1.62rem + 2.7vw, 3.75rem)', { lineHeight: '1.05' }],
+        'fluid-display': ['clamp(2.6rem, 1.7rem + 4vw, 4.75rem)', { lineHeight: '1.02' }],
+      },
+      // Radio de card del prototipo (r-xl = 22px). El resto mapea a Tailwind.
+      borderRadius: {
+        card: '22px',
+      },
+      // Curva maestra del sistema (mismo cubic-bezier de todo el motion). Se usa
+      // como `ease-precise`, evitando un valor arbitrario ambiguo para Tailwind.
+      transitionTimingFunction: {
+        precise: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+      },
+      // Sombras en capas coherentes (sh-1/2/3 del prototipo) → shadow-e1/e2/e3.
+      boxShadow: {
+        e1: '0 1px 2px rgba(0,0,0,.4)',
+        e2: '0 8px 24px -8px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.4)',
+        e3: '0 24px 60px -16px rgba(0,0,0,.7), 0 8px 20px -8px rgba(0,0,0,.5)',
       },
       keyframes: {
         sweep: {
@@ -92,6 +122,12 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // dashFlow: "marching ants" lentos en accent para las flechas del
+        // pipeline (ReasonFlow). Solo corre mientras la sección está en viewport
+        // (se gatea con una clase desde el componente) → ahorra INP.
+        dashFlow: {
+          to: { strokeDashoffset: '-16' },
+        },
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
@@ -100,6 +136,7 @@ const config: Config = {
         'blink-slow': 'blink 2.8s ease-in-out infinite',
         'urg-pulse': 'urgPulse 2.6s ease-in-out infinite',
         'fade-slide-in': 'fadeSlideIn 380ms ease-out',
+        'dash-flow': 'dashFlow 1.1s linear infinite',
       },
     },
   },
