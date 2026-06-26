@@ -193,4 +193,4 @@ export const SCENARIOS: Scenario[] = [
 ];
 
 /** Compat: escenario por defecto (lo que antes exportaba `EXAMPLE`). */
-export const EXAMPLE: Scenario = SCENARIOS[0]!;
+export const EXAMPLE: Scenario = SCENARIOS[0];
