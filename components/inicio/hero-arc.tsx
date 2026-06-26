@@ -39,22 +39,30 @@ interface Chapter {
 }
 
 const CHAPTERS: Chapter[] = [
-  { wp: 'El ruido', title: 'Un ticker. Mil opiniones.', giro: 'Ninguna es, todavía, análisis.' },
-  { wp: 'Los datos', title: 'Primero, los hechos.', giro: 'Precio, fundamentales y macro. Sin relato encima.' },
+  {
+    wp: 'El ruido',
+    title: 'Un símbolo, mil opiniones.',
+    giro: 'Escribes el ticker de una acción o una cripto —AAPL, Bitcoin— y todo el mundo opina. Pero opinar no es analizar.',
+  },
+  {
+    wp: 'Los datos',
+    title: 'Primero, los hechos.',
+    giro: 'El precio, las cuentas de la empresa y el contexto económico del momento. Todavía sin interpretaciones.',
+  },
   {
     wp: 'Los agentes',
-    title: 'Tres miradas, cada una a lo suyo.',
-    giro: 'Y la técnica solo ve el precio —ni noticias ni opiniones— para no contaminarse.',
+    title: 'Tres especialistas, cada uno a lo suyo.',
+    giro: 'Uno mira solo el gráfico del precio —ni noticias ni opiniones— a propósito, para no dejarse influir.',
   },
   {
     wp: 'La confluencia',
-    title: 'No te promediamos las lecturas.',
-    giro: 'Las contrastamos entre sí; si chocan, se nota en la confianza.',
+    title: 'No promediamos opiniones.',
+    giro: 'Las contrastamos entre sí. Y cuando no coinciden, lo verás reflejado en la confianza del resultado.',
   },
   {
     wp: 'El veredicto',
-    title: 'Una lectura clara, con su confianza.',
-    giro: 'Sin fingir certezas que no existen.',
+    title: 'Una conclusión clara, con su nivel de confianza.',
+    giro: 'Te decimos qué vemos y cuánto fiarte de ello. Sin prometer certezas que no existen.',
   },
 ];
 
@@ -149,7 +157,7 @@ export function HeroArc() {
           </div>
 
           {/* capítulos apilados (crossfade por scroll) */}
-          <div className="relative h-[190px] max-w-xl">
+          <div className="relative h-[270px] max-w-xl sm:h-[240px]">
             {CHAPTERS.map((c, i) => (
               <ChapterBlock key={c.wp} i={i} chapter={c} progress={scrollYProgress} />
             ))}

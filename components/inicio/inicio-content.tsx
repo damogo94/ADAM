@@ -95,23 +95,31 @@ function IllustrativeTag() {
  * por-ticker). Sin hues por agente (firewall + tipográfica-no-cromática).
  */
 const ROSTER = [
-  { tag: 'A1', role: 'Fundamental', line: 'Los números de la empresa. Sin el relato de moda.' },
-  { tag: 'A2', role: 'Macro', line: 'El contexto que mueve al mercado. No el ruido macro.' },
+  {
+    tag: 'A1',
+    role: 'Fundamental',
+    line: 'Mira las cuentas de la empresa: si gana dinero y si está cara o barata. Sin dejarse llevar por la moda del momento.',
+  },
+  {
+    tag: 'A2',
+    role: 'Macro',
+    line: 'Lee el contexto económico —tipos de interés, inflación, ciclo— que empuja o frena a todo el mercado a la vez.',
+  },
   {
     tag: 'A3',
     role: 'Técnico',
-    line: 'Solo el precio. Ni noticias ni opiniones. A propósito.',
+    line: 'Mira solo el gráfico del precio. Ni noticias ni opiniones: aislado a propósito, para que nada lo contamine.',
     isolated: true,
   },
   {
     tag: 'A4',
-    role: 'Consenso',
-    line: 'No un agente más: junta las tres lecturas en un veredicto. Cuando discrepan, lo resuelve a la vista.',
+    role: 'El que decide',
+    line: 'No es un agente más: reúne las tres lecturas en una sola conclusión. Y cuando no coinciden, lo resuelve a la vista.',
   },
   {
     tag: 'CMT',
     role: 'Vigía',
-    line: 'Vigila tu watchlist y te avisa. Sin gastar ni un token.',
+    line: 'Vigila tu lista de seguimiento y te avisa cuando algo se mueve, sin que tengas que estar pendiente. Y sin coste.',
     span: true,
   },
 ] as const;
@@ -169,15 +177,17 @@ export function InicioContent() {
         {/* ── 3 · El motor: Claude / la cuenta: código ───────────────── */}
         <section className="mx-auto max-w-3xl px-5 pt-24">
           <Reveal>
-            <SectionHeading eyebrow="Cómo razona" title="El motor: Claude. La cuenta: código." />
+            <SectionHeading eyebrow="Cómo razona" title="La inteligencia explica. El código calcula." />
             <p className="max-w-2xl text-lg leading-relaxed text-white/75">
-              Los agentes usan Claude (Haiku y Sonnet) para una sola cosa: poner en palabras lo que
-              ven. Los números —indicadores, niveles, confluencia, confianza— los calcula{' '}
-              <strong className="font-semibold text-white">código determinista</strong>, no el
-              modelo. Así el veredicto no depende de la inspiración del día.
+              Cada agente usa inteligencia artificial (los modelos Claude) para una sola cosa:
+              explicarte en palabras lo que ve. Los cálculos —los indicadores, los niveles, la
+              confianza— los hace <strong className="font-semibold text-white">código</strong>, no
+              la IA. ¿La ventaja? Con los mismos datos, el resultado es siempre el mismo: no depende
+              de la inspiración del momento.
             </p>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
-              Datos en crudo del mercado: Finnhub y Yahoo (precio + fundamentales), FRED (macro).
+              Y los datos llegan en crudo del mercado, sin intermediarios: precios y fundamentales
+              de Finnhub y Yahoo, y el contexto macroeconómico de la Reserva Federal de EE. UU. (FRED).
             </p>
           </Reveal>
         </section>
@@ -191,11 +201,18 @@ export function InicioContent() {
                   Cómo se ve un análisis
                 </p>
                 <h2 className="mt-2 font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
-                  Un ticker, tres lecturas, un veredicto
+                  Un activo, tres lecturas, una conclusión
                 </h2>
               </div>
               <IllustrativeTag />
             </div>
+          </Reveal>
+
+          <Reveal delay={0.03}>
+            <p className="mb-6 max-w-2xl text-sm leading-relaxed text-white/60">
+              Cada especialista te enseña sus datos y su lectura en una frase. No necesitas dominar
+              cada término: el sistema los reúne por ti en una conclusión clara.
+            </p>
           </Reveal>
 
           {/* Input → ticker */}
@@ -273,7 +290,7 @@ export function InicioContent() {
                 </div>
                 <div>
                   <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
-                    Accionable
+                    Confianza accionable
                   </p>
                   <p className="mt-1 font-mono text-2xl font-bold text-white">
                     {v.actionable_pct}%{' '}
@@ -282,7 +299,7 @@ export function InicioContent() {
                 </div>
                 <div>
                   <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-white/66">
-                    κ coherencia
+                    Coincidencia (κ)
                   </p>
                   <p className="mt-1 font-mono text-2xl font-bold text-white">
                     {v.kappa.toFixed(2)}
@@ -290,6 +307,11 @@ export function InicioContent() {
                 </div>
                 <p className="ml-auto max-w-xs text-sm leading-relaxed text-white/70">{v.porque}</p>
               </div>
+              <p className="mt-4 font-mono text-[12px] leading-relaxed text-white/50">
+                La <span className="text-white/70">confianza accionable</span> resume cuánto fiarte
+                del resultado; la <span className="text-white/70">coincidencia (κ)</span>, cuánto
+                coinciden los agentes entre sí (de 0 a 1).
+              </p>
               <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
                 <div>
                   <p className="font-mono text-[12px] uppercase tracking-wider text-white/66">
@@ -320,13 +342,15 @@ export function InicioContent() {
           <Reveal>
             <SectionHeading eyebrow="Además · para futuros" title="Agente de Estructura" />
             <p className="max-w-2xl text-lg leading-relaxed text-white/75">
-              Un módulo aparte para operar con price action multi-temporal. Lee la estructura de
-              Weekly a H1, espera el retesteo «rompe y apoya» y, cuando el nivel coincide con un
-              precio redondo, propone entrada, stop estructural y objetivo con un R/B mínimo de 1.5.
-              Determinista y mecánico — sin caja negra.
+              Un módulo aparte, pensado para quien opera futuros (oro, índices, divisas). Lee la
+              estructura del precio en varias escalas de tiempo —desde la semanal hasta la de una
+              hora— y espera a que el precio vuelva a un nivel clave. Cuando ese punto coincide con
+              una zona importante, te propone por dónde entrar, hasta dónde arriesgar y qué objetivo
+              buscar, siempre con un beneficio potencial mayor que el riesgo. Mecánico y
+              transparente, sin caja negra.
             </p>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
-              Escribe tu nomenclatura de futuros — XAUUSD, NAS100, US500 — y la traduce al contrato correcto.
+              Escribes tu símbolo de futuros —XAUUSD, NAS100, US500— y él lo traduce al contrato correcto.
             </p>
             <Link
               href="/estructura"
@@ -370,7 +394,7 @@ export function InicioContent() {
               <span className="text-white">Del consenso, tu decisión.</span>
             </p>
             <h2 className="mt-12 font-sans text-2xl font-bold tracking-wide text-white md:text-3xl">
-              Analiza un ticker
+              Pruébalo con cualquier activo
             </h2>
             <p className="mt-2 font-mono text-[12px] uppercase tracking-wider text-white/55">
               Datos de hoy · análisis real · en segundos

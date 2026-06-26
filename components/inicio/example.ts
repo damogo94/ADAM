@@ -92,10 +92,10 @@ export const EXAMPLE: Example = {
     nivel: 'alta',
     confianza: 'alta',
     porque:
-      'Las tres lecturas apuntan arriba y se confirman entre sí (κ alta) → veredicto positivo con confianza accionable alta.',
+      'Las tres lecturas coinciden al alza y se confirman entre sí, así que la conclusión es positiva y con una confianza alta.',
     accion:
-      'Convicción alta y niveles definidos: entrada cerca de 212, invalidación por debajo de 203.',
+      'Convicción alta y niveles claros: la entrada estaría cerca de 212, y la idea se cancelaría si el precio pierde los 203.',
     riesgo:
-      'Perder 203 con volumen rompe la tesis; la valoración exigente amplifica cualquier susto macro.',
+      'Si pierde los 203 con mucho volumen, la tesis se rompe; y al estar cara, le afecta más cualquier susto en la economía.',
   },
 };
