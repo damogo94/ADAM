@@ -34,7 +34,7 @@ const PANEL_ID = 'inst-panel';
  * en reduced-motion. Escribe CSS vars: --mx/--my (foco) y --rx/--ry (inclinación
  * ≤3,2°). El return suave se hace con la transición que aplica el handler.
  */
-const TILT_MAX = 3.2;
+const TILT_MAX = 2;
 
 function useSpotlightTilt() {
   const ref = useRef<HTMLDivElement>(null);
@@ -149,14 +149,16 @@ function Lens({
 
       <p className="mt-3 line-clamp-3 text-[0.8rem] leading-relaxed text-ink/72">{lens.line}</p>
 
+      {/* Barra de confianza del agente (0-100). Color = accent (marca/UI), no
+          market-color: la confianza no es dato de mercado (firewall). */}
       <div className="mt-auto flex items-center gap-2 pt-3">
-        <span className="h-[3px] flex-1 overflow-hidden rounded-full bg-ink/10">
+        <span className="h-1 flex-1 overflow-hidden rounded-full bg-ink/10">
           <span
-            className="block h-full rounded-full bg-ink/72 motion-safe:transition-[width] motion-safe:duration-700 motion-safe:ease-precise"
+            className="block h-full rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-700 motion-safe:ease-precise"
             style={{ width: `${lens.confidence}%` }}
           />
         </span>
-        <span className="font-mono text-[0.62rem] text-ink/58">{lens.confidence}</span>
+        <span className="font-mono text-[0.62rem] text-ink/72">{lens.confidence}</span>
       </div>
     </div>
   );
