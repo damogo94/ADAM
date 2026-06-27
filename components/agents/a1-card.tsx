@@ -49,7 +49,6 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
   const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
     <AgentCardShell
-      accent="blue"
       badge="A1"
       title="Activos"
       status={status}
@@ -68,9 +67,9 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-[12px] text-rose">error en A1 — reintenta</div>
+          <div className="font-mono text-fluid-caption text-ink/80">error en A1 — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-[12px] text-white/66 leading-snug break-words">{failureMessage}</div>
+            <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">{failureMessage}</div>
           )}
         </div>
       )}
@@ -112,8 +111,8 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
         <DataSection label="Noticias" source={isCrypto ? 'newsdata.io' : 'Finnhub'}>
           {news.slice(0, 3).map((n, i) => (
             <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
-              <div className="font-mono text-[12px] leading-snug text-white">{n.headline}</div>
-              <div className="font-mono text-[12px] text-white/66">
+              <div className="font-mono text-fluid-caption leading-snug text-white">{n.headline}</div>
+              <div className="font-mono text-fluid-caption text-white/66">
                 {n.source} ·{' '}
                 <span
                   className={cn(
@@ -132,23 +131,23 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
 
       {anomaly_detected && (
         <SignalBox tone="bull">
-          <div className="font-mono text-[11px] font-medium text-emerald mb-0.5 uppercase tracking-wider">
+          <div className="font-mono text-fluid-micro font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ {data.anomaly_type ?? 'anomalía'} detectada
           </div>
-          <div className="font-mono text-[12px] leading-snug text-white/95">{anomaly_description}</div>
+          <div className="font-mono text-fluid-caption leading-snug text-white/95">{anomaly_description}</div>
         </SignalBox>
       )}
 
-      <SignalBox tone={confidence >= 61 ? 'bull' : 'neut'}>
+      <SignalBox tone={confidence >= 61 ? 'conf' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confidence >= 61 ? 'text-white' : 'text-white/66'
+            'font-mono text-fluid-micro font-medium mb-0.5 uppercase tracking-wider',
+            confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
           A1 · confianza {confidence}%
         </div>
-        <div className="font-mono text-[12px] leading-snug text-white/90">{narrative}</div>
+        <div className="font-mono text-fluid-caption leading-snug text-ink/90">{narrative}</div>
       </SignalBox>
     </>
   );
@@ -161,7 +160,7 @@ function A1Summary({ data }: { data: A1Output }) {
   return (
     <>
       <DirectionBadge dir={dir} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-medium capitalize text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium capitalize text-white">
         {titular}
       </span>
       <ConfidenceChip value={data.confidence} showBar />
@@ -174,7 +173,7 @@ function A1Summary({ data }: { data: A1Output }) {
 export function DataSection({ label, source, children }: { label: string; source?: string; children: React.ReactNode }) {
   return (
     <div className="mb-2">
-      <div className="mb-1 flex items-center gap-1 font-mono text-[11px] font-medium uppercase tracking-wider text-white/66">
+      <div className="mb-1 flex items-center gap-1 font-mono text-fluid-micro font-medium uppercase tracking-wider text-white/66">
         {label}
         {source && <span className="font-light opacity-70">· {source}</span>}
       </div>
@@ -186,8 +185,8 @@ export function DataSection({ label, source, children }: { label: string; source
 export function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
   return (
     <div className="flex items-center justify-between border-b border-white/5 py-0.5 last:border-b-0">
-      <span className="font-mono text-[12px] text-white/66">{k}</span>
-      <span className={cn('font-mono text-[12px] font-medium text-white', cls)}>{v}</span>
+      <span className="font-mono text-fluid-caption text-white/66">{k}</span>
+      <span className={cn('font-mono text-fluid-caption font-medium text-white', cls)}>{v}</span>
     </div>
   );
 }
@@ -195,16 +194,18 @@ export function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
 /**
  * SignalBox — caja decorada que envuelve el texto principal de un agente.
  *
- * Sesión 5b: re-introducido color semántico. Bull=emerald, bear=rose,
- * neut=blanco dim. La diferenciación por hue mejora comprensión instantánea
- * de "alza vs baja" en una UI densa.
+ * FIREWALL: bull=emerald / bear=rose SOLO para SEÑAL DIRECCIONAL de mercado
+ * (alza/baja, anomalía/oportunidad). Para narrativa/confianza usa `conf` →
+ * neutral con filete accent (chrome), NUNCA market-color. neut = neutral plano.
  */
-export function SignalBox({ tone, children }: { tone: 'bull' | 'bear' | 'neut'; children: React.ReactNode }) {
+export function SignalBox({ tone, children }: { tone: 'bull' | 'bear' | 'neut' | 'conf'; children: React.ReactNode }) {
   const cls =
     tone === 'bull'
       ? 'bg-emerald/[0.07] border-emerald/30'
       : tone === 'bear'
         ? 'bg-rose/[0.07] border-rose/30'
-        : 'bg-white/[0.02] border-white/12';
+        : tone === 'conf'
+          ? 'bg-white/[0.02] border-white/12 border-l-2 border-l-accent/55'
+          : 'bg-white/[0.02] border-white/12';
   return <div className={cn('mt-1.5 rounded-lg border px-2.5 py-1.5', cls)}>{children}</div>;
 }

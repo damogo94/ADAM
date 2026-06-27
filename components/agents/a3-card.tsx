@@ -26,7 +26,6 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
   const hasData = data != null && (status === 'done' || status === 'anomaly' || status === 'live');
   return (
     <AgentCardShell
-      accent="amber"
       badge="A3"
       title="Trading · Price Action"
       status={dotStatus}
@@ -55,9 +54,9 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-[12px] text-rose">error en A3 — reintenta</div>
+          <div className="font-mono text-fluid-caption text-ink/80">error en A3 — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-[12px] text-white/66 leading-snug break-words">{failureMessage}</div>
+            <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">{failureMessage}</div>
           )}
         </div>
       )}
@@ -75,7 +74,7 @@ function A3Summary({ data }: { data: A3Output }) {
   return (
     <>
       <DirectionBadge dir={data.tendencia.primaria} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-medium text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium text-white">
         {sigLabel} · {data.tendencia.primaria}
       </span>
       <ConfidenceChip value={data.confidence} showBar />
@@ -122,10 +121,10 @@ function A3Body({
 
       {noSetup ? (
         <div className="mb-2 rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-center">
-          <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/70">
+          <div className="font-mono text-fluid-micro font-medium uppercase tracking-wider text-white/70">
             sin setup · hold
           </div>
-          <div className="mt-0.5 font-mono text-[12px] leading-snug text-white/66">
+          <div className="mt-0.5 font-mono text-fluid-caption leading-snug text-white/66">
             sin operativa con R/B suficiente ni proximidad a un nivel ahora mismo
           </div>
         </div>
@@ -142,7 +141,7 @@ function A3Body({
           <TechBox
             label="R/B RATIO"
             value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
-            valueCls="text-amber"
+            valueCls="text-ink"
           />
         </div>
       )}
@@ -182,7 +181,7 @@ function A3Body({
       <SignalBox tone={sigCls}>
         <div
           className={cn(
-            'flex items-center gap-1 font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
+            'flex items-center gap-1 font-mono text-fluid-micro font-medium mb-0.5 uppercase tracking-wider',
             sigCls === 'bull' && 'text-emerald',
             sigCls === 'bear' && 'text-rose',
             sigCls === 'neut' && 'text-white/66'
@@ -195,12 +194,12 @@ function A3Body({
           <SegmentBar value={tendencia.fuerza} className="mx-0.5" />
           <span>· confianza {confidence}%</span>
         </div>
-        <div className="font-mono text-[12px] leading-snug text-white/90">
+        <div className="font-mono text-fluid-caption leading-snug text-white/90">
           {patron_detectado && <span className="text-amber font-medium">{patron_detectado}</span>}
           {patron_detectado && ' — '}
           {volumen.comentario}
         </div>
-        <div className="font-mono text-[12px] leading-snug text-white/66 mt-1">{narrative}</div>
+        <div className="font-mono text-fluid-caption leading-snug text-white/66 mt-1">{narrative}</div>
       </SignalBox>
     </>
   );
@@ -209,8 +208,8 @@ function A3Body({
 function TechBox({ label, value, valueCls }: { label: string; value: string; valueCls?: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5">
-      <div className="font-mono text-[11px] uppercase tracking-wider text-white/66 mb-0.5">{label}</div>
-      <div className={cn('font-mono text-[12px] font-medium', valueCls)}>{value}</div>
+      <div className="font-mono text-fluid-micro uppercase tracking-wider text-white/66 mb-0.5">{label}</div>
+      <div className={cn('font-mono text-fluid-caption font-medium', valueCls)}>{value}</div>
     </div>
   );
 }
@@ -218,8 +217,8 @@ function TechBox({ label, value, valueCls }: { label: string; value: string; val
 function KVRow({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between border-b border-white/5 py-0.5 last:border-b-0">
-      <span className="font-mono text-[12px] text-white/66">{k}</span>
-      <span className="font-mono text-[12px] font-medium text-white">{v}</span>
+      <span className="font-mono text-fluid-caption text-white/66">{k}</span>
+      <span className="font-mono text-fluid-caption font-medium text-white">{v}</span>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { A4Card } from '@/components/agents/a4-card';
 import { EstructuraCard } from '@/components/agents/estructura-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
+import { Graticule } from '@/components/inicio/decor/graticule';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
 import { resolveTicker } from '@/lib/catalog/assets';
@@ -488,7 +489,7 @@ function AnalysisInner() {
 
       {/* Agente de Estructura (futuros · MTF) — toggle opt-in para SUMAR la pata
           a la confluencia con un clic, + acceso a la pantalla dedicada. */}
-      <div className="mx-4 mt-2 flex flex-wrap items-center justify-end gap-2 font-mono text-[11px]">
+      <div className="mx-4 mt-2 flex flex-wrap items-center justify-end gap-2 font-mono text-fluid-micro">
         <button
           type="button"
           onClick={toggleEstructura}
@@ -536,7 +537,7 @@ function AnalysisInner() {
         >
           <div
             className={cn(
-              'font-sans text-[12px] font-bold tracking-wider mb-0.5',
+              'font-sans text-fluid-caption font-bold tracking-wider mb-0.5',
               state.error.tone === 'auth' && 'text-white/75',
               state.error.tone === 'transient' && 'text-white/80',
               state.error.tone === 'rate_limit' && 'text-white/85',
@@ -546,16 +547,16 @@ function AnalysisInner() {
           >
             {state.error.title}
           </div>
-          <div className="font-mono text-[12px] leading-snug text-white/85">{state.error.message}</div>
+          <div className="font-mono text-fluid-caption leading-snug text-white/85">{state.error.message}</div>
         </div>
       )}
 
       {state.partial && state.failures.length > 0 && (
         <div className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.05] px-3 py-2">
-          <div className="font-sans text-[12px] font-bold tracking-wider text-white/80 mb-0.5">
+          <div className="font-sans text-fluid-caption font-bold tracking-wider text-white/80 mb-0.5">
             ANÁLISIS PARCIAL
           </div>
-          <div className="font-mono text-[12px] leading-snug text-white/70">
+          <div className="font-mono text-fluid-caption leading-snug text-white/70">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
@@ -565,10 +566,12 @@ function AnalysisInner() {
       {/* Hero de confluencia — el "momento running": tres corrientes ambientales
           hacia un núcleo que resuelve en el veredicto. Visible desde submit hasta
           done; oculto en idle y cuando hay error fatal (la caja de error manda). */}
-      {state.ticker !== null && !state.error && (
+      {/* Hero solo durante el "momento running": al resolver (a4 done) CEDE el
+          protagonismo al VerdictBar (arriba) + el rail — se colapsa del todo. */}
+      {state.ticker !== null && !state.error && state.a4Status !== 'done' && (
         <ConfluenceHero
           running={isLoading}
-          resolved={state.a4Status === 'done'}
+          resolved={false}
           statuses={{ a1: state.a1Status, a2: state.a2Status, a3: state.a3Status }}
           estructuraStatus={estEnabled ? state.estructuraStatus : undefined}
           a4={state.a4}
@@ -673,7 +676,7 @@ function AnalysisInner() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-fluid-caption text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -701,24 +704,53 @@ function OnboardingCard() {
   ];
 
   return (
-    <section className="mx-4 mt-3 overflow-hidden rounded-card border border-ink/10 bg-surface-2 px-5 py-5 shadow-e1 sm:mx-auto sm:max-w-[880px]">
-      <p className="mb-4 inline-flex items-center gap-3 font-mono text-fluid-label font-medium uppercase tracking-[0.2em] text-ink/58 before:h-px before:w-[18px] before:bg-accent/80 before:content-['']">
-        cómo funciona
-      </p>
+    <section className="relative mx-4 mt-3 overflow-hidden rounded-card border border-ink/10 bg-gradient-to-b from-surface to-void px-5 py-5 shadow-e2 sm:mx-auto sm:max-w-[880px]">
+      <Graticule className="opacity-70" />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {steps.map((s) => (
-          <div
-            key={s.n}
-            className="rounded-[14px] border border-ink/8 bg-ink/[0.015] px-4 py-3.5 transition-colors hover:border-ink/15"
-          >
-            <div className="mb-1.5 flex items-baseline gap-2">
-              <span className="font-mono text-[0.9rem] font-semibold text-accent">0{s.n}</span>
-              <span className="font-sans text-fluid-label font-semibold text-ink">{s.t}</span>
-            </div>
-            <p className="font-mono text-fluid-caption leading-snug text-ink/58">{s.d}</p>
+      {/* Cabecera-instrumento: identidad + dial en reposo (estilo /inicio). */}
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="inline-flex items-center gap-3 font-mono text-fluid-label font-medium uppercase tracking-[0.2em] text-ink/58 before:h-px before:w-[18px] before:bg-accent/80 before:content-['']">
+            instrumento · en espera
+          </p>
+          <p className="mt-3 max-w-md text-fluid-lead leading-[1.5] text-ink/72">
+            Escribe un ticker y los cinco agentes lo analizan en paralelo. El núcleo se calibra al lanzar.
+          </p>
+        </div>
+
+        {/* Dial en reposo — aro + umbrales 34/67 apagados + "—". Sin dato aún. */}
+        <div className="relative hidden shrink-0 sm:block" aria-hidden="true">
+          <svg viewBox="0 0 104 104" width="84" height="84">
+            <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(245,245,247,.10)" strokeWidth="6" />
+            <line x1="85.8" y1="73.4" x2="92.5" y2="77.7" stroke="rgba(245,245,247,.20)" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="17" y1="71.3" x2="9.9" y2="75.1" stroke="rgba(245,245,247,.20)" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-mono text-2xl font-semibold leading-none text-ink/45">—</span>
+            <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/35">en espera</span>
           </div>
-        ))}
+        </div>
+      </div>
+
+      {/* Cómo funciona — pasos 01/02/03 */}
+      <div className="relative mt-5 border-t border-ink/8 pt-4">
+        <p className="mb-3 inline-flex items-center gap-3 font-mono text-fluid-label font-medium uppercase tracking-[0.2em] text-ink/45 before:h-px before:w-[14px] before:bg-ink/25 before:content-['']">
+          cómo funciona
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {steps.map((s) => (
+            <div
+              key={s.n}
+              className="rounded-[14px] border border-ink/8 bg-ink/[0.015] px-4 py-3.5 transition-colors hover:border-ink/15"
+            >
+              <div className="mb-1.5 flex items-baseline gap-2">
+                <span className="font-mono text-fluid-label font-semibold text-accent">0{s.n}</span>
+                <span className="font-sans text-fluid-label font-semibold text-ink">{s.t}</span>
+              </div>
+              <p className="font-mono text-fluid-caption leading-snug text-ink/58">{s.d}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

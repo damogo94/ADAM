@@ -61,9 +61,9 @@ export function EstructuraCard({ status, data, ticker, failureMessage }: Estruct
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-[12px] text-rose">error en Estructura — reintenta</div>
+          <div className="font-mono text-fluid-caption text-ink/80">error en Estructura — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-[12px] text-white/66 leading-snug break-words">
+            <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">
               {failureMessage}
             </div>
           )}
@@ -78,7 +78,7 @@ function Summary({ data }: { data: EstructuraOutput_t }) {
   return (
     <>
       <DirectionBadge dir={dirToRaw(data.setup.direccion)} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-medium text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium text-white">
         {ESTADO_LABEL[data.setup.estado]}
         {data.setup.direccion !== 'ninguno' && ` · ${data.setup.direccion}`}
       </span>
@@ -97,12 +97,12 @@ function Body({ data, currency }: { data: EstructuraOutput_t; currency: string }
     <>
       {/* Estado + factor de invalidación */}
       <div className="mb-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-        <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/80">
+        <div className="font-mono text-fluid-micro font-medium uppercase tracking-wider text-white/80">
           {ESTADO_LABEL[setup.estado]}
           {setup.timeframe_zona && ` · zona ${setup.timeframe_zona}`}
           {setup.timeframe_entrada && ` · entrada ${setup.timeframe_entrada}`}
         </div>
-        <div className="mt-0.5 font-mono text-[12px] leading-snug text-white/66">
+        <div className="mt-0.5 font-mono text-fluid-caption leading-snug text-white/66">
           {data.factor_invalidacion}
         </div>
       </div>
@@ -115,7 +115,7 @@ function Body({ data, currency }: { data: EstructuraOutput_t; currency: string }
           <TfCell lectura={contexto.h4} fallback="4H" />
           <TfCell lectura={contexto.h1} fallback="1H" />
         </div>
-        <div className="mt-1.5 font-mono text-[12px] leading-snug text-white/66">
+        <div className="mt-1.5 font-mono text-fluid-caption leading-snug text-white/66">
           {correlacion.descripcion}
         </div>
       </DataSection>
@@ -138,7 +138,7 @@ function Body({ data, currency }: { data: EstructuraOutput_t; currency: string }
         </div>
       ) : (
         <div className="my-2 rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-center">
-          <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/70">
+          <div className="font-mono text-fluid-micro font-medium uppercase tracking-wider text-white/70">
             {setup.estado === 'esperando_zona' ? 'esperando retroceso a la zona' : 'sin plan ejecutable aún'}
           </div>
         </div>
@@ -155,7 +155,7 @@ function Body({ data, currency }: { data: EstructuraOutput_t; currency: string }
           {gestion.break_even_trigger !== null && (
             <KVRow k="Break-even (1R)" v={px(gestion.break_even_trigger)} />
           )}
-          <div className="pt-1 font-mono text-[12px] leading-snug text-white/66">
+          <div className="pt-1 font-mono text-fluid-caption leading-snug text-white/66">
             {rango_operativo.zona_retesteo.descripcion}
           </div>
         </DataSection>
@@ -187,7 +187,7 @@ function Body({ data, currency }: { data: EstructuraOutput_t; currency: string }
 
       {/* Narrativa */}
       {data.narrative && (
-        <div className="mt-2 rounded-lg border border-white/5 bg-black/20 px-3 py-2 font-mono text-[12px] leading-snug text-white/85">
+        <div className="mt-2 rounded-lg border border-white/5 bg-black/20 px-3 py-2 font-mono text-fluid-caption leading-snug text-white/85">
           {data.narrative}
         </div>
       )}
@@ -199,19 +199,19 @@ function TfCell({ lectura, fallback }: { lectura: LecturaTimeframe_t | null; fal
   if (!lectura) {
     return (
       <div className="rounded-lg border border-white/5 bg-black/20 px-2 py-1.5 opacity-50">
-        <div className="font-mono text-[11px] uppercase tracking-wider text-white/66">{fallback}</div>
-        <div className="font-mono text-[12px] text-white/40">sin datos</div>
+        <div className="font-mono text-fluid-micro uppercase tracking-wider text-white/66">{fallback}</div>
+        <div className="font-mono text-fluid-caption text-white/40">sin datos</div>
       </div>
     );
   }
   return (
     <div className="rounded-lg border border-white/10 bg-black/30 px-2 py-1.5">
       <div className="flex items-center gap-1">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-white/66">{lectura.timeframe}</span>
+        <span className="font-mono text-fluid-micro uppercase tracking-wider text-white/66">{lectura.timeframe}</span>
         <DirectionBadge dir={lectura.direccion} className="ml-auto" />
       </div>
-      <div className="font-mono text-[12px] font-medium text-white/85">{lectura.direccion}</div>
-      <div className="font-mono text-[11px] text-white/55">{lectura.fase}</div>
+      <div className="font-mono text-fluid-caption font-medium text-white/85">{lectura.direccion}</div>
+      <div className="font-mono text-fluid-micro text-white/55">{lectura.fase}</div>
     </div>
   );
 }
@@ -230,8 +230,8 @@ function DataSection({
   return (
     <div className="mb-2 rounded-lg border border-white/5 bg-black/20 px-2.5 py-2">
       <div className="mb-1 flex items-center justify-between">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-white/70">{label}</span>
-        {source && <span className="font-mono text-[11px] text-white/55">{source}</span>}
+        <span className="font-mono text-fluid-micro font-medium uppercase tracking-wider text-white/70">{label}</span>
+        {source && <span className="font-mono text-fluid-micro text-white/55">{source}</span>}
       </div>
       {children}
     </div>
@@ -241,8 +241,8 @@ function DataSection({
 function TechBox({ label, value, valueCls }: { label: string; value: string; valueCls?: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5">
-      <div className="mb-0.5 font-mono text-[11px] uppercase tracking-wider text-white/66">{label}</div>
-      <div className={cn('font-mono text-[12px] font-medium', valueCls)}>{value}</div>
+      <div className="mb-0.5 font-mono text-fluid-micro uppercase tracking-wider text-white/66">{label}</div>
+      <div className={cn('font-mono text-fluid-caption font-medium', valueCls)}>{value}</div>
     </div>
   );
 }
@@ -250,8 +250,8 @@ function TechBox({ label, value, valueCls }: { label: string; value: string; val
 function KVRow({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between border-b border-white/5 py-0.5 last:border-b-0">
-      <span className="font-mono text-[12px] text-white/66">{k}</span>
-      <span className="font-mono text-[12px] font-medium text-white">{v}</span>
+      <span className="font-mono text-fluid-caption text-white/66">{k}</span>
+      <span className="font-mono text-fluid-caption font-medium text-white">{v}</span>
     </div>
   );
 }

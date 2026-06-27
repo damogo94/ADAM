@@ -1,33 +1,75 @@
 import { cn } from '@/lib/utils';
 import type { ConfluenceResult } from '@/lib/confluence';
+import { Gauge } from '@/components/inicio/gauge';
 
 interface ConfluenceIndicatorProps {
   data: ConfluenceResult | null;
 }
 
 /**
- * Re-skin B&W: la confluencia se comunica por INTENSIDAD de blanco
- * (55% baja, 70% media, 100% alta) en vez de hue (slate/amber/emerald).
- * El piso es 55% (no 40%) para no caer bajo el umbral de contraste AA.
+ * Titular del rail: el MISMO dial radial que /inicio (`Gauge`), para amarrar
+ * /analysis al lenguaje visual del landing. Cifra = CONFIANZA ACCIONABLE
+ * (|net|×f(κ)); κ se muestra como eje propio debajo; la desagregación por pares
+ * va al pie.
  *
- * Los dots de cada fila también escalan en intensidad. La barra de progreso
- * es un trazo blanco simple — sin gradient ni glow colorado.
+ * FIREWALL: este arco va en ACCENT (chrome), NO en emerald/rose. Mide
+ * confianza/alineación entre agentes, no DIRECCIÓN — la dirección la lleva el
+ * VerdictBar (ahí sí market-color). Mismo criterio que el ConfidenceChip.
+ *
+ * La intensidad de blanco (55/70/100%) comunica el nivel en la desagregación;
+ * el piso es 55% (no 40%) para no caer bajo el umbral de contraste AA.
  */
 export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
-  // Titular del panel (Fase 1 · ejes separados): la cifra grande es la CONFIANZA
-  // ACCIONABLE (|net|×f(κ)); κ se muestra como eje propio debajo. Nivel y barra
-  // derivan de actionable. Null-guard: datos sin ejes nuevos caen al total_pct
-  // viejo. (Sin análisis → '—', sin nivel "baja" fantasma.)
-  const actionable = data?.actionable_pct ?? data?.total_pct ?? 0;
+  // Fase 1 · ejes separados: la cifra grande es la CONFIANZA ACCIONABLE; nivel y
+  // tono derivan de actionable. Null-guard: datos sin ejes nuevos caen al
+  // total_pct viejo. (Sin análisis → dial en reposo "—", sin nivel fantasma.)
+  const actionable = Math.max(0, Math.min(100, data?.actionable_pct ?? data?.total_pct ?? 0));
   const kappa = data?.kappa ?? null;
-  const level = data ? labelFromScore(actionable) : null;
+  const level = data && actionable > 0 ? labelFromScore(actionable) : null;
 
   return (
     <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
-      <div className="font-sans text-[11px] font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
-      <div className="font-mono text-[11px] text-white/66 mb-3">alineamiento entre agentes activos</div>
+      <div className="font-sans text-fluid-micro font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
+      <div className="font-mono text-fluid-micro text-white/66 mb-3">alineamiento entre agentes activos</div>
 
-      <div className="flex flex-col gap-2 mb-3">
+      {/* Titular = dial radial (mismo componente que /inicio), en accent. */}
+      <div className="mb-3 flex flex-col items-center gap-2 rounded-[11px] border border-white/8 bg-white/[0.015] px-2 py-3">
+        <div
+          aria-live="polite"
+          aria-label={level === null ? 'confianza accionable: en espera' : `confianza accionable: ${actionable}%`}
+        >
+          {data && actionable > 0 ? (
+            <Gauge value={actionable} hex="var(--accent)" restless={level === 'baja'} />
+          ) : (
+            <IdleDial />
+          )}
+        </div>
+        <div className="font-mono text-fluid-micro uppercase tracking-wider text-white/55">
+          {level === null ? 'en espera' : `nivel · ${level}`}
+        </div>
+
+        {/* κ — eje de coherencia, dedicado. Oculto si no hay ejes nuevos. */}
+        {kappa !== null && (
+          <div className="flex w-full items-center justify-center gap-1.5 border-t border-white/5 pt-2">
+            <span className="font-mono text-fluid-micro uppercase tracking-wider text-white/55">κ coherencia</span>
+            <span className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    i <= Math.round(kappa * 5) ? 'bg-accent' : 'bg-white/15'
+                  )}
+                />
+              ))}
+            </span>
+            <span className="font-mono text-fluid-micro tabular-nums text-white/66">{Math.round(kappa * 100)}%</span>
+          </div>
+        )}
+      </div>
+
+      {/* Desagregación por pares — la intensidad de blanco comunica el nivel. */}
+      <div className="flex flex-col gap-2">
         <ConfluenceRow
           label="A3 solo"
           score={data?.a3_solo.score ?? 0}
@@ -40,7 +82,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           rightLabel={data ? labelFromScore(data.a1_a2.score) : '—'}
           rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-white/66'}
         />
-        {/* Estructura — 4ª fila, solo cuando el usuario activó el agente (opt-in). */}
+        {/* Estructura — solo cuando el usuario activó el agente (opt-in). */}
         {data?.estructura && (
           <ConfluenceRow
             label="Estructura"
@@ -56,77 +98,20 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           rightCls={data ? intensityFromPct(data.total_pct) : 'text-white/66'}
         />
       </div>
+    </div>
+  );
+}
 
-      {/* Bar — trazo blanco con intensidad escalada según nivel */}
-      <div className="mb-3 h-px w-full bg-white/10 overflow-hidden">
-        <div
-          className={cn(
-            'h-full transition-[width,opacity] duration-700 ease-out bg-white',
-            level === 'alta' ? 'opacity-100' : level === 'media' ? 'opacity-70' : 'opacity-40'
-          )}
-          style={{ width: `${actionable}%` }}
-        />
-      </div>
-
-      {/* Score */}
-      <div
-        className={cn(
-          'rounded-[11px] px-2 py-2.5 text-center transition-all duration-500 border',
-          level === null
-            ? 'border-white/8 bg-white/[0.015]'
-            : level === 'alta'
-              ? 'border-white/25 bg-white/[0.06]'
-              : level === 'media'
-                ? 'border-white/15 bg-white/[0.04]'
-                : 'border-white/10 bg-white/[0.02]'
-        )}
-      >
-        <div
-          className={cn(
-            'font-mono text-[30px] font-black tracking-[0.04em]',
-            level === null
-              ? 'text-white/66'
-              : level === 'alta'
-                ? 'text-white'
-                : level === 'media'
-                  ? 'text-white/75'
-                  : 'text-white/66'
-          )}
-        >
-          {actionable > 0 ? `${actionable}%` : '—'}
-        </div>
-        <div
-          className={cn(
-            'mt-0.5 font-mono text-[11px] uppercase tracking-wider',
-            level === null
-              ? 'text-white/66'
-              : level === 'alta'
-                ? 'text-white/80'
-                : level === 'media'
-                  ? 'text-white/65'
-                  : 'text-white/66'
-          )}
-        >
-          accionable · {level === null ? '—' : level}
-        </div>
-        {/* κ — eje de coherencia, dedicado. Oculto si no hay ejes nuevos. */}
-        {kappa !== null && (
-          <div className="mt-2 flex items-center justify-center gap-1.5 border-t border-white/5 pt-2">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-white/55">κ coherencia</span>
-            <span className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    'h-1.5 w-1.5 rounded-full',
-                    i <= Math.round(kappa * 5) ? 'bg-accent' : 'bg-white/15'
-                  )}
-                />
-              ))}
-            </span>
-            <span className="font-mono text-[11px] tabular-nums text-white/66">{Math.round(kappa * 100)}%</span>
-          </div>
-        )}
+/** Dial en reposo (sin análisis): aro tenue + "—". Mismas medidas que Gauge. */
+function IdleDial() {
+  return (
+    <div className="relative h-[104px] w-[104px] shrink-0">
+      <svg viewBox="0 0 104 104" width="104" height="104" aria-hidden="true">
+        <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(245,245,247,.10)" strokeWidth="6" />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-2xl font-semibold leading-none text-ink/35">—</span>
+        <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/50">accionable</span>
       </div>
     </div>
   );
@@ -145,7 +130,7 @@ function ConfluenceRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-[12px] text-white/70 w-[68px] flex-shrink-0">{label}</span>
+      <span className="font-mono text-fluid-caption text-white/70 w-[68px] flex-shrink-0">{label}</span>
       <div className="flex gap-1">
         {/* 5 dots = quintiles del score 0-100. Cada dot representa 20%. */}
         {[1, 2, 3, 4, 5].map((i) => (
@@ -161,7 +146,7 @@ function ConfluenceRow({
           />
         ))}
       </div>
-      <span className={cn('ml-auto font-mono text-[12px] text-right min-w-[48px] tabular-nums', rightCls)}>
+      <span className={cn('ml-auto font-mono text-fluid-caption text-right min-w-[48px] tabular-nums', rightCls)}>
         {score > 0 ? `${score}%` : '—'} <span className="opacity-50">· {rightLabel}</span>
       </span>
     </div>

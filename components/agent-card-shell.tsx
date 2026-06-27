@@ -3,30 +3,24 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export type AgentAccent = 'blue' | 'cyan' | 'amber' | 'violet' | 'slate';
+// Diferenciación de agentes = TIPOGRÁFICA (badge + posición), no cromática. Los
+// tokens a1..a4 ya = ink, así que las 4 variantes cromáticas viejas colapsan a
+// `ink`; `slate` se conserva como "neutro secundario" (A4 · Estructura).
+export type AgentAccent = 'ink' | 'slate';
 export type AgentStatus = 'idle' | 'scanning' | 'done' | 'anomaly' | 'error' | 'live';
 
 const ACCENT_BG: Record<AgentAccent, string> = {
-  blue: 'bg-gradient-to-br from-a1/10 to-a1/[0.04]',
-  cyan: 'bg-gradient-to-br from-a2/[0.09] to-a2/[0.03]',
-  amber: 'bg-gradient-to-br from-a3/10 to-a3/[0.03]',
-  violet: 'bg-gradient-to-br from-a4/[0.09] to-a4/[0.03]',
+  ink: 'bg-gradient-to-br from-ink/10 to-ink/[0.04]',
   slate: 'bg-black/20',
 };
 
 const ACCENT_BADGE: Record<AgentAccent, string> = {
-  blue: 'bg-a1/15 text-a1',
-  cyan: 'bg-a2/[0.12] text-a2',
-  amber: 'bg-a3/[0.14] text-a3',
-  violet: 'bg-a4/[0.14] text-a4',
+  ink: 'bg-ink/15 text-ink',
   slate: 'bg-slate/20 text-slate-l',
 };
 
 const ACCENT_SCAN: Record<AgentAccent, string> = {
-  blue: 'border-a1/30',
-  cyan: 'border-a2/25',
-  amber: 'border-a3/30',
-  violet: 'border-a4/25',
+  ink: 'border-ink/30',
   slate: 'border-slate/30',
 };
 
@@ -40,7 +34,7 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
 // del AgentStatus real. `motion-reduce:hidden` la oculta.
 
 interface AgentCardShellProps {
-  accent: AgentAccent;
+  accent?: AgentAccent;
   badge: string;
   title: string;
   status: AgentStatus;
@@ -61,7 +55,7 @@ interface AgentCardShellProps {
 }
 
 export function AgentCardShell({
-  accent,
+  accent = 'ink',
   badge,
   title,
   status,
@@ -77,15 +71,15 @@ export function AgentCardShell({
   const [open, setOpen] = useState(defaultOpen);
 
   const cardCls = cn(
-    'relative overflow-hidden rounded-[15px] border bg-surface-2 transition-[border-color,box-shadow] duration-300',
+    'relative overflow-hidden rounded-[15px] border bg-surface-2 shadow-e1 edge-hi transition-[border-color,box-shadow] duration-300 ease-precise',
     dashed ? 'border-dashed' : 'border-solid',
-    isScanning ? ACCENT_SCAN[accent] : 'border-white/5'
+    isScanning ? ACCENT_SCAN[accent] : 'border-ink/8'
   );
 
   const badgeEl = (
     <span
       className={cn(
-        'font-sans text-[12px] font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0',
+        'font-sans text-fluid-caption font-bold tracking-wider rounded px-1.5 py-0.5 flex-shrink-0',
         ACCENT_BADGE[accent]
       )}
     >
@@ -108,15 +102,15 @@ export function AgentCardShell({
           />
         )}
         <header
-          className={cn('flex items-center gap-1.5 border-b border-white/5 px-2.5 py-2', ACCENT_BG[accent])}
+          className={cn('flex items-center gap-1.5 border-b border-ink/8 px-2.5 py-2', ACCENT_BG[accent])}
         >
           {badgeEl}
-          <span className="flex-1 font-mono text-[12px] font-medium text-white">{title}</span>
-          {source && <span className="font-mono text-[12px] text-white/66 flex-shrink-0">{source}</span>}
+          <span className="flex-1 font-mono text-fluid-caption font-medium text-white">{title}</span>
+          {source && <span className="font-mono text-fluid-caption text-white/66 flex-shrink-0">{source}</span>}
           <StatusDot status={status} />
         </header>
         {subline && (
-          <div className="px-2.5 pt-0.5 pb-1 font-mono text-[12px] tracking-tight text-a3/50">{subline}</div>
+          <div className="px-2.5 pt-0.5 pb-1 font-mono text-fluid-caption tracking-tight text-a3/50">{subline}</div>
         )}
         <div className="min-h-[90px] p-2.5">{children}</div>
       </div>
@@ -133,7 +127,7 @@ export function AgentCardShell({
         className={cn(
           'flex w-full items-center gap-1.5 px-2.5 py-2 text-left min-h-[44px] transition-colors',
           ACCENT_BG[accent],
-          open ? 'border-b border-white/5' : 'border-b border-transparent'
+          open ? 'border-b border-ink/8' : 'border-b border-transparent'
         )}
       >
         {badgeEl}
@@ -141,7 +135,7 @@ export function AgentCardShell({
         <StatusDot status={status} />
         <span
           className={cn(
-            'font-mono text-[12px] leading-none text-white/66 transition-transform duration-200 flex-shrink-0',
+            'font-mono text-fluid-caption leading-none text-white/66 transition-transform duration-200 flex-shrink-0',
             open && 'rotate-90'
           )}
           aria-hidden="true"
@@ -153,13 +147,13 @@ export function AgentCardShell({
       {open && (
         <>
           {(title || source) && (
-            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-[11px] uppercase tracking-wider text-white/66">
+            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-fluid-micro uppercase tracking-wider text-white/66">
               <span className="font-medium text-white/70">{title}</span>
               {source && <span className="opacity-80">· {source}</span>}
             </div>
           )}
           {subline && (
-            <div className="px-2.5 pt-0.5 font-mono text-[12px] tracking-tight text-a3/50">{subline}</div>
+            <div className="px-2.5 pt-0.5 font-mono text-fluid-caption tracking-tight text-a3/50">{subline}</div>
           )}
           <div className="p-2.5 pt-1.5">{children}</div>
         </>
@@ -184,7 +178,7 @@ function StatusDot({ status }: { status: AgentStatus }) {
     return (
       <div className="flex items-center gap-0.5 flex-shrink-0">
         <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
-        <span className="font-mono text-[12px] font-medium text-white tracking-wider">LIVE</span>
+        <span className="font-mono text-fluid-caption font-medium text-white tracking-wider">LIVE</span>
       </div>
     );
   }
@@ -209,7 +203,7 @@ export function IdleState({ label = 'standby' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-4">
       <div className="text-xl text-white/15">◎</div>
-      <div className="font-mono text-[11px] tracking-wider text-white/66">{label}</div>
+      <div className="font-mono text-fluid-micro tracking-wider text-white/66">{label}</div>
     </div>
   );
 }
@@ -221,11 +215,11 @@ export function ScanSteps({ steps }: { steps: { label: string; done: boolean }[]
         <div
           key={i}
           className={cn(
-            'flex items-start gap-1.5 py-px font-mono text-[12px]',
+            'flex items-start gap-1.5 py-px font-mono text-fluid-caption',
             s.done ? 'text-white/75' : 'text-white/66'
           )}
         >
-          <span className={cn('w-2.5 flex-shrink-0 text-[12px]', s.done && 'text-white')}>
+          <span className={cn('w-2.5 flex-shrink-0 text-fluid-caption', s.done && 'text-white')}>
             {s.done ? '✓' : '—'}
           </span>
           <span>{s.label}</span>

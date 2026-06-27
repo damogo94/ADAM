@@ -73,6 +73,7 @@ const config: Config = {
       // utilidades `tracking-*` por uso (no se hornea aquí, para no chocar con
       // ellas). Mapea 1:1 a --fs-* del prototipo (design/adam-inicio.html).
       fontSize: {
+        'fluid-micro': ['0.6875rem', { lineHeight: '1.45' }], // 11px · micro-eyebrow/sublínea mono
         'fluid-caption': ['0.75rem', { lineHeight: '1.4' }], // 12px · micro-readout mono
         'fluid-label': ['0.8125rem', { lineHeight: '1.4' }], // 13px · eyebrow/label mono
         'fluid-body': ['1rem', { lineHeight: '1.6' }],
