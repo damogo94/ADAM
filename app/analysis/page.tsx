@@ -563,15 +563,16 @@ function AnalysisInner() {
         </div>
       )}
 
-      {/* Hero de confluencia — el "momento running": tres corrientes ambientales
-          hacia un núcleo que resuelve en el veredicto. Visible desde submit hasta
-          done; oculto en idle y cuando hay error fatal (la caja de error manda). */}
-      {/* Hero solo durante el "momento running": al resolver (a4 done) CEDE el
-          protagonismo al VerdictBar (arriba) + el rail — se colapsa del todo. */}
-      {state.ticker !== null && !state.error && state.a4Status !== 'done' && (
+      {/* Hero de confluencia — PERSISTE de submit a resolve (Fase 1A · D1=A2):
+          el núcleo CONSOLIDA durante el running y RESUELVE EN SITIO en una síntesis
+          clara y GENERAL (dir + accionable + κ + conclusión de A4) al cerrar A4 —
+          el cerebro y los agentes ya no desaparecen. Oculto solo en idle y error
+          fatal (la caja de error manda). VerdictBar (sticky, glance) y A4 card
+          (desglose) coexisten; la cifra accionable es única en las tres piezas. */}
+      {state.ticker !== null && !state.error && (
         <ConfluenceHero
           running={isLoading}
-          resolved={false}
+          resolved={state.a4Status === 'done'}
           statuses={{ a1: state.a1Status, a2: state.a2Status, a3: state.a3Status }}
           estructuraStatus={estEnabled ? state.estructuraStatus : undefined}
           a4={state.a4}
@@ -667,7 +668,7 @@ function AnalysisInner() {
                   status={state.a4Status}
                   data={state.a4}
                   aligned={confluence?.aligned ?? false}
-                  confluencePct={confluence?.total_pct}
+                  confluencePct={confluence?.actionable_pct ?? confluence?.total_pct}
                 />
               </div>
             </>
