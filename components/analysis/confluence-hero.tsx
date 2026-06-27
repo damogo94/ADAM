@@ -1,72 +1,65 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { A4Output_t as A4Output } from '@/agents/shared/types';
+import type { A4Output_t as A4Output, A1Output_t, A2Output_t, A3Output_t } from '@/agents/shared/types';
 import type { ConfluenceResult } from '@/lib/confluence';
 import type { AgentStatus } from '@/components/agent-card-shell';
-import { cn } from '@/lib/utils';
+import { normalizeDirection } from '@/components/agent-primitives';
+import { NeuralGraph, type AgentVisual, type Dir } from './neural/NeuralGraph';
+import { DESKTOP_LAYOUT, PORTRAIT_LAYOUT, type Region } from './neural/brain-paths';
 
 /**
  * ConfluenceHero — la pieza protagonista del momento "running" de /analysis.
  *
- * Encima de las cards (no overlay). Tres corrientes (A1·A2·A3) fluyen hacia un
- * núcleo que se construye durante la espera y RESUELVE en el veredicto al cerrar
- * A4 (entronca con el VerdictBar). Reskin "Instrumento de precisión".
+ * Pipeline neuronal: cada agente es un CHIP que, al aterrizar, energiza por un
+ * CABLE (corriente accent) un NÚCLEO CEREBRO neutro que se completa por regiones
+ * en cascada y RESUELVE en el veredicto al cerrar A4.
  *
  * INVARIANTE DE HONESTIDAD (línea roja del proyecto):
  *   Ningún estado "completado" precede a su evento real. El hero NUNCA fabrica
- *   un hito por-agente. Entre `submit` y el `resolve` de /run:
- *     - Las tres corrientes fluyen ambientales (es VERDAD: los tres se despachan
- *       en paralelo). NO se marca ninguna como "resuelta" a mitad de vuelo.
- *     - El arco es una ESTIMACIÓN asintótica que jamás llega al 100% hasta el
- *       resolve real (truco iOS/YouTube). Etiquetado como estimación, no "done".
- *   Una corriente solo pasa a "settled" cuando su `AgentStatus` real lo es
- *   (done/anomaly), y a "dim" si es `error`. (A2 puede seguir `scanning` tras el
- *   reveal en caché fría: su corriente sigue viva hasta que su card real cierra.)
+ *   un hito por-agente:
+ *     - Un chip/región solo energiza cuando su `AgentStatus` real es done/anomaly
+ *       (`error` → atenuado; `scanning`/`idle` → calibrando). El debate solo se
+ *       enciende si CORRIÓ de verdad (es condicional). Si un agente falla, su
+ *       región queda apagada aunque el núcleo resuelva.
+ *     - El número del núcleo es una ESTIMACIÓN asintótica que jamás llega al 100%
+ *       hasta el `resolve` real (`useAsymptoticProgress`). Etiquetado "consolidando
+ *       ~X%" en accent; al resolver pasa al accionable real en tono de dirección.
  *
  * NO-NEGOCIABLES DE DISEÑO:
- *   - Chrome = `accent`/`ink` (white). JAMÁS emerald/rose/amber (semántica de
- *     mercado = dato). El veredicto vive en el VerdictBar, no aquí.
- *   - Corrientes diferenciadas por TIPOGRAFÍA/POSICIÓN, no por hue.
- *   - A3 aislado: su corriente es independiente; ninguna arista la alimenta de
- *     A1/A2. El divisor punteado lo materializa.
- *   - Reusa keyframes existentes (`animate-sweep`, `animate-blink`); el build-up
- *     y el reveal son transiciones CSS dirigidas por estado (sin keyframe nuevo).
+ *   - Chrome (chips, cables, cerebro, dendritas, sinapsis, `~X%`) = accent/ink.
+ *     emerald/rose SOLO en dato de mercado: número resuelto + glifo del veredicto
+ *     + glifo de dirección por chip. amber jamás aquí.
+ *   - A3 aislado: chip + cable punteados; ninguna arista lo conecta con A1/A2/debate.
+ *   - Color SVG vía utilidades Tailwind fill-/stroke- (NO var() en atributos).
  *   - `prefers-reduced-motion`: variante estática equivalente (end-state directo).
+ *
+ * NOTA: el carrusel teatral de pasos rotando NO se porta (se retiró al pasar /run
+ * a streaming). El chip muestra etiqueta de dominio estática mientras calibra y un
+ * glifo de DIRECCIÓN REAL al aterrizar (derivado de la salida del agente). El
+ * detalle de pasos vive en las cards.
  */
-
-interface StreamCfg {
-  key: 'a1' | 'a2' | 'a3' | 'est';
-  badge: string;
-  label: string;
-  /** A3/EST llevan divisor de aislamiento a su izquierda. */
-  isolated?: boolean;
-}
-
-const STREAMS: StreamCfg[] = [
-  { key: 'a1', badge: 'A1', label: 'activos · micro' },
-  { key: 'a2', badge: 'A2', label: 'macro' },
-  { key: 'a3', badge: 'A3', label: 'técnico · aislado', isolated: true },
-];
-
-/** 4ª corriente opcional — Agente de Estructura (futuros · MTF), también aislada. */
-const EST_STREAM: StreamCfg = { key: 'est', badge: 'EST', label: 'estructura · MTF', isolated: true };
 
 interface ConfluenceHeroProps {
   /** Algún agente en `scanning` → run en vuelo (espera). */
   running: boolean;
   /** A4 cerró → dispara el reveal. */
   resolved: boolean;
-  /** Estados reales por-agente. Solo para atenuar en `error` o mantener viva una
-   *  corriente que sigue `scanning`. NUNCA para fabricar un "done". */
+  /** Estados reales por-agente. Solo para energizar en done/anomaly o atenuar en error. */
   statuses: { a1: AgentStatus; a2: AgentStatus; a3: AgentStatus };
-  /** Estado del Agente de Estructura. Solo definido cuando el usuario lo activó
-   *  (opt-in) → entonces se pinta la 4ª corriente. undefined → no se muestra. */
+  /** Estado del Agente de Estructura (opt-in). Aceptado por contrato; el grafo v1
+   *  no pinta nodo dedicado (la card de Estructura sigue debajo). */
   estructuraStatus?: AgentStatus;
   /** Veredicto consolidado (reveal). null mientras corre. */
   a4: A4Output | null;
   /** Confluencia recalculada en cliente; preferida sobre la horneada en A4. */
   confluence: ConfluenceResult | null;
+  /** Estado real del debate (condicional). El nodo `deb` solo enciende si corrió. */
+  debateStatus?: AgentStatus;
+  /** Salidas por-agente — SOLO presentacional, para el glifo de dirección real del chip. */
+  a1?: A1Output_t | null;
+  a2?: A2Output_t | null;
+  a3?: A3Output_t | null;
 }
 
 /** matchMedia(prefers-reduced-motion) — patrón de reduced-motion compartido. */
@@ -89,11 +82,9 @@ function useReducedMotion(): boolean {
 
 /**
  * Progreso ASINTÓTICO contra una estimación de latencia. Desacelera y se satura
- * en ~0.92 — NUNCA llega a 1 hasta que `resolved` es verdad. Rápido → salta a
- * listo antes; lento → sigue "trabajando" sin mentir sobre estar terminado.
- *
- * τ=26s: ~0.66 a los 28s (p50 típico), ~0.86 a los 52s (p95). Constante tuneable;
- * no es un % real de trabajo, es una curva de espera honesta por construcción.
+ * en ~0.92 — NUNCA llega a 1 hasta que `resolved` es verdad. τ=26: ~0.66 a 28s
+ * (p50), ~0.86 a 52s (p95). No es % real de trabajo, es una curva de espera
+ * honesta por construcción.
  */
 function useAsymptoticProgress(active: boolean, resolved: boolean, reduced: boolean): number {
   const [p, setP] = useState(0);
@@ -109,7 +100,6 @@ function useAsymptoticProgress(active: boolean, resolved: boolean, reduced: bool
       return;
     }
     if (reduced) {
-      // Estático: estado indeterminado a medio camino, sin timer.
       setP(0.5);
       return;
     }
@@ -123,133 +113,103 @@ function useAsymptoticProgress(active: boolean, resolved: boolean, reduced: bool
   return p;
 }
 
-type StreamVisual = 'flowing' | 'settled' | 'dim';
+const settled = (s: AgentStatus | undefined) => s === 'done' || s === 'anomaly';
+const chipState = (s: AgentStatus): AgentVisual['state'] =>
+  s === 'error' ? 'dim' : settled(s) ? 'energized' : 'calibrating';
 
-function streamVisual(status: AgentStatus): StreamVisual {
-  if (status === 'error') return 'dim';
-  // `scanning` cubre tanto la espera como una corriente que sigue viva tras el
-  // reveal (p.ej. A2 en caché fría). done/anomaly → asentada.
-  if (status === 'scanning') return 'flowing';
-  return 'settled';
-}
-
-function Stream({ cfg, status, reduced, delay }: { cfg: StreamCfg; status: AgentStatus; reduced: boolean; delay: string }) {
-  const v = streamVisual(status);
-  return (
-    <div className={cn('relative flex-1 text-center', cfg.isolated && 'border-l border-dashed border-white/15 pl-2')}>
-      {cfg.isolated && (
-        <span className="absolute -top-px left-2 font-mono text-[11px] uppercase tracking-wider text-white/30">
-          aislado
-        </span>
-      )}
-      <span
-        className={cn(
-          'font-sans text-[12px] font-bold tracking-wider rounded px-1.5 py-0.5',
-          v === 'dim' ? 'bg-white/[0.04] text-white/40' : 'bg-white/[0.08] text-white'
-        )}
-      >
-        {cfg.badge}
-      </span>
-      <div className={cn('mt-1 font-mono text-[11px]', v === 'dim' ? 'text-white/35' : 'text-white/66')}>
-        {v === 'dim' ? 'sin señal' : cfg.label}
-      </div>
-      {/* Carril de la corriente — diferenciada por POSICIÓN, no por color. */}
-      <div className="relative mx-auto mt-2 h-[46px] w-px bg-white/12">
-        {v === 'flowing' && !reduced && (
-          <span
-            className="absolute left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-accent animate-sweep"
-            style={{ animationDelay: delay }}
-          />
-        )}
-        {v === 'settled' && (
-          <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-white" />
-        )}
-        {(v === 'dim' || (v === 'flowing' && reduced)) && (
-          <span className="absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30" />
-        )}
-      </div>
-    </div>
-  );
-}
+const TONE_NUM: Record<Dir, string> = { up: 'fill-emerald', down: 'fill-rose', flat: 'fill-ink/72' };
 
 export function ConfluenceHero({
   running,
   resolved,
   statuses,
-  estructuraStatus,
   a4,
   confluence,
+  debateStatus,
+  a1,
+  a2,
+  a3,
 }: ConfluenceHeroProps) {
   const reduced = useReducedMotion();
   const progress = useAsymptoticProgress(running && !resolved, resolved, reduced);
 
-  // Reveal (Fase 1 · ejes separados): el núcleo resuelve en la CONFIANZA
-  // ACCIONABLE + κ (coherencia). Null-guard: análisis sin ejes nuevos caen al
-  // total_pct viejo.
+  const a1Dir = normalizeDirection(a1?.anomaly_type ?? null);
+  const a2Dir = normalizeDirection(a2?.regime_outlook ?? (a2?.opportunity_detected ? 'risk_on' : null));
+  const a3Dir = normalizeDirection(a3?.tendencia?.primaria ?? null);
+
+  const agents: Record<'a1' | 'a2' | 'a3', AgentVisual> = {
+    a1: { state: chipState(statuses.a1), dir: a1Dir },
+    a2: { state: chipState(statuses.a2), dir: a2Dir },
+    a3: { state: chipState(statuses.a3), dir: a3Dir },
+  };
+
+  // Regiones encendidas = SOLO agentes aterrizados de verdad (errores no encienden,
+  // ni siquiera en resolve — el cerebro resuelve pero la región fallida queda oscura).
+  const debateSettled = settled(debateStatus);
+  const litRegions = new Set<Region>();
+  if (settled(statuses.a1)) litRegions.add('a1');
+  if (settled(statuses.a2)) litRegions.add('a2');
+  if (settled(statuses.a3)) litRegions.add('a3');
+  if (debateSettled) litRegions.add('deb');
+
+  const cableFlow: Record<Region, boolean> = {
+    a1: settled(statuses.a1),
+    a2: settled(statuses.a2),
+    a3: settled(statuses.a3),
+    deb: debateSettled,
+    est: false,
+  };
+
   const actionable =
     confluence?.actionable_pct ?? confluence?.total_pct ?? a4?.confluence.score_total_pct ?? null;
-  const kappa = confluence?.kappa ?? null;
+  const dirOfConfluence: Dir = confluence ? normalizeDirection(confluence.direction) : 'flat';
   const estPct = Math.round(progress * 100);
+  const displayPct = resolved ? (actionable !== null ? `${actionable}%` : '—') : `~${estPct}%`;
+  const sublabel = resolved ? 'accionable' : 'consolidando';
+  const numberClass = resolved ? TONE_NUM[dirOfConfluence] : 'fill-accent';
+  const kappaPct = confluence?.kappa != null ? Math.round(confluence.kappa * 100) : null;
+  const verdict = resolved ? { dir: dirOfConfluence, kappa: kappaPct } : null;
+  const breathing = running && !resolved;
+
+  const shared = {
+    agents,
+    debate: { settled: debateSettled },
+    litRegions,
+    cableFlow,
+    resolved,
+    breathing,
+    reduced,
+    displayPct,
+    sublabel,
+    numberClass,
+    verdict,
+  } as const;
 
   return (
-    <div className="mx-4 mt-3 rounded-[15px] border border-white/5 bg-surface-2 p-4">
+    <div className="mx-4 mt-3 rounded-[15px] border border-white/5 bg-surface-2 p-4" aria-live="polite">
       <div className="mb-3 flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-        <span className="text-accent">confluencia</span>
+        <span className="text-accent">pipeline</span>
         <span className="text-white/45">{resolved ? 'resuelto' : 'consolidando'}</span>
       </div>
 
-      {/* Corrientes — ambientales y unificadas hasta el clímax. La 4ª (EST) solo
-          aparece si el usuario activó el Agente de Estructura. */}
-      <div className="flex items-start gap-2">
-        <Stream cfg={STREAMS[0]!} status={statuses.a1} reduced={reduced} delay="0s" />
-        <Stream cfg={STREAMS[1]!} status={statuses.a2} reduced={reduced} delay="0.8s" />
-        <Stream cfg={STREAMS[2]!} status={statuses.a3} reduced={reduced} delay="1.4s" />
-        {estructuraStatus && (
-          <Stream cfg={EST_STREAM} status={estructuraStatus} reduced={reduced} delay="2s" />
-        )}
+      <div className="max-[640px]:hidden">
+        <NeuralGraph
+          layout={DESKTOP_LAYOUT}
+          ariaLabel="Pipeline: chips A1 y A2 convergen en el debate; A3 corre en un carril aislado; cables energizan el núcleo cerebro que se completa por regiones."
+          {...shared}
+        />
+      </div>
+      <div className="hidden max-[640px]:block">
+        <NeuralGraph
+          layout={PORTRAIT_LAYOUT}
+          ariaLabel="Pipeline vertical: chips A1 y A2 convergen en el debate; A3 en carril aislado; cables energizan el núcleo cerebro."
+          {...shared}
+        />
       </div>
 
-      {/* Núcleo — se construye (espera) o resuelve (reveal). Transición CSS. */}
-      <div
-        className={cn(
-          'mt-3 rounded-lg p-3 transition-[border-color,background-color] duration-700',
-          resolved
-            ? 'border border-accent bg-void'
-            : 'border border-dashed border-accent/50 bg-surface-3/40',
-          !resolved && !reduced && 'animate-blink'
-        )}
-        aria-live="polite"
-      >
-        {resolved ? (
-          <div className="flex items-baseline justify-center gap-2.5 text-center">
-            <span className="font-mono text-[14px] font-bold tabular-nums text-white">
-              {actionable !== null ? `${actionable}%` : '—'}
-            </span>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-white/45">accionable</span>
-            {kappa !== null && (
-              <span className="font-mono text-[12px] uppercase tracking-wider text-accent">
-                κ {Math.round(kappa * 100)}%
-              </span>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[11px] text-white/66">consolidando señales</span>
-              <span className="font-mono text-[11px] tabular-nums text-accent">~{estPct}%</span>
-            </div>
-            <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-white/10">
-              <div
-                className={cn('h-full rounded-full bg-accent', !reduced && 'transition-[width] duration-200 ease-out')}
-                style={{ width: `${estPct}%` }}
-              />
-            </div>
-            <div className="mt-1.5 font-mono text-[11px] text-white/30">
-              estimación · no llega al 100% hasta el resultado real
-            </div>
-          </>
-        )}
-      </div>
+      <p className="mt-2 text-center font-mono text-[11px] text-white/30">
+        estimación · el núcleo no se completa al 100% hasta el resultado real
+      </p>
     </div>
   );
 }
