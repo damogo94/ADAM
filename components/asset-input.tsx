@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { resolveTicker } from '@/lib/catalog/assets';
 import { AssetPicker } from '@/components/asset-picker';
+import { btnBase, btnPrimary, arw } from '@/components/inicio/lib/ui';
 
 interface AssetInputProps {
   onSubmit: (ticker: string) => void;
@@ -38,17 +39,17 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
 
   return (
     <>
-      <section className="relative mx-4 mt-3 overflow-hidden rounded-[18px] border border-white/15 bg-surface-2 px-3.5 py-3.5">
-        {/* top-edge whisper line */}
-        <div className="absolute inset-x-[10%] top-px h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      <section className="relative mx-4 mt-3 overflow-hidden rounded-card border border-ink/12 bg-surface-2 px-4 py-4 shadow-e1">
+        {/* top-edge whisper line — calibre accent */}
+        <div className="absolute inset-x-[10%] top-px h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
 
         {/* Instrucción real (no jerga): qué escribir y cómo abrir el catálogo. */}
-        <p className="mb-2 font-mono text-[11px] tracking-[0.04em] text-white/70">
-          Escribe un ticker — <span className="text-white/90">AAPL · BTC · OIL</span> — o pulsa{' '}
-          <span className="text-white/90">⊞ Catálogo</span>
+        <p className="mb-2.5 font-mono text-fluid-caption tracking-[0.04em] text-ink/58">
+          Escribe un ticker — <span className="text-ink/85">AAPL · BTC · OIL</span> — o pulsa{' '}
+          <span className="text-ink/85">⊞ Catálogo</span>
         </p>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 mb-2.5">
+        <form onSubmit={handleSubmit} className="mb-2.5 flex gap-2">
           <input
             type="text"
             value={value}
@@ -61,11 +62,11 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
             spellCheck={false}
             autoCapitalize="characters"
             className={cn(
-              'flex-1 rounded-[11px] border border-white/10 bg-black/40 px-3.5 py-2.5',
-              'font-mono text-[22px] font-bold uppercase tracking-[0.12em] text-white',
-              'caret-white outline-none transition-[border-color,box-shadow]',
-              'placeholder:font-mono placeholder:text-[14px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-white/66',
-              'focus:border-accent focus:shadow-[0_0_0_2px_rgba(91,138,240,0.18)]',
+              'flex-1 rounded-lg border border-ink/12 bg-black/40 px-4 py-2.5',
+              'font-mono text-fluid-h3 font-bold uppercase tracking-[0.12em] text-ink',
+              'caret-accent outline-none transition-[border-color,box-shadow]',
+              'placeholder:font-mono placeholder:text-[14px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-ink/40',
+              'focus:border-accent focus:shadow-[0_0_0_2px_rgba(91,138,240,0.22)]',
               'disabled:opacity-30'
             )}
           />
@@ -73,17 +74,17 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
             type="submit"
             disabled={disabled || !value.trim()}
             className={cn(
-              'flex h-[50px] w-[50px] flex-shrink-0 items-center justify-center rounded-xl transition-all md:w-auto md:px-5',
-              'border border-white bg-white text-black font-bold',
-              'hover:bg-white/85 active:scale-95',
-              'disabled:opacity-30 disabled:cursor-not-allowed disabled:bg-white/40 disabled:border-white/40'
+              btnBase,
+              btnPrimary,
+              'w-[50px] flex-shrink-0 px-0 md:w-auto md:px-5',
+              'disabled:cursor-not-allowed disabled:opacity-30'
             )}
             aria-label="Iniciar análisis"
           >
             {/* móvil: icono · ≥md: etiqueta explícita */}
             <span className="text-[17px] md:hidden" aria-hidden="true">▶</span>
-            <span className="hidden font-sans text-[12px] font-bold uppercase tracking-[0.1em] md:inline">
-              Analizar →
+            <span className="hidden md:inline">
+              Analizar <span className={arw}>→</span>
             </span>
           </button>
         </form>
@@ -94,10 +95,10 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
           onClick={() => setPickerOpen(true)}
           disabled={disabled}
           className={cn(
-            'inline-flex h-8 items-center gap-1.5 rounded-[11px] border border-white/15 bg-white/[0.04] px-3',
-            'font-mono text-[11px] text-white/70 transition-all',
-            'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
-            'disabled:opacity-30 disabled:cursor-not-allowed'
+            'inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-ink/12 bg-ink/[0.03] px-3',
+            'font-mono text-fluid-caption text-ink/58 transition-colors',
+            'hover:border-ink/25 hover:bg-ink/[0.06] hover:text-ink',
+            'disabled:cursor-not-allowed disabled:opacity-30'
           )}
           aria-label="Abrir catálogo de activos"
           title="Catálogo de activos"

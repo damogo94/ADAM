@@ -584,8 +584,10 @@ function AnalysisInner() {
       {/* Onboarding — solo en idle (sin análisis, sin error). Rellena el hueco. */}
       {isIdle && <OnboardingCard />}
 
-      {/* Desktop: 2 columnas — agentes (8) | rail de síntesis (4). Móvil: stack. */}
-      <div className="lg:grid lg:grid-cols-12 lg:gap-2 lg:items-start">
+      {/* Desktop: 2 columnas — agentes (8) | rail de síntesis (4). Móvil: stack.
+          En idle se oculta: el grid vacío en standby es ruido — el onboarding ya
+          explica el sistema. Aparece al lanzar un ticker. */}
+      <div className={cn('lg:grid lg:grid-cols-12 lg:gap-2 lg:items-start', isIdle && '!hidden')}>
         {/* Columna principal: agentes */}
         <div className="lg:col-span-8">
           {/* A1 + A2 parallel grid */}
@@ -699,27 +701,22 @@ function OnboardingCard() {
   ];
 
   return (
-    <section className="mx-4 mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-surface-2 px-4 py-4">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
-          cómo funciona
-        </span>
-        <span className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-      </div>
+    <section className="mx-4 mt-3 overflow-hidden rounded-card border border-ink/10 bg-surface-2 px-5 py-5 shadow-e1 sm:mx-auto sm:max-w-[880px]">
+      <p className="mb-4 inline-flex items-center gap-3 font-mono text-fluid-label font-medium uppercase tracking-[0.2em] text-ink/58 before:h-px before:w-[18px] before:bg-accent/80 before:content-['']">
+        cómo funciona
+      </p>
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {steps.map((s) => (
           <div
             key={s.n}
-            className="flex gap-2.5 rounded-[12px] border border-white/5 bg-white/[0.015] px-3 py-2.5"
+            className="rounded-[14px] border border-ink/8 bg-ink/[0.015] px-4 py-3.5 transition-colors hover:border-ink/15"
           >
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-white/15 font-sans text-[12px] font-bold text-white/80">
-              {s.n}
-            </span>
-            <div className="min-w-0">
-              <div className="font-mono text-[12px] font-medium leading-tight text-white/85">{s.t}</div>
-              <div className="mt-0.5 font-mono text-[11px] leading-snug text-white/66">{s.d}</div>
+            <div className="mb-1.5 flex items-baseline gap-2">
+              <span className="font-mono text-[0.9rem] font-semibold text-accent">0{s.n}</span>
+              <span className="font-sans text-fluid-label font-semibold text-ink">{s.t}</span>
             </div>
+            <p className="font-mono text-fluid-caption leading-snug text-ink/58">{s.d}</p>
           </div>
         ))}
       </div>

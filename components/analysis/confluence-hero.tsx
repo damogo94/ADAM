@@ -207,10 +207,12 @@ export function ConfluenceHero({
   } as const;
 
   return (
-    <div className="mx-4 mt-3 rounded-[15px] border border-white/5 bg-surface-2 p-4" aria-live="polite">
-      <div className="mb-3 flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-        <span className="text-accent">pipeline</span>
-        <span className="text-white/45">{resolved ? 'resuelto' : 'consolidando'}</span>
+    <div
+      className="mx-4 mt-3 rounded-card border border-ink/10 bg-surface-2 p-4 shadow-e1 sm:mx-auto sm:max-w-[460px]"
+      aria-live="polite"
+    >
+      <div className="mb-1 inline-flex items-center gap-3 font-mono text-fluid-label font-medium uppercase tracking-[0.2em] text-ink/58 before:h-px before:w-[18px] before:bg-accent/80 before:content-['']">
+        pipeline · {resolved ? 'resuelto' : 'consolidando'}
       </div>
 
       <div className="max-[640px]:hidden">
@@ -228,7 +230,7 @@ export function ConfluenceHero({
         />
       </div>
 
-      <p className="mt-2 text-center font-mono text-[11px] text-white/30">
+      <p className="text-center font-mono text-fluid-caption text-ink/28">
         estimación · el núcleo no se completa al 100% hasta el resultado real
       </p>
     </div>
