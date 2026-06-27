@@ -230,9 +230,18 @@ export function ConfluenceHero({
         />
       </div>
 
-      <p className="text-center font-mono text-fluid-caption text-ink/28">
-        estimación · el núcleo no se completa al 100% hasta el resultado real
-      </p>
+      {resolved && a4?.accion_sugerida ? (
+        // Síntesis clara y GENERAL (no por-agente): la conclusión consolidada de A4
+        // cierra el reveal del núcleo. Honestidad intacta: solo aparece con resolved
+        // (= a4Status 'done', evento real), nunca antes.
+        <p className="text-center font-mono text-fluid-caption leading-snug text-ink/70">
+          {a4.accion_sugerida}
+        </p>
+      ) : (
+        <p className="text-center font-mono text-fluid-caption text-ink/28">
+          estimación · el núcleo no se completa al 100% hasta el resultado real
+        </p>
+      )}
     </div>
   );
 }
