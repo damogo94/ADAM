@@ -337,9 +337,11 @@ function AnalysisInner() {
             </>
           )}
 
-          {/* Puente al radar (Fase 1C·C2) — post-resolve, dato real. Degrada
-              silencioso (no se monta) si no hay sesión/watchlist o el fetch falla. */}
-          {state.a4Status === 'done' && related && (
+          {/* Radar AMBIENTAL (B1·F3) — visible durante TODO el análisis (running y
+              resuelto), no solo post-resolve: tu radar sigue presente, en el rail
+              sticky, mientras analizas. Dato del RadarProvider compartido (F2);
+              degrada silencioso (no se monta) si no hay sesión/watchlist. */}
+          {related && (
             <div className="px-4 pt-3">
               <RelatedRadar count={related.count} preview={related.preview} />
             </div>
