@@ -63,12 +63,13 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
       : direccion === 'negativo'
         ? 'text-rose'
         : 'text-white/65';
+  // FIREWALL: la confianza consolidada no es dato de mercado → tinta + accent.
   const confCls =
     confianza === 'alta'
-      ? 'bg-emerald/[0.08] text-emerald border-emerald/35'
+      ? 'bg-accent/[0.10] text-ink border-accent/40'
       : confianza === 'media'
-        ? 'bg-amber/[0.07] text-amber border-amber/30'
-        : 'bg-white/[0.02] text-white/66 border-white/12';
+        ? 'bg-ink/[0.04] text-ink/80 border-ink/20'
+        : 'bg-ink/[0.02] text-ink/55 border-ink/12';
 
   return (
     <>
@@ -83,7 +84,7 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
           {confianza} · {pct}%
         </span>
         {aligned && (
-          <span className="rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[11px] text-emerald tracking-wider">
+          <span className="rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-[11px] text-accent tracking-wider">
             A3 alineado
           </span>
         )}
@@ -95,11 +96,11 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
         <ResumenBlock badge="A3" text={resumen_a3} />
       </div>
 
-      <SignalBox tone={pct >= 67 ? 'bull' : 'neut'}>
+      <SignalBox tone={pct >= 67 ? 'conf' : 'neut'}>
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            pct >= 67 ? 'text-emerald' : 'text-white/66'
+            pct >= 67 ? 'text-ink' : 'text-ink/66'
           )}
         >
           recomendación del sistema

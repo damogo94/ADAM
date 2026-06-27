@@ -14,7 +14,6 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
     <AgentCardShell
-      accent="cyan"
       badge="A2"
       title="Macro"
       status={status}
@@ -84,16 +83,16 @@ function A2Body({ data }: { data: A2Output }) {
         </SignalBox>
       )}
 
-      <SignalBox tone={confidence >= 61 ? 'bull' : 'neut'}>
+      <SignalBox tone={confidence >= 61 ? 'conf' : 'neut'}>
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confidence >= 61 ? 'text-white' : 'text-white/66'
+            confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
           A2 · confianza {confidence}%
         </div>
-        <div className="font-mono text-[12px] leading-snug text-white/90">{narrative}</div>
+        <div className="font-mono text-[12px] leading-snug text-ink/90">{narrative}</div>
       </SignalBox>
     </>
   );

@@ -16,7 +16,6 @@ export function DebateCard({ status, data }: DebateCardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
     <AgentCardShell
-      accent="violet"
       badge="A1×A2"
       title="Contraste · Validación"
       status={status}

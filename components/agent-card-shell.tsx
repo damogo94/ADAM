@@ -3,30 +3,24 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export type AgentAccent = 'blue' | 'cyan' | 'amber' | 'violet' | 'slate';
+// Diferenciación de agentes = TIPOGRÁFICA (badge + posición), no cromática. Los
+// tokens a1..a4 ya = ink, así que las 4 variantes cromáticas viejas colapsan a
+// `ink`; `slate` se conserva como "neutro secundario" (A4 · Estructura).
+export type AgentAccent = 'ink' | 'slate';
 export type AgentStatus = 'idle' | 'scanning' | 'done' | 'anomaly' | 'error' | 'live';
 
 const ACCENT_BG: Record<AgentAccent, string> = {
-  blue: 'bg-gradient-to-br from-a1/10 to-a1/[0.04]',
-  cyan: 'bg-gradient-to-br from-a2/[0.09] to-a2/[0.03]',
-  amber: 'bg-gradient-to-br from-a3/10 to-a3/[0.03]',
-  violet: 'bg-gradient-to-br from-a4/[0.09] to-a4/[0.03]',
+  ink: 'bg-gradient-to-br from-ink/10 to-ink/[0.04]',
   slate: 'bg-black/20',
 };
 
 const ACCENT_BADGE: Record<AgentAccent, string> = {
-  blue: 'bg-a1/15 text-a1',
-  cyan: 'bg-a2/[0.12] text-a2',
-  amber: 'bg-a3/[0.14] text-a3',
-  violet: 'bg-a4/[0.14] text-a4',
+  ink: 'bg-ink/15 text-ink',
   slate: 'bg-slate/20 text-slate-l',
 };
 
 const ACCENT_SCAN: Record<AgentAccent, string> = {
-  blue: 'border-a1/30',
-  cyan: 'border-a2/25',
-  amber: 'border-a3/30',
-  violet: 'border-a4/25',
+  ink: 'border-ink/30',
   slate: 'border-slate/30',
 };
 
@@ -40,7 +34,7 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
 // del AgentStatus real. `motion-reduce:hidden` la oculta.
 
 interface AgentCardShellProps {
-  accent: AgentAccent;
+  accent?: AgentAccent;
   badge: string;
   title: string;
   status: AgentStatus;
@@ -61,7 +55,7 @@ interface AgentCardShellProps {
 }
 
 export function AgentCardShell({
-  accent,
+  accent = 'ink',
   badge,
   title,
   status,

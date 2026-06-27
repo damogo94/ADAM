@@ -26,7 +26,6 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
   const hasData = data != null && (status === 'done' || status === 'anomaly' || status === 'live');
   return (
     <AgentCardShell
-      accent="amber"
       badge="A3"
       title="Trading · Price Action"
       status={dotStatus}
@@ -142,7 +141,7 @@ function A3Body({
           <TechBox
             label="R/B RATIO"
             value={operativa.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
-            valueCls="text-amber"
+            valueCls="text-ink"
           />
         </div>
       )}

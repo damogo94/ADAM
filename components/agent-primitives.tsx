@@ -3,12 +3,13 @@ import { cn } from '@/lib/utils';
 /**
  * Primitivos atómicos del rediseño verdict-first (ADAM_UI_REDESIGN).
  *
- * Dos ejes visuales SEPARADOS, nunca mezclados:
- *   - CONFIANZA → intensidad (atenuado→vivo): baja=slate · media=amber · alta=emerald.
- *   - DIRECCIÓN → color/hue: alcista=emerald(▲) · bajista=rose(▼) · neutral=slate(■).
- * Confianza baja se pinta atenuada/slate, NUNCA en rojo (rojo = bajista, no "poco fiable").
+ * Dos ejes visuales SEPARADOS, nunca mezclados (FIREWALL):
+ *   - CONFIANZA → intensidad de TINTA + accent (no es dato de mercado): baja=ink/45 ·
+ *     media=ink/70 · alta=ink, con dot/barra en accent. JAMÁS emerald/amber/rose.
+ *   - DIRECCIÓN → color/hue de MERCADO: alcista=emerald(▲) · bajista=rose(▼) · neutral=slate(■).
+ * Confianza baja se atenúa (ink tenue), NUNCA en rojo (rojo = bajista, no "poco fiable").
  *
- * Reutiliza los tokens existentes (emerald/amber/rose/slate, font-mono). Sin paleta nueva.
+ * emerald/rose/amber SOLO en dato de mercado (dirección). Chrome/confianza = ink/accent.
  */
 
 // ─── Dirección ───────────────────────────────────────────────────────────────
@@ -85,8 +86,10 @@ export function ConfidenceChip({
   // % para la barra: si es número, el valor real; si es categoría, el centro del tramo.
   const pct = typeof value === 'number' ? value : cat === 'alta' ? 100 : cat === 'media' ? 66 : 33;
   const label = typeof value === 'number' ? `${value}%` : value;
-  const tone = cat === 'alta' ? 'text-emerald' : cat === 'media' ? 'text-amber' : 'text-slate';
-  const fill = cat === 'alta' ? 'bg-emerald' : cat === 'media' ? 'bg-amber' : 'bg-slate';
+  // FIREWALL: la confianza del agente NO es dato de mercado → intensidad de tinta
+  // + accent, JAMÁS emerald/amber/rose. El acento aporta la "vivacidad" de alta.
+  const tone = cat === 'alta' ? 'text-ink' : cat === 'media' ? 'text-ink/70' : 'text-ink/45';
+  const fill = cat === 'alta' ? 'bg-accent' : cat === 'media' ? 'bg-accent/60' : 'bg-ink/30';
   return (
     <span className={cn('inline-flex items-center gap-1 flex-shrink-0', className)} title={`confianza ${label}`}>
       <span className={cn('h-1.5 w-1.5 rounded-full', fill)} />

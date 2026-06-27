@@ -49,7 +49,6 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
   const hasData = data != null && (status === 'done' || status === 'anomaly');
   return (
     <AgentCardShell
-      accent="blue"
       badge="A1"
       title="Activos"
       status={status}
@@ -139,16 +138,16 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
         </SignalBox>
       )}
 
-      <SignalBox tone={confidence >= 61 ? 'bull' : 'neut'}>
+      <SignalBox tone={confidence >= 61 ? 'conf' : 'neut'}>
         <div
           className={cn(
             'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
-            confidence >= 61 ? 'text-white' : 'text-white/66'
+            confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
           A1 · confianza {confidence}%
         </div>
-        <div className="font-mono text-[12px] leading-snug text-white/90">{narrative}</div>
+        <div className="font-mono text-[12px] leading-snug text-ink/90">{narrative}</div>
       </SignalBox>
     </>
   );
@@ -195,16 +194,18 @@ export function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
 /**
  * SignalBox — caja decorada que envuelve el texto principal de un agente.
  *
- * Sesión 5b: re-introducido color semántico. Bull=emerald, bear=rose,
- * neut=blanco dim. La diferenciación por hue mejora comprensión instantánea
- * de "alza vs baja" en una UI densa.
+ * FIREWALL: bull=emerald / bear=rose SOLO para SEÑAL DIRECCIONAL de mercado
+ * (alza/baja, anomalía/oportunidad). Para narrativa/confianza usa `conf` →
+ * neutral con filete accent (chrome), NUNCA market-color. neut = neutral plano.
  */
-export function SignalBox({ tone, children }: { tone: 'bull' | 'bear' | 'neut'; children: React.ReactNode }) {
+export function SignalBox({ tone, children }: { tone: 'bull' | 'bear' | 'neut' | 'conf'; children: React.ReactNode }) {
   const cls =
     tone === 'bull'
       ? 'bg-emerald/[0.07] border-emerald/30'
       : tone === 'bear'
         ? 'bg-rose/[0.07] border-rose/30'
-        : 'bg-white/[0.02] border-white/12';
+        : tone === 'conf'
+          ? 'bg-white/[0.02] border-white/12 border-l-2 border-l-accent/55'
+          : 'bg-white/[0.02] border-white/12';
   return <div className={cn('mt-1.5 rounded-lg border px-2.5 py-1.5', cls)}>{children}</div>;
 }

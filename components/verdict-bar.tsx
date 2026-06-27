@@ -64,7 +64,7 @@ export function VerdictBar({
             </span>
           )}
           {aligned && (
-            <span className="flex-shrink-0 rounded border border-emerald/40 bg-emerald/[0.10] px-1.5 py-0.5 font-mono text-[12px] tracking-wider text-emerald">
+            <span className="flex-shrink-0 rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-[12px] tracking-wider text-accent">
               A3 ✓
             </span>
           )}
