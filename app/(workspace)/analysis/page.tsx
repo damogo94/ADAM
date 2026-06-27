@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/header';
@@ -18,6 +18,7 @@ import { VerdictBar } from '@/components/verdict-bar';
 import { RelatedRadar } from '@/components/analysis/related-radar';
 import { Graticule } from '@/components/inicio/decor/graticule';
 import { useRun } from '@/components/analysis/run-provider';
+import { useRadar } from '@/components/analysis/radar-provider';
 import { resolveTicker } from '@/lib/catalog/assets';
 import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
@@ -34,6 +35,7 @@ function AnalysisInner() {
   // El estado del run vive en el shell (RunProvider del route-group): persiste al
   // navegar al radar y volver. Esta page es solo render + auto-trigger por URL.
   const { state, estEnabled, isLoading, confluence, handleRun, toggleEstructura, fijarAlerta } = useRun();
+  const { radar } = useRadar();
   const search = useSearchParams();
   const autoTicker = search.get('ticker');
   // Origen "vienes del radar" (B3): ?ticker solo NO basta (deep-links/onboarding).
@@ -65,6 +67,24 @@ function AnalysisInner() {
 
   // Idle = aún no se ha lanzado ningún análisis y no hay error → onboarding.
   const isIdle = state.ticker === null && !state.error;
+
+  // Puente al radar (Fase 1C·C2) — derivado del radar AMBIENTAL (RadarProvider),
+  // ya NO re-fetchea: "otros activos con señal/anomalía activa" (excluye el actual).
+  const related = useMemo(() => {
+    if (!radar || !state.ticker) return null;
+    const current = resolveTicker(state.ticker);
+    const count = radar.rows.filter(
+      (row) =>
+        row.ticker !== current &&
+        (row.signal != null ||
+          row.latest?.a1_anomaly_detected ||
+          row.delta.anomaly_new ||
+          row.delta.direction_flipped ||
+          row.delta.a3_signal_flipped)
+    ).length;
+    const preview = radar.digest.filter((d) => d.ticker !== current).slice(0, 3);
+    return { count, preview };
+  }, [radar, state.ticker]);
 
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-3xl lg:max-w-6xl xl:max-w-7xl">
@@ -319,9 +339,9 @@ function AnalysisInner() {
 
           {/* Puente al radar (Fase 1C·C2) — post-resolve, dato real. Degrada
               silencioso (no se monta) si no hay sesión/watchlist o el fetch falla. */}
-          {state.a4Status === 'done' && state.related && (
+          {state.a4Status === 'done' && related && (
             <div className="px-4 pt-3">
-              <RelatedRadar count={state.related.count} preview={state.related.preview} />
+              <RelatedRadar count={related.count} preview={related.preview} />
             </div>
           )}
         </aside>

@@ -6,7 +6,6 @@ import type {
 import type { A3Output } from '@/agents/a3/schema';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
-import type { DigestEntry_t } from '@/lib/radar/types';
 import type { AgentStatus } from '@/components/agent-card-shell';
 import type { UserError } from '@/lib/errors';
 
@@ -59,8 +58,6 @@ export interface RunState {
   partial: boolean;
   failures: { agent: string; message: string }[];
   dailyCandles: Candle[];
-  /** Puente al radar (post-resolve, Fase 1C·C2). null = aún no leído o degradado. */
-  related: { count: number; preview: DigestEntry_t[] } | null;
   /** Estado de "Fijar alerta CMT" (post-resolve, Fase 1C·C1). */
   alerta: 'idle' | 'pinning' | 'pinned' | 'error';
 }
@@ -84,6 +81,5 @@ export const INITIAL: RunState = {
   partial: false,
   failures: [],
   dailyCandles: [],
-  related: null,
   alerta: 'idle',
 };

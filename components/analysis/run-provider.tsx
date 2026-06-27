@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { resolveError, networkError } from '@/lib/errors';
 import { resolveTicker } from '@/lib/catalog/assets';
@@ -16,7 +16,6 @@ import type {
 import type { A3Output } from '@/agents/a3/schema';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
-import type { RadarResponse_t } from '@/lib/radar/types';
 
 /**
  * RunProvider — el ESTADO del run de /analysis, elevado a un contexto que vive en
@@ -78,36 +77,6 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
   // resolución tardía no re-añada la pata tras apagarla.
   const [estEnabled, setEstEnabled] = useState(false);
   const estEnabledRef = useRef(false);
-
-  // Puente al radar (Fase 1C·C2) — se lee SOLO post-resolve (a4 done), con dato
-  // REAL del scan persistido. Degrada en SILENCIO si no hay sesión/watchlist (401)
-  // o el fetch falla. AbortController propio (independiente del run principal).
-  useEffect(() => {
-    if (state.a4Status !== 'done' || !state.ticker) return;
-    const ctrl = new AbortController();
-    const current = resolveTicker(state.ticker);
-    void (async () => {
-      try {
-        const r = await fetch('/api/watchlist/radar', { signal: ctrl.signal });
-        if (!r.ok) return; // 401/sin watchlist → degrada silencioso
-        const data = (await r.json()) as RadarResponse_t;
-        const active = data.rows.filter(
-          (row) =>
-            row.ticker !== current &&
-            (row.signal != null ||
-              row.latest?.a1_anomaly_detected ||
-              row.delta.anomaly_new ||
-              row.delta.direction_flipped ||
-              row.delta.a3_signal_flipped)
-        );
-        const preview = data.digest.filter((d) => d.ticker !== current).slice(0, 3);
-        setState((s) => (s.ticker === current ? { ...s, related: { count: active.length, preview } } : s));
-      } catch {
-        /* degrada: el puente al radar no se muestra */
-      }
-    })();
-    return () => ctrl.abort();
-  }, [state.a4Status, state.ticker]);
 
   /**
    * Re-narra A4 server-side con la pata de Estructura (4 patas) y/o un A2 tardío,

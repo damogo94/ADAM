@@ -25,18 +25,19 @@ import { AssetPicker } from '@/components/asset-picker';
 import { RadarRow } from '@/components/watchlist/radar-row';
 import { DigestHeader } from '@/components/watchlist/digest-header';
 import { SkeletonRow } from '@/components/watchlist/skeleton-row';
+import { useRadar } from '@/components/analysis/radar-provider';
 import { cn } from '@/lib/utils';
-import { RadarResponse, type RadarResponse_t } from '@/lib/radar/types';
 import { SparklinesResponse, type SparklineRange_t } from '@/lib/sparkline/types';
 import type { AssetType } from '@/types/db';
 
 export default function WatchlistScreen() {
   const router = useRouter();
-  const [radar, setRadar] = useState<RadarResponse_t | null>(null);
+  // Radar AMBIENTAL del shell (RadarProvider): compartido con /analysis, cargado
+  // una vez por sesión. setRadar/setError para las mutaciones optimistas; reload
+  // tras un CRUD. (B1·F2: la page ya no hace su propio fetch de /radar.)
+  const { radar, setRadar, loading, error, reload, setError } = useRadar();
   const [sparklines, setSparklines] = useState<Record<string, number[]>>({});
   const [sparkRange, setSparkRange] = useState<SparklineRange_t>('30d');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [newTicker, setNewTicker] = useState('');
   const [newAssetType, setNewAssetType] = useState<AssetType>('equity');
   const [adding, setAdding] = useState(false);
@@ -44,10 +45,6 @@ export default function WatchlistScreen() {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  useEffect(() => {
-    void load();
-  }, []);
 
   // Clave estable del CONJUNTO de tickers (ordenada y deduplicada): así un
   // pin/reorden — que crea un nuevo objeto `radar` pero no cambia qué activos
@@ -68,43 +65,6 @@ export default function WatchlistScreen() {
     void loadSparklines(tickerKey.split(','), sparkRange, ctrl.signal);
     return () => ctrl.abort();
   }, [tickerKey, sparkRange]);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await fetch('/api/watchlist/radar');
-      if (!r.ok) {
-        if (r.status === 401) {
-          router.push('/login?next=/watchlist');
-          return;
-        }
-        const j = await r.json().catch(() => ({}));
-        // `detail` puede venir como array de issues Zod (objetos). Solo lo
-        // usamos si es string; si no, caemos al código de error legible —
-        // evita renderizar "[object Object],[object Object]…" en el UI.
-        const msg =
-          typeof j?.detail === 'string'
-            ? j.detail
-            : typeof j?.error === 'string'
-              ? j.error
-              : 'fetch_failed';
-        throw new Error(msg);
-      }
-      const data = await r.json();
-      const parsed = RadarResponse.safeParse(data);
-      if (!parsed.success) {
-        // eslint-disable-next-line no-console
-        console.warn('[watchlist/radar] respuesta invalida', parsed.error.issues.slice(0, 3));
-        throw new Error('respuesta de radar inválida');
-      }
-      setRadar(parsed.data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'unknown');
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function loadSparklines(
     tickers: string[],
@@ -146,7 +106,7 @@ export default function WatchlistScreen() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail ?? data.error ?? 'add_failed');
       setNewTicker('');
-      await load();
+      await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     } finally {
@@ -165,7 +125,7 @@ export default function WatchlistScreen() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail ?? data.error ?? 'add_failed');
-      await load();
+      await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
     } finally {
@@ -216,7 +176,7 @@ export default function WatchlistScreen() {
       });
       if (!r.ok) throw new Error('pin_failed');
       // Refetch silencioso para sincronizar pinned_at del server.
-      void load();
+      void reload();
     } catch {
       setRadar(prevRadar);
       setError('No se pudo fijar — reintenta');
