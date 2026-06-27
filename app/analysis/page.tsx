@@ -15,6 +15,7 @@ import { A4Card } from '@/components/agents/a4-card';
 import { EstructuraCard } from '@/components/agents/estructura-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
+import { RelatedRadar } from '@/components/analysis/related-radar';
 import { Graticule } from '@/components/inicio/decor/graticule';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
@@ -29,6 +30,7 @@ import type {
 import type { A3Output } from '@/agents/a3/schema';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
+import type { DigestEntry_t, RadarResponse_t } from '@/lib/radar/types';
 import type { AgentStatus } from '@/components/agent-card-shell';
 
 interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
@@ -67,6 +69,10 @@ interface RunState {
   partial: boolean;
   failures: { agent: string; message: string }[];
   dailyCandles: Candle[];
+  /** Puente al radar (post-resolve, Fase 1C·C2). null = aún no leído o degradado. */
+  related: { count: number; preview: DigestEntry_t[] } | null;
+  /** Estado de "Fijar alerta CMT" (post-resolve, Fase 1C·C1). */
+  alerta: 'idle' | 'pinning' | 'pinned' | 'error';
 }
 
 const INITIAL: RunState = {
@@ -88,6 +94,8 @@ const INITIAL: RunState = {
   partial: false,
   failures: [],
   dailyCandles: [],
+  related: null,
+  alerta: 'idle',
 };
 
 /**
@@ -126,6 +134,9 @@ function AnalysisInner() {
   const search = useSearchParams();
   const router = useRouter();
   const autoTicker = search.get('ticker');
+  // Origen "vienes del radar" (B3): ?ticker solo NO basta (se usa para deep-links
+  // y onboarding) — el radar marca su navegación con &from=radar.
+  const fromRadar = search.get('from') === 'radar';
   const autoRanRef = useRef<string | null>(null);
   // AbortController para cancelar la request anterior si el user lanza otra rápida.
   // Sin esto, las respuestas race y la última en llegar (potencialmente vieja)
@@ -146,6 +157,38 @@ function AnalysisInner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoTicker]);
+
+  // Puente al radar (Fase 1C·C2) — se lee SOLO post-resolve (a4 done), con dato
+  // REAL del scan persistido. Degrada en SILENCIO si no hay sesión/watchlist (401)
+  // o el fetch falla: el puente simplemente no aparece, nunca rompe el análisis.
+  // AbortController propio (independiente del run principal).
+  useEffect(() => {
+    if (state.a4Status !== 'done' || !state.ticker) return;
+    const ctrl = new AbortController();
+    const current = resolveTicker(state.ticker);
+    void (async () => {
+      try {
+        const r = await fetch('/api/watchlist/radar', { signal: ctrl.signal });
+        if (!r.ok) return; // 401/sin watchlist → degrada silencioso
+        const data = (await r.json()) as RadarResponse_t;
+        const active = data.rows.filter(
+          (row) =>
+            row.ticker !== current &&
+            (row.signal != null ||
+              row.latest?.a1_anomaly_detected ||
+              row.delta.anomaly_new ||
+              row.delta.direction_flipped ||
+              row.delta.a3_signal_flipped)
+        );
+        const preview = data.digest.filter((d) => d.ticker !== current).slice(0, 3);
+        setState((s) => (s.ticker === current ? { ...s, related: { count: active.length, preview } } : s));
+      } catch {
+        /* degrada: el puente al radar no se muestra */
+      }
+    })();
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.a4Status, state.ticker]);
 
   /**
    * Re-narra A4 server-side con la pata de Estructura (4 patas) y/o un A2
@@ -463,6 +506,29 @@ function AnalysisInner() {
     }
   }
 
+  /**
+   * "Fijar alerta CMT" (Fase 1C·C1): añade el ticker al radar/watchlist para que el
+   * scanner CMT (cron determinista) lo vigile. NO es directiva de compra/venta —
+   * acción de producto. 409 (ya estaba) se trata como éxito idempotente.
+   */
+  async function fijarAlerta() {
+    if (!state.ticker || state.alerta === 'pinning' || state.alerta === 'pinned') return;
+    setState((s) => ({ ...s, alerta: 'pinning' }));
+    try {
+      const r = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticker: state.ticker,
+          asset_type: isCryptoTicker(state.ticker) ? 'crypto' : 'equity',
+        }),
+      });
+      setState((s) => ({ ...s, alerta: r.ok || r.status === 409 ? 'pinned' : 'error' }));
+    } catch {
+      setState((s) => ({ ...s, alerta: 'error' }));
+    }
+  }
+
   const isLoading =
     state.a1Status === 'scanning' || state.a2Status === 'scanning' || state.a3Status === 'scanning';
   const headerStatus = state.error
@@ -484,6 +550,18 @@ function AnalysisInner() {
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-3xl lg:max-w-6xl xl:max-w-7xl">
       <Header status={headerStatus} />
+
+      {/* Breadcrumb de origen (Fase 1B·B3) — solo si vienes del radar (&from=radar). */}
+      {fromRadar && (
+        <div className="mx-4 mt-2 font-mono text-fluid-micro">
+          <Link
+            href="/watchlist"
+            className="inline-flex items-center gap-1 text-ink/45 underline-offset-2 transition-colors hover:text-ink/75 hover:underline"
+          >
+            ← vienes del radar
+          </Link>
+        </div>
+      )}
 
       <AssetInput onSubmit={handleRun} disabled={isLoading} />
 
@@ -520,6 +598,52 @@ function AnalysisInner() {
       {/* Barra de veredicto — lo primero que ve el usuario en cuanto A4 está listo. */}
       {state.a4 && state.a4Status === 'done' && (
         <VerdictBar a4={state.a4} confluence={confluence} aligned={confluence?.aligned ?? false} />
+      )}
+
+      {/* CTAs post-resolve (Fase 1C·C1) — acción de producto, NUNCA directiva
+          compra/vende. Fijar alerta = sumar al radar (lo vigila el scanner CMT). */}
+      {state.a4Status === 'done' && state.ticker && (
+        <div className="mx-4 mt-2 flex flex-wrap items-center gap-2 font-mono text-fluid-micro">
+          <button
+            type="button"
+            onClick={fijarAlerta}
+            disabled={state.alerta === 'pinning' || state.alerta === 'pinned'}
+            aria-label="Fijar alerta CMT: añadir al radar para que el scanner lo vigile"
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
+              state.alerta === 'pinned'
+                ? 'border-accent/60 bg-accent/10 text-accent'
+                : 'border-white/20 text-white/70 hover:border-white/35 hover:text-white disabled:opacity-50'
+            )}
+          >
+            {state.alerta === 'pinned'
+              ? '✓ En tu radar'
+              : state.alerta === 'pinning'
+                ? 'Fijando…'
+                : state.alerta === 'error'
+                  ? 'Reintentar alerta'
+                  : '+ Fijar alerta CMT'}
+          </button>
+
+          {!estEnabled && (
+            <button
+              type="button"
+              onClick={toggleEstructura}
+              className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white"
+            >
+              + Sumar Estructura
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => state.ticker && void handleRun(state.ticker)}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white disabled:opacity-50"
+          >
+            ↻ Re-analizar
+          </button>
+        </div>
       )}
 
       {state.error && (
@@ -672,6 +796,14 @@ function AnalysisInner() {
                 />
               </div>
             </>
+          )}
+
+          {/* Puente al radar (Fase 1C·C2) — post-resolve, dato real. Degrada
+              silencioso (no se monta) si no hay sesión/watchlist o el fetch falla. */}
+          {state.a4Status === 'done' && state.related && (
+            <div className="px-4 pt-3">
+              <RelatedRadar count={state.related.count} preview={state.related.preview} />
+            </div>
           )}
         </aside>
       </div>
