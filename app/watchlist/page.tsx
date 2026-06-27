@@ -376,7 +376,7 @@ export default function WatchlistScreen() {
                 row={row}
                 sparklineCloses={sparklines[row.ticker]}
                 highlighted={highlight === row.ticker}
-                onAnalyze={() => router.push(`/analysis?ticker=${encodeURIComponent(row.ticker)}`)}
+                onAnalyze={() => router.push(`/analysis?ticker=${encodeURIComponent(row.ticker)}&from=radar`)}
                 onDelete={() => setConfirmDeleteId(row.item_id)}
                 onTogglePin={() => void onTogglePin(row.item_id, row.is_pinned)}
               />
