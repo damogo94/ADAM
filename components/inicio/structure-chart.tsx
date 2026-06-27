@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useReducedMotion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Reveal } from './decor/reveal';
 import { Graticule } from './decor/graticule';
@@ -21,6 +22,12 @@ const EASE = [0.22, 0.61, 0.36, 1] as const;
 
 export function StructureChart() {
   const reduce = useReducedMotion();
+  // El trigger del draw-on observa el <figure> (elemento HTML real), NO los nodos
+  // SVG: IntersectionObserver sobre <path>/<g> es poco fiable en móvil (WebKit) y
+  // dejaba el trazo del precio + las etiquetas ocultos (initial) mientras las zonas
+  // estáticas sí se veían. amount 0.25 = se dispara antes y con margen.
+  const figRef = useRef<HTMLElement>(null);
+  const inView = useInView(figRef, { once: true, amount: 0.25 });
   const up = TONE.up.hex;
   const down = TONE.down.hex;
 
@@ -68,7 +75,7 @@ export function StructureChart() {
             </div>
 
             {/* gráfico */}
-            <figure className="m-0 min-w-0">
+            <figure ref={figRef} className="m-0 min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2 font-mono text-[0.68rem] tracking-[0.03em] text-ink/58">
                 <span>Semanal · define la zona</span>
                 <span className="text-ink/30">›</span>
@@ -104,15 +111,13 @@ export function StructureChart() {
                   pathLength={1}
                   strokeDasharray={1}
                   initial={reduce ? { strokeDashoffset: 0 } : { strokeDashoffset: 1 }}
-                  whileInView={{ strokeDashoffset: 0 }}
-                  viewport={{ once: true, amount: 0.5 }}
+                  animate={{ strokeDashoffset: reduce || inView ? 0 : 1 }}
                   transition={{ duration: 1.4, ease: EASE }}
                 />
                 {/* punto de entrada */}
                 <motion.g
                   initial={reduce ? { opacity: 1 } : { opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true, amount: 0.5 }}
+                  animate={{ opacity: reduce || inView ? 1 : 0 }}
                   transition={{ duration: 0.4, delay: reduce ? 0 : 1.0 }}
                 >
                   <circle cx="312" cy="185" r="4.5" fill="var(--accent)" />
@@ -121,8 +126,7 @@ export function StructureChart() {
                 {/* etiquetas de nivel (mercado) */}
                 <motion.g
                   initial={reduce ? { opacity: 1 } : { opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true, amount: 0.5 }}
+                  animate={{ opacity: reduce || inView ? 1 : 0 }}
                   transition={{ duration: 0.4, delay: reduce ? 0 : 1.15 }}
                 >
                   <text x="474" y="92" fontSize="12" fontWeight="600" fill={up}>
