@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
@@ -17,45 +17,10 @@ import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
 import { RelatedRadar } from '@/components/analysis/related-radar';
 import { Graticule } from '@/components/inicio/decor/graticule';
-import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
-import { resolveError, networkError } from '@/lib/errors';
+import { useRun } from '@/components/analysis/run-provider';
 import { resolveTicker } from '@/lib/catalog/assets';
 import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
-import type {
-  A1Output_t as A1Output,
-  A2Output_t as A2Output,
-  A4Output_t as A4Output,
-} from '@/agents/shared/types';
-import type { A3Output } from '@/agents/a3/schema';
-import type { EstructuraOutput_t } from '@/agents/estructura/schema';
-import type { DebateOutput } from '@/agents/debate/schema';
-import type { RadarResponse_t } from '@/lib/radar/types';
-import { applyRunEvent } from '@/lib/run/apply-event';
-import { INITIAL, type RunState, type StreamEvent } from '@/lib/run/types';
-
-/**
- * Fetch aislado del Agente de Estructura (futuros · MTF). Mismo contrato que
- * /api/agents/a2 standalone: degrada a null en cualquier fallo (la pata es
- * opt-in, nunca debe romper el análisis principal).
- */
-async function fetchEstructura(
-  ticker: string,
-  signal?: AbortSignal
-): Promise<EstructuraOutput_t | null> {
-  try {
-    const r = await fetch('/api/agents/estructura', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker }),
-      signal,
-    });
-    if (!r.ok) return null;
-    return (await r.json()) as EstructuraOutput_t;
-  } catch {
-    return null;
-  }
-}
 
 export default function AnalysisScreen() {
   return (
@@ -66,372 +31,30 @@ export default function AnalysisScreen() {
 }
 
 function AnalysisInner() {
-  const [state, setState] = useState<RunState>(INITIAL);
+  // El estado del run vive en el shell (RunProvider del route-group): persiste al
+  // navegar al radar y volver. Esta page es solo render + auto-trigger por URL.
+  const { state, estEnabled, isLoading, confluence, handleRun, toggleEstructura, fijarAlerta } = useRun();
   const search = useSearchParams();
-  const router = useRouter();
   const autoTicker = search.get('ticker');
-  // Origen "vienes del radar" (B3): ?ticker solo NO basta (se usa para deep-links
-  // y onboarding) — el radar marca su navegación con &from=radar.
+  // Origen "vienes del radar" (B3): ?ticker solo NO basta (deep-links/onboarding).
   const fromRadar = search.get('from') === 'radar';
   const autoRanRef = useRef<string | null>(null);
-  // AbortController para cancelar la request anterior si el user lanza otra rápida.
-  // Sin esto, las respuestas race y la última en llegar (potencialmente vieja)
-  // clobbers el estado del análisis en curso.
-  const abortRef = useRef<AbortController | null>(null);
 
-  // Agente de Estructura (futuros · MTF) — opt-in del usuario. Preferencia de
-  // sesión (persiste entre runs), por eso vive fuera de RunState. El ref espeja
-  // el flag para que una resolución tardía no re-añada la pata tras apagarla.
-  const [estEnabled, setEstEnabled] = useState(false);
-  const estEnabledRef = useRef(false);
-
-  // Auto-trigger cuando viene desde /watchlist con ?ticker=X
+  // Auto-trigger desde /watchlist (?ticker=X). Si el run PERSISTIDO en el shell ya
+  // es de este ticker, NO se re-corre — solo se muestra (continuidad B1).
   useEffect(() => {
-    if (autoTicker && autoRanRef.current !== autoTicker) {
+    if (!autoTicker) return;
+    const resolved = resolveTicker(autoTicker.toUpperCase());
+    if (state.ticker === resolved) {
       autoRanRef.current = autoTicker;
-      void handleRun(autoTicker.toUpperCase());
+      return;
     }
+    if (autoRanRef.current === autoTicker) return;
+    autoRanRef.current = autoTicker;
+    void handleRun(autoTicker.toUpperCase());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoTicker]);
 
-  // Puente al radar (Fase 1C·C2) — se lee SOLO post-resolve (a4 done), con dato
-  // REAL del scan persistido. Degrada en SILENCIO si no hay sesión/watchlist (401)
-  // o el fetch falla: el puente simplemente no aparece, nunca rompe el análisis.
-  // AbortController propio (independiente del run principal).
-  useEffect(() => {
-    if (state.a4Status !== 'done' || !state.ticker) return;
-    const ctrl = new AbortController();
-    const current = resolveTicker(state.ticker);
-    void (async () => {
-      try {
-        const r = await fetch('/api/watchlist/radar', { signal: ctrl.signal });
-        if (!r.ok) return; // 401/sin watchlist → degrada silencioso
-        const data = (await r.json()) as RadarResponse_t;
-        const active = data.rows.filter(
-          (row) =>
-            row.ticker !== current &&
-            (row.signal != null ||
-              row.latest?.a1_anomaly_detected ||
-              row.delta.anomaly_new ||
-              row.delta.direction_flipped ||
-              row.delta.a3_signal_flipped)
-        );
-        const preview = data.digest.filter((d) => d.ticker !== current).slice(0, 3);
-        setState((s) => (s.ticker === current ? { ...s, related: { count: active.length, preview } } : s));
-      } catch {
-        /* degrada: el puente al radar no se muestra */
-      }
-    })();
-    return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.a4Status, state.ticker]);
-
-  /**
-   * Re-narra A4 server-side con la pata de Estructura (4 patas) y/o un A2
-   * tardío, y persiste la fila vía analysisId. Best-effort: si falla, se
-   * conserva el A4 anterior. Unifica el cierre del run y el toggle de EST.
-   */
-  async function reconsolidateA4(params: {
-    ticker: string;
-    a1: A1Output | null;
-    a2: A2Output | null;
-    a3: A3Output | null;
-    debate: DebateOutput | null;
-    estructura: EstructuraOutput_t | null;
-    analysisId: string | null;
-    signal?: AbortSignal;
-  }): Promise<void> {
-    try {
-      const r = await fetch('/api/agents/a4', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticker: params.ticker,
-          a1: params.a1,
-          a2: params.a2,
-          a3: params.a3,
-          debate: params.debate,
-          estructura: params.estructura,
-          analysisId: params.analysisId ?? undefined,
-        }),
-        signal: params.signal,
-      });
-      if (!r.ok) return;
-      const cj = (await r.json()) as { a4?: A4Output };
-      if (cj.a4) setState((s) => ({ ...s, a4: cj.a4! }));
-    } catch {
-      /* best-effort: conservamos el A4 anterior */
-    }
-  }
-
-  async function handleRun(rawTicker: string) {
-    // Cancela cualquier request anterior en vuelo
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    // Defense in depth: resuelve aliases ("GOLD" → "XAU/USD") en todos los
-    // entry-points (input libre, ?ticker=X desde watchlist, deep-link).
-    const ticker = resolveTicker(rawTicker);
-
-    setState({
-      ...INITIAL,
-      ticker,
-      a1Status: 'scanning',
-      a2Status: 'scanning',
-      a3Status: 'scanning',
-      estructuraStatus: estEnabled ? 'scanning' : 'idle',
-    });
-
-    // ── Fetch paralelo /api/agents/estructura (opt-in) ─────────────────────
-    // Se dispara YA, en paralelo a /run y /a2, con su propio lambda de 60s.
-    // Degrada a null sin romper el run principal.
-    const estPromise = estEnabled ? fetchEstructura(ticker, ctrl.signal) : Promise.resolve(null);
-
-    // ── Fetch principal /api/agents/run (A1+A3+Debate+A4) ───────────
-    // A2 sale del pipeline (architectural decision 2026-05-21). El run
-    // devuelve A2 desde cache si lo hay; si no, A2 viene null y se
-    // rellena por el fetch paralelo de /api/agents/a2.
-    const runPromise = fetch('/api/agents/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker }),
-      signal: ctrl.signal,
-    });
-
-    // ── Fetch paralelo /api/agents/a2 (A2 con su propio lambda de 60s) ─
-    // Se dispara YA, no esperamos a /run. Su 60s budget esta dedicado
-    // exclusivamente a A2, por lo que el Sonnet de A2 puede tomarse su
-    // tiempo sin riesgo de 504. Persiste la cache; runs siguientes del
-    // mismo ticker leeran A2 instant via /run.
-    const a2Promise = fetch('/api/agents/a2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker }),
-      signal: ctrl.signal,
-    })
-      .then(async (r) => {
-        if (!r.ok) return null;
-        const j = (await r.json()) as { a2?: A2Output };
-        return j.a2 ?? null;
-      })
-      .catch(() => null);
-
-    try {
-      const res = await runPromise;
-      if (ctrl.signal.aborted) return;
-
-      // Errores PRE-stream (gates, market data) siguen siendo JSON con status.
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}) as Record<string, unknown>);
-        if (res.status === 401) {
-          router.push('/login?next=/analysis');
-          return;
-        }
-        const userErr = resolveError(data);
-        setState((s) => ({
-          ...s,
-          a1Status: 'error',
-          a2Status: 'error',
-          a3Status: 'error',
-          debateStatus: 'idle',
-          a4Status: 'error',
-          estructuraStatus: estEnabled ? 'error' : 'idle',
-          error: userErr,
-          partial: false,
-          failures: (data as { failures?: { agent: string; message: string }[] }).failures ?? [],
-        }));
-        return;
-      }
-
-      // EST (opt-in): se resuelve independiente de /run (su propio fetch).
-      if (estEnabled) {
-        void estPromise.then((est) => {
-          if (ctrl.signal.aborted || !estEnabledRef.current) return;
-          setState((s) => ({ ...s, estructura: est, estructuraStatus: est ? 'done' : 'error' }));
-        });
-      }
-
-      // ── Lectura del stream NDJSON: cada card flipea en su evento real ──────
-      // Acumulador para el cierre (re-narrate A4 + persistencia del A2 tardío).
-      const acc: {
-        a1: A1Output | null;
-        a2: A2Output | null;
-        a3: A3Output | null;
-        debate: DebateOutput | null;
-        analysisId: string | null;
-      } = { a1: null, a2: null, a3: null, debate: null, analysisId: null };
-      let fatal = false;
-
-      const applyEvent = (ev: StreamEvent) => {
-        // Acumulador para el cierre (reconsolidación A4) + flag fatal: concerns de
-        // handleRun. La TRANSICIÓN de estado va al reductor PURO (lib/run, testeado).
-        if (ev.type === 'agent') {
-          if (ev.agent === 'a1') acc.a1 = ev.data as A1Output | null;
-          else if (ev.agent === 'a2') acc.a2 = ev.data as A2Output | null;
-          else if (ev.agent === 'a3') acc.a3 = ev.data as A3Output | null;
-        } else if (ev.type === 'debate') {
-          acc.debate = ev.data as DebateOutput | null;
-        } else if (ev.type === 'final') {
-          acc.analysisId = ev.analysis_id ?? null;
-        } else if (ev.type === 'fatal') {
-          fatal = true;
-        }
-        setState((s) => applyRunEvent(s, ev));
-      };
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (ctrl.signal.aborted) return;
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            applyEvent(JSON.parse(line) as StreamEvent);
-          } catch {
-            /* línea parcial o no-JSON: la ignoramos */
-          }
-        }
-      }
-      if (buffer.trim()) {
-        try {
-          applyEvent(JSON.parse(buffer) as StreamEvent);
-        } catch {
-          /* noop */
-        }
-      }
-
-      if (fatal || ctrl.signal.aborted) return;
-
-      // Cierre: incorpora el A2 tardío (caché fría) y/o la pata de Estructura
-      // (opt-in). Ambos alimentan UNA sola re-consolidación de A4 server-side
-      // (que además persiste la fila: A2, confluencia a 4 patas, estructura_output).
-      let a2Final = acc.a2;
-      if (!acc.a2) {
-        a2Final = await a2Promise;
-        if (ctrl.signal.aborted) return;
-        if (a2Final) {
-          const a2v = a2Final; // narrowing estable dentro del closure de setState
-          setState((s) => ({
-            ...s,
-            a2: a2v,
-            a2Status: a2v.opportunity_detected ? 'anomaly' : 'done',
-          }));
-        } else {
-          setState((s) => ({ ...s, a2Status: 'error' }));
-        }
-      }
-
-      // EST: si el usuario la activó, espera su lambda paralelo. El ref evita
-      // sumarla si la apagó mientras corría.
-      const estFinal = estEnabled && estEnabledRef.current ? await estPromise : null;
-      if (ctrl.signal.aborted) return;
-
-      // Re-consolida solo si hay algo nuevo respecto al A4 horneado en /run:
-      // un A2 que llegó tarde, o la pata de Estructura.
-      const a2WasLate = !acc.a2 && !!a2Final;
-      if (a2WasLate || estFinal) {
-        await reconsolidateA4({
-          ticker,
-          a1: acc.a1,
-          a2: a2Final,
-          a3: acc.a3,
-          debate: acc.debate,
-          estructura: estFinal,
-          analysisId: acc.analysisId,
-          signal: ctrl.signal,
-        });
-      }
-    } catch (e) {
-      if (ctrl.signal.aborted) return; // AbortError esperado, no es fallo
-      if (e instanceof DOMException && e.name === 'AbortError') return;
-      setState((s) => ({
-        ...s,
-        a1Status: 'error',
-        a2Status: 'error',
-        a3Status: 'error',
-        a4Status: 'error',
-        error: networkError(e),
-        partial: false,
-        failures: [],
-      }));
-    }
-  }
-
-  /**
-   * Toggle del Agente de Estructura. "Un clic": si ya hay un ticker analizado,
-   * añade la pata EN VIVO (fetch aislado de EST para ese ticker) sin re-correr
-   * el resto. Apagarlo limpia la pata al instante.
-   */
-  function toggleEstructura() {
-    const next = !estEnabled;
-    setEstEnabled(next);
-    estEnabledRef.current = next;
-
-    if (!next) {
-      setState((s) => ({ ...s, estructura: null, estructuraStatus: 'idle' }));
-      return;
-    }
-
-    const current = state.ticker;
-    if (current && !state.estructura) {
-      setState((s) => ({ ...s, estructuraStatus: 'scanning' }));
-      void fetchEstructura(current).then((est) => {
-        if (!estEnabledRef.current) return;
-        setState((s) =>
-          s.ticker === current
-            ? { ...s, estructura: est, estructuraStatus: est ? 'done' : 'error' }
-            : s
-        );
-        // Suma la pata a A4: re-narra a 4 patas (la cita) y persiste la fila
-        // (estructura_output + confluencia 4 patas). Si no hubo análisis previo
-        // (sin analysisId) igual re-narra la tarjeta, best-effort.
-        if (est && state.ticker === current) {
-          void reconsolidateA4({
-            ticker: current,
-            a1: state.a1,
-            a2: state.a2,
-            a3: state.a3,
-            debate: state.debate,
-            estructura: est,
-            analysisId: state.analysisId,
-          });
-        }
-      });
-    }
-  }
-
-  /**
-   * "Fijar alerta CMT" (Fase 1C·C1): añade el ticker al radar/watchlist para que el
-   * scanner CMT (cron determinista) lo vigile. NO es directiva de compra/venta —
-   * acción de producto. 409 (ya estaba) se trata como éxito idempotente.
-   */
-  async function fijarAlerta() {
-    if (!state.ticker || state.alerta === 'pinning' || state.alerta === 'pinned') return;
-    setState((s) => ({ ...s, alerta: 'pinning' }));
-    try {
-      const r = await fetch('/api/watchlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticker: state.ticker,
-          asset_type: isCryptoTicker(state.ticker) ? 'crypto' : 'equity',
-        }),
-      });
-      setState((s) => ({ ...s, alerta: r.ok || r.status === 409 ? 'pinned' : 'error' }));
-    } catch {
-      setState((s) => ({ ...s, alerta: 'error' }));
-    }
-  }
-
-  const isLoading =
-    state.a1Status === 'scanning' || state.a2Status === 'scanning' || state.a3Status === 'scanning';
   const headerStatus = state.error
     ? 'error'
     : state.a4Status === 'done'
@@ -439,11 +62,6 @@ function AnalysisInner() {
       : isLoading
         ? 'running'
         : 'offline';
-
-  const confluence: ConfluenceResult | null =
-    state.a3 || state.a1 || state.estructura
-      ? computeConfluence(state.a1, state.a2, state.a3, state.debate, state.estructura)
-      : null;
 
   // Idle = aún no se ha lanzado ningún análisis y no hay error → onboarding.
   const isIdle = state.ticker === null && !state.error;
@@ -720,7 +338,7 @@ function AnalysisInner() {
 /**
  * Onboarding — se muestra SOLO en idle (sin análisis lanzado, sin error).
  * Rellena el hueco vacío de la pantalla en desktop y explica el flujo en
- * 3 pasos sin jerga ni color decorativo (terminal B&W puro).
+ * 3 pasos sin jerga ni color decorativo.
  */
 function OnboardingCard() {
   const steps: { n: string; t: string; d: string }[] = [
