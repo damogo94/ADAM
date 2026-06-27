@@ -88,7 +88,7 @@ export function ConfidenceChip({
   const label = typeof value === 'number' ? `${value}%` : value;
   // FIREWALL: la confianza del agente NO es dato de mercado → intensidad de tinta
   // + accent, JAMÁS emerald/amber/rose. El acento aporta la "vivacidad" de alta.
-  const tone = cat === 'alta' ? 'text-ink' : cat === 'media' ? 'text-ink/70' : 'text-ink/45';
+  const tone = cat === 'alta' ? 'text-ink' : cat === 'media' ? 'text-ink/70' : 'text-ink/55';
   const fill = cat === 'alta' ? 'bg-accent' : cat === 'media' ? 'bg-accent/60' : 'bg-ink/30';
   return (
     <span className={cn('inline-flex items-center gap-1 flex-shrink-0', className)} title={`confianza ${label}`}>

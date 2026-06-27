@@ -42,7 +42,7 @@ export function A4Card({ status, data, aligned = false, confluencePct }: A4CardP
         <div className="font-mono text-fluid-caption text-white/66 py-2 text-center">ensamblando...</div>
       )}
       {status === 'error' && (
-        <div className="font-mono text-fluid-caption text-rose py-2">error en A4</div>
+        <div className="font-mono text-fluid-caption text-ink/80 py-2">error en A4</div>
       )}
       {data && status === 'done' && <A4Body data={data} aligned={aligned} confluencePct={confluencePct} />}
     </AgentCardShell>
@@ -106,7 +106,7 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
           recomendación del sistema
         </div>
         <div className="font-mono text-fluid-caption leading-snug text-white/95 mb-1">{accion_sugerida}</div>
-        <div className="font-mono text-fluid-caption text-white/65 border-t border-white/10 pt-1 mt-1">
+        <div className="font-mono text-fluid-caption leading-snug text-white/65 border-t border-white/10 pt-1 mt-1">
           <span className="text-rose font-medium">▲ riesgo clave:</span> {riesgo_clave}
         </div>
       </SignalBox>

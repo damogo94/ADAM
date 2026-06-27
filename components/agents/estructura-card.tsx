@@ -61,7 +61,7 @@ export function EstructuraCard({ status, data, ticker, failureMessage }: Estruct
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-fluid-caption text-rose">error en Estructura — reintenta</div>
+          <div className="font-mono text-fluid-caption text-ink/80">error en Estructura — reintenta</div>
           {failureMessage && (
             <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">
               {failureMessage}

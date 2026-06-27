@@ -37,9 +37,9 @@ export function VerdictBar({
   const kappa = confluence?.kappa ?? null;
 
   return (
-    <div className="sticky top-0 z-20 mx-4 mt-3 rounded-[13px] border border-white/10 bg-surface-2/90 px-3 py-2 backdrop-blur-sm">
+    <div className="sticky top-0 z-20 mx-4 mt-3 rounded-card border border-ink/10 bg-surface-2/90 px-3 py-2 shadow-e2 edge-hi backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ease-precise">
       <div className="flex items-center gap-2">
-        <span className="flex-shrink-0 rounded bg-white/10 px-1.5 py-0.5 font-sans text-fluid-caption font-bold tracking-wider text-white/70">
+        <span className="flex flex-shrink-0 items-center gap-1.5 font-mono text-fluid-micro uppercase tracking-[0.2em] text-ink/58 before:h-px before:w-3 before:bg-accent/80 before:content-['']">
           VEREDICTO
         </span>
         <DirectionBadge dir={a4.direccion} />
@@ -64,7 +64,7 @@ export function VerdictBar({
             </span>
           )}
           {aligned && (
-            <span className="flex-shrink-0 rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-fluid-caption tracking-wider text-accent">
+            <span className="flex-shrink-0 rounded border border-accent/40 bg-accent/[0.06] px-1.5 py-0.5 font-mono text-fluid-caption tracking-wider text-accent">
               A3 ✓
             </span>
           )}

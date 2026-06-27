@@ -41,7 +41,7 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
       )}
       {status === 'error' && (
         <div className="py-2 space-y-1">
-          <div className="font-mono text-fluid-caption text-rose">error en A2 — reintenta</div>
+          <div className="font-mono text-fluid-caption text-ink/80">error en A2 — reintenta</div>
           {failureMessage && (
             <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">{failureMessage}</div>
           )}

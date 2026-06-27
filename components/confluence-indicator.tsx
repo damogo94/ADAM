@@ -23,7 +23,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
   // Fase 1 · ejes separados: la cifra grande es la CONFIANZA ACCIONABLE; nivel y
   // tono derivan de actionable. Null-guard: datos sin ejes nuevos caen al
   // total_pct viejo. (Sin análisis → dial en reposo "—", sin nivel fantasma.)
-  const actionable = data?.actionable_pct ?? data?.total_pct ?? 0;
+  const actionable = Math.max(0, Math.min(100, data?.actionable_pct ?? data?.total_pct ?? 0));
   const kappa = data?.kappa ?? null;
   const level = data && actionable > 0 ? labelFromScore(actionable) : null;
 
@@ -34,11 +34,16 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
 
       {/* Titular = dial radial (mismo componente que /inicio), en accent. */}
       <div className="mb-3 flex flex-col items-center gap-2 rounded-[11px] border border-white/8 bg-white/[0.015] px-2 py-3">
-        {data && actionable > 0 ? (
-          <Gauge value={actionable} hex="var(--accent)" restless={level === 'baja'} />
-        ) : (
-          <IdleDial />
-        )}
+        <div
+          aria-live="polite"
+          aria-label={level === null ? 'confianza accionable: en espera' : `confianza accionable: ${actionable}%`}
+        >
+          {data && actionable > 0 ? (
+            <Gauge value={actionable} hex="var(--accent)" restless={level === 'baja'} />
+          ) : (
+            <IdleDial />
+          )}
+        </div>
         <div className="font-mono text-fluid-micro uppercase tracking-wider text-white/55">
           {level === null ? 'en espera' : `nivel · ${level}`}
         </div>
@@ -106,7 +111,7 @@ function IdleDial() {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="font-mono text-2xl font-semibold leading-none text-ink/35">—</span>
-        <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/35">accionable</span>
+        <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/50">accionable</span>
       </div>
     </div>
   );

@@ -71,9 +71,9 @@ export function AgentCardShell({
   const [open, setOpen] = useState(defaultOpen);
 
   const cardCls = cn(
-    'relative overflow-hidden rounded-[15px] border bg-surface-2 transition-[border-color,box-shadow] duration-300',
+    'relative overflow-hidden rounded-[15px] border bg-surface-2 shadow-e1 edge-hi transition-[border-color,box-shadow] duration-300 ease-precise',
     dashed ? 'border-dashed' : 'border-solid',
-    isScanning ? ACCENT_SCAN[accent] : 'border-white/5'
+    isScanning ? ACCENT_SCAN[accent] : 'border-ink/8'
   );
 
   const badgeEl = (
@@ -102,7 +102,7 @@ export function AgentCardShell({
           />
         )}
         <header
-          className={cn('flex items-center gap-1.5 border-b border-white/5 px-2.5 py-2', ACCENT_BG[accent])}
+          className={cn('flex items-center gap-1.5 border-b border-ink/8 px-2.5 py-2', ACCENT_BG[accent])}
         >
           {badgeEl}
           <span className="flex-1 font-mono text-fluid-caption font-medium text-white">{title}</span>
@@ -127,7 +127,7 @@ export function AgentCardShell({
         className={cn(
           'flex w-full items-center gap-1.5 px-2.5 py-2 text-left min-h-[44px] transition-colors',
           ACCENT_BG[accent],
-          open ? 'border-b border-white/5' : 'border-b border-transparent'
+          open ? 'border-b border-ink/8' : 'border-b border-transparent'
         )}
       >
         {badgeEl}
