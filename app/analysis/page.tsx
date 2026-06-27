@@ -18,7 +18,7 @@ import { VerdictBar } from '@/components/verdict-bar';
 import { RelatedRadar } from '@/components/analysis/related-radar';
 import { Graticule } from '@/components/inicio/decor/graticule';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
-import { resolveError, networkError, type UserError } from '@/lib/errors';
+import { resolveError, networkError } from '@/lib/errors';
 import { resolveTicker } from '@/lib/catalog/assets';
 import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
@@ -30,73 +30,9 @@ import type {
 import type { A3Output } from '@/agents/a3/schema';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
-import type { DigestEntry_t, RadarResponse_t } from '@/lib/radar/types';
-import type { AgentStatus } from '@/components/agent-card-shell';
-
-interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
-
-/** Eventos NDJSON que emite /api/agents/run (streaming). */
-type StreamEvent =
-  | { type: 'agent'; agent: 'a1' | 'a2' | 'a3'; status: AgentStatus; data: unknown }
-  | { type: 'debate'; status: 'done' | 'skipped'; data: unknown }
-  | {
-      type: 'final';
-      analysis_id?: string | null;
-      a4: A4Output;
-      partial?: boolean;
-      failures?: { agent: string; message: string }[];
-      chart_data?: { daily: Candle[] };
-    }
-  | { type: 'fatal'; error: string; detail?: string; failures?: { agent: string; message: string }[] };
-
-interface RunState {
-  ticker: string | null;
-  a1Status: AgentStatus;
-  a2Status: AgentStatus;
-  a3Status: AgentStatus;
-  debateStatus: AgentStatus;
-  a4Status: AgentStatus;
-  a1: A1Output | null;
-  a2: A2Output | null;
-  a3: A3Output | null;
-  debate: DebateOutput | null;
-  a4: A4Output | null;
-  estructura: EstructuraOutput_t | null;
-  estructuraStatus: AgentStatus;
-  /** id de la fila persistida (evento `final`) — lo usa el re-narrado con EST. */
-  analysisId: string | null;
-  error: UserError | null;
-  partial: boolean;
-  failures: { agent: string; message: string }[];
-  dailyCandles: Candle[];
-  /** Puente al radar (post-resolve, Fase 1C·C2). null = aún no leído o degradado. */
-  related: { count: number; preview: DigestEntry_t[] } | null;
-  /** Estado de "Fijar alerta CMT" (post-resolve, Fase 1C·C1). */
-  alerta: 'idle' | 'pinning' | 'pinned' | 'error';
-}
-
-const INITIAL: RunState = {
-  ticker: null,
-  a1Status: 'idle',
-  a2Status: 'idle',
-  a3Status: 'idle',
-  debateStatus: 'idle',
-  a4Status: 'idle',
-  a1: null,
-  a2: null,
-  a3: null,
-  debate: null,
-  a4: null,
-  estructura: null,
-  estructuraStatus: 'idle',
-  analysisId: null,
-  error: null,
-  partial: false,
-  failures: [],
-  dailyCandles: [],
-  related: null,
-  alerta: 'idle',
-};
+import type { RadarResponse_t } from '@/lib/radar/types';
+import { applyRunEvent } from '@/lib/run/apply-event';
+import { INITIAL, type RunState, type StreamEvent } from '@/lib/run/types';
 
 /**
  * Fetch aislado del Agente de Estructura (futuros · MTF). Mismo contrato que
@@ -328,55 +264,20 @@ function AnalysisInner() {
       let fatal = false;
 
       const applyEvent = (ev: StreamEvent) => {
+        // Acumulador para el cierre (reconsolidación A4) + flag fatal: concerns de
+        // handleRun. La TRANSICIÓN de estado va al reductor PURO (lib/run, testeado).
         if (ev.type === 'agent') {
-          if (ev.agent === 'a1') {
-            acc.a1 = ev.data as A1Output | null;
-            setState((s) => ({ ...s, a1: acc.a1, a1Status: ev.status }));
-          } else if (ev.agent === 'a3') {
-            acc.a3 = ev.data as A3Output | null;
-            setState((s) => ({ ...s, a3: acc.a3, a3Status: ev.status }));
-          } else if (ev.agent === 'a2') {
-            acc.a2 = ev.data as A2Output | null;
-            setState((s) => ({ ...s, a2: acc.a2, a2Status: ev.status }));
-          }
+          if (ev.agent === 'a1') acc.a1 = ev.data as A1Output | null;
+          else if (ev.agent === 'a2') acc.a2 = ev.data as A2Output | null;
+          else if (ev.agent === 'a3') acc.a3 = ev.data as A3Output | null;
         } else if (ev.type === 'debate') {
           acc.debate = ev.data as DebateOutput | null;
-          setState((s) => ({ ...s, debate: acc.debate, debateStatus: acc.debate ? 'done' : 'idle' }));
         } else if (ev.type === 'final') {
           acc.analysisId = ev.analysis_id ?? null;
-          setState((s) => ({
-            ...s,
-            a4: ev.a4,
-            a4Status: 'done',
-            analysisId: acc.analysisId,
-            // Si algún evento de agente se perdió, no dejes su card en scanning.
-            a1Status:
-              s.a1Status === 'scanning'
-                ? s.a1
-                  ? s.a1.anomaly_detected
-                    ? 'anomaly'
-                    : 'done'
-                  : 'error'
-                : s.a1Status,
-            a3Status: s.a3Status === 'scanning' ? (s.a3 ? 'done' : 'error') : s.a3Status,
-            partial: !!ev.partial,
-            failures: ev.failures ?? [],
-            dailyCandles: ev.chart_data?.daily ?? s.dailyCandles,
-          }));
         } else if (ev.type === 'fatal') {
           fatal = true;
-          const userErr = resolveError({ error: ev.error, detail: ev.detail, failures: ev.failures });
-          setState((s) => ({
-            ...s,
-            a1Status: 'error',
-            a2Status: 'error',
-            a3Status: 'error',
-            a4Status: 'error',
-            error: userErr,
-            partial: false,
-            failures: ev.failures ?? [],
-          }));
         }
+        setState((s) => applyRunEvent(s, ev));
       };
 
       const reader = res.body!.getReader();
