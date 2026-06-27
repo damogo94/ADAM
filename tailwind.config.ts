@@ -128,6 +128,32 @@ const config: Config = {
         dashFlow: {
           to: { strokeDashoffset: '-16' },
         },
+        // ─── Hero "pipeline neuronal" (ConfluenceHero) ──────────────────────
+        // synPop: una sinapsis "dispara" al energizarse su región (con stagger
+        // por distancia al centro, vía animationDelay inline).
+        synPop: {
+          '0%': { opacity: '0.1', transform: 'scale(0.4)' },
+          '60%': { opacity: '1', transform: 'scale(1.18)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        // synTwinkle: titileo sutil de la sinapsis ya encendida en `resolved`
+        // (el núcleo "sigue pensando", sin afirmar progreso).
+        synTwinkle: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.5' },
+        },
+        // webFire: pulso de "corriente" por una dendrita cuando ambos extremos
+        // ya están encendidos (cascada neuronal). stroke usa var(--accent) — es
+        // propiedad CSS (no atributo SVG), por eso aquí sí resuelve.
+        webFire: {
+          '0%': { stroke: 'var(--accent)', opacity: '0.75', strokeWidth: '1.4' },
+          '100%': { opacity: '0.13', strokeWidth: '0.8' },
+        },
+        // coreBreath: el núcleo "respira" mientras calibra; se detiene al resolver.
+        coreBreath: {
+          '0%, 100%': { transform: 'scale(0.985)' },
+          '50%': { transform: 'scale(1.015)' },
+        },
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
@@ -137,6 +163,11 @@ const config: Config = {
         'urg-pulse': 'urgPulse 2.6s ease-in-out infinite',
         'fade-slide-in': 'fadeSlideIn 380ms ease-out',
         'dash-flow': 'dashFlow 1.1s linear infinite',
+        // Hero pipeline neuronal
+        'syn-pop': 'synPop 0.42s cubic-bezier(0.22,1.2,0.36,1) both',
+        'syn-twinkle': 'synTwinkle 3.4s ease-in-out 1s infinite',
+        'web-fire': 'webFire 0.8s ease-out',
+        'core-breath': 'coreBreath 3.4s ease-in-out infinite',
       },
     },
   },

@@ -573,6 +573,11 @@ function AnalysisInner() {
           estructuraStatus={estEnabled ? state.estructuraStatus : undefined}
           a4={state.a4}
           confluence={confluence}
+          debateStatus={state.debateStatus}
+          a1={state.a1}
+          a2={state.a2}
+          a3={state.a3}
+          estructura={state.estructura}
         />
       )}
 
