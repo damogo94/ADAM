@@ -65,7 +65,7 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
               'flex-1 rounded-lg border border-ink/12 bg-black/40 px-4 py-2.5',
               'font-mono text-fluid-h3 font-bold uppercase tracking-[0.12em] text-ink',
               'caret-accent outline-none transition-[border-color,box-shadow]',
-              'placeholder:font-mono placeholder:text-[14px] placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-ink/40',
+              'placeholder:font-mono placeholder:text-fluid-label placeholder:font-light placeholder:tracking-[0.04em] placeholder:normal-case placeholder:text-ink/40',
               'focus:border-accent focus:shadow-[0_0_0_2px_rgba(91,138,240,0.22)]',
               'disabled:opacity-30'
             )}
@@ -82,7 +82,7 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
             aria-label="Iniciar análisis"
           >
             {/* móvil: icono · ≥md: etiqueta explícita */}
-            <span className="text-[17px] md:hidden" aria-hidden="true">▶</span>
+            <span className="text-fluid-lead md:hidden" aria-hidden="true">▶</span>
             <span className="hidden md:inline">
               Analizar <span className={arw}>→</span>
             </span>
@@ -103,7 +103,7 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
           aria-label="Abrir catálogo de activos"
           title="Catálogo de activos"
         >
-          <span aria-hidden="true" className="text-[13px] leading-none">⊞</span>
+          <span aria-hidden="true" className="text-fluid-label leading-none">⊞</span>
           Catálogo
         </button>
       </section>

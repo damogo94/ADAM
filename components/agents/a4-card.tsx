@@ -39,10 +39,10 @@ export function A4Card({ status, data, aligned = false, confluencePct }: A4CardP
     >
       {status === 'idle' && <IdleState label="esperando agentes..." />}
       {status === 'scanning' && (
-        <div className="font-mono text-[12px] text-white/66 py-2 text-center">ensamblando...</div>
+        <div className="font-mono text-fluid-caption text-white/66 py-2 text-center">ensamblando...</div>
       )}
       {status === 'error' && (
-        <div className="font-mono text-[12px] text-rose py-2">error en A4</div>
+        <div className="font-mono text-fluid-caption text-rose py-2">error en A4</div>
       )}
       {data && status === 'done' && <A4Body data={data} aligned={aligned} confluencePct={confluencePct} />}
     </AgentCardShell>
@@ -74,17 +74,17 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
   return (
     <>
       <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-        <span className={cn('font-sans text-[16px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
+        <span className={cn('font-sans text-fluid-body font-bold tracking-wider', dirCls)}>{dirLabel}</span>
         <span
           className={cn(
-            'rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider',
+            'rounded border px-2 py-0.5 font-mono text-fluid-micro font-medium uppercase tracking-wider',
             confCls
           )}
         >
           {confianza} · {pct}%
         </span>
         {aligned && (
-          <span className="rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-[11px] text-accent tracking-wider">
+          <span className="rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-fluid-micro text-accent tracking-wider">
             A3 alineado
           </span>
         )}
@@ -99,14 +99,14 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
       <SignalBox tone={pct >= 67 ? 'conf' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-[11px] font-medium mb-0.5 uppercase tracking-wider',
+            'font-mono text-fluid-micro font-medium mb-0.5 uppercase tracking-wider',
             pct >= 67 ? 'text-ink' : 'text-ink/66'
           )}
         >
           recomendación del sistema
         </div>
-        <div className="font-mono text-[12px] leading-snug text-white/95 mb-1">{accion_sugerida}</div>
-        <div className="font-mono text-[12px] text-white/65 border-t border-white/10 pt-1 mt-1">
+        <div className="font-mono text-fluid-caption leading-snug text-white/95 mb-1">{accion_sugerida}</div>
+        <div className="font-mono text-fluid-caption text-white/65 border-t border-white/10 pt-1 mt-1">
           <span className="text-rose font-medium">▲ riesgo clave:</span> {riesgo_clave}
         </div>
       </SignalBox>
@@ -117,10 +117,10 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
 function ResumenBlock({ badge, text }: { badge: string; text: string }) {
   return (
     <div className="rounded-lg border border-white/8 bg-black/30 px-2 py-1.5">
-      <div className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-white">
+      <div className="mb-0.5 font-mono text-fluid-micro font-medium uppercase tracking-wider text-white">
         {badge}
       </div>
-      <div className="font-mono text-[12px] leading-snug text-white/85">{text}</div>
+      <div className="font-mono text-fluid-caption leading-snug text-white/85">{text}</div>
     </div>
   );
 }
@@ -133,7 +133,7 @@ function A4Summary({ data, confluencePct }: { data: A4Output; confluencePct?: nu
   return (
     <>
       <DirectionBadge dir={data.direccion} />
-      <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-bold tracking-wider text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-bold tracking-wider text-white">
         {dirLabel} · {pct}%
       </span>
       <ConfidenceChip value={data.confianza} showBar />

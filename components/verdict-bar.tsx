@@ -39,38 +39,38 @@ export function VerdictBar({
   return (
     <div className="sticky top-0 z-20 mx-4 mt-3 rounded-[13px] border border-white/10 bg-surface-2/90 px-3 py-2 backdrop-blur-sm">
       <div className="flex items-center gap-2">
-        <span className="flex-shrink-0 rounded bg-white/10 px-1.5 py-0.5 font-sans text-[12px] font-bold tracking-wider text-white/70">
+        <span className="flex-shrink-0 rounded bg-white/10 px-1.5 py-0.5 font-sans text-fluid-caption font-bold tracking-wider text-white/70">
           VEREDICTO
         </span>
         <DirectionBadge dir={a4.direccion} />
-        <span className={cn('font-sans text-[14px] font-bold tracking-wider', dirCls)}>{dirLabel}</span>
+        <span className={cn('font-sans text-fluid-label font-bold tracking-wider', dirCls)}>{dirLabel}</span>
 
         <span className="ml-auto flex items-center gap-2.5">
           {/* Cifra de cabecera = confianza accionable (ya descontada por κ). */}
           <span className="flex items-baseline gap-1.5">
-            <span className="hidden font-mono text-[11px] uppercase tracking-wider text-white/66 sm:inline">
+            <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-white/66 sm:inline">
               accionable
             </span>
-            <span className="font-mono text-[14px] font-bold tabular-nums text-white">{actionable}%</span>
+            <span className="font-mono text-fluid-label font-bold tabular-nums text-white">{actionable}%</span>
           </span>
           {/* κ — eje de coherencia, dedicado. Oculto en filas viejas sin κ. */}
           {kappa !== null && (
             <span className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
-              <span className="hidden font-mono text-[11px] uppercase tracking-wider text-white/66 sm:inline">
+              <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-white/66 sm:inline">
                 κ
               </span>
               <KappaDots kappa={kappa} />
-              <span className="font-mono text-[12px] tabular-nums text-white/75">{Math.round(kappa * 100)}%</span>
+              <span className="font-mono text-fluid-caption tabular-nums text-white/75">{Math.round(kappa * 100)}%</span>
             </span>
           )}
           {aligned && (
-            <span className="flex-shrink-0 rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-[12px] tracking-wider text-accent">
+            <span className="flex-shrink-0 rounded border border-accent/40 bg-accent/[0.10] px-1.5 py-0.5 font-mono text-fluid-caption tracking-wider text-accent">
               A3 ✓
             </span>
           )}
         </span>
       </div>
-      <div className="mt-1 truncate font-mono text-[12px] leading-snug text-white/80">{a4.accion_sugerida}</div>
+      <div className="mt-1 truncate font-mono text-fluid-caption leading-snug text-white/80">{a4.accion_sugerida}</div>
     </div>
   );
 }

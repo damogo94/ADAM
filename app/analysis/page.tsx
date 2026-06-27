@@ -489,7 +489,7 @@ function AnalysisInner() {
 
       {/* Agente de Estructura (futuros · MTF) — toggle opt-in para SUMAR la pata
           a la confluencia con un clic, + acceso a la pantalla dedicada. */}
-      <div className="mx-4 mt-2 flex flex-wrap items-center justify-end gap-2 font-mono text-[11px]">
+      <div className="mx-4 mt-2 flex flex-wrap items-center justify-end gap-2 font-mono text-fluid-micro">
         <button
           type="button"
           onClick={toggleEstructura}
@@ -537,7 +537,7 @@ function AnalysisInner() {
         >
           <div
             className={cn(
-              'font-sans text-[12px] font-bold tracking-wider mb-0.5',
+              'font-sans text-fluid-caption font-bold tracking-wider mb-0.5',
               state.error.tone === 'auth' && 'text-white/75',
               state.error.tone === 'transient' && 'text-white/80',
               state.error.tone === 'rate_limit' && 'text-white/85',
@@ -547,16 +547,16 @@ function AnalysisInner() {
           >
             {state.error.title}
           </div>
-          <div className="font-mono text-[12px] leading-snug text-white/85">{state.error.message}</div>
+          <div className="font-mono text-fluid-caption leading-snug text-white/85">{state.error.message}</div>
         </div>
       )}
 
       {state.partial && state.failures.length > 0 && (
         <div className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.05] px-3 py-2">
-          <div className="font-sans text-[12px] font-bold tracking-wider text-white/80 mb-0.5">
+          <div className="font-sans text-fluid-caption font-bold tracking-wider text-white/80 mb-0.5">
             ANÁLISIS PARCIAL
           </div>
-          <div className="font-mono text-[12px] leading-snug text-white/70">
+          <div className="font-mono text-fluid-caption leading-snug text-white/70">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
@@ -676,7 +676,7 @@ function AnalysisInner() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-fluid-caption text-white/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -744,7 +744,7 @@ function OnboardingCard() {
               className="rounded-[14px] border border-ink/8 bg-ink/[0.015] px-4 py-3.5 transition-colors hover:border-ink/15"
             >
               <div className="mb-1.5 flex items-baseline gap-2">
-                <span className="font-mono text-[0.9rem] font-semibold text-accent">0{s.n}</span>
+                <span className="font-mono text-fluid-label font-semibold text-accent">0{s.n}</span>
                 <span className="font-sans text-fluid-label font-semibold text-ink">{s.t}</span>
               </div>
               <p className="font-mono text-fluid-caption leading-snug text-ink/58">{s.d}</p>

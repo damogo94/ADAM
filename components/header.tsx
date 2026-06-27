@@ -43,12 +43,12 @@ export function Header({
         <div className="font-sans text-lg font-extrabold tracking-[0.2em] text-white">
           A.D.A.M.
         </div>
-        <div className="font-mono text-[12px] tracking-wider text-white/66 mt-px">{tagline}</div>
+        <div className="font-mono text-fluid-caption tracking-wider text-white/66 mt-px">{tagline}</div>
       </div>
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            'font-mono text-[11px] font-medium tracking-wider px-2.5 py-1 rounded border transition-all duration-300',
+            'font-mono text-fluid-micro font-medium tracking-wider px-2.5 py-1 rounded border transition-all duration-300',
             STATUS_CLS[status]
           )}
         >
