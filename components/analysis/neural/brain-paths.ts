@@ -65,6 +65,9 @@ const RAW_SYNAPSES: { cx: number; cy: number; region: Region }[] = [
   { cx: 214, cy: 292, region: 'a3' },
   { cx: 266, cy: 292, region: 'a3' },
   { cx: 228, cy: 322, region: 'a3' },
+  // Estructura (AE) — opt-in; base inferior del núcleo.
+  { cx: 284, cy: 316, region: 'est' },
+  { cx: 256, cy: 330, region: 'est' },
 ];
 
 // Centroide → orden de stagger (centro hacia fuera).
@@ -170,16 +173,20 @@ export const DESKTOP_LAYOUT: HeroLayout = {
   chips: [
     { agent: 'a1', cx: 120, cy: 66, readoutY: 50 },
     { agent: 'a2', cx: 290, cy: 66, readoutY: 50 },
-    { agent: 'a3', cx: 430, cy: 66, readoutY: 50, isolated: true },
+    // Carril aislado (futuros · MTF): A3 técnico + AE estructura, apilados.
+    { agent: 'a3', cx: 420, cy: 64, readoutY: 48, isolated: true },
+    { agent: 'est', cx: 420, cy: 150, readoutY: 134, isolated: true },
   ],
   cables: [
     { region: 'a1', d: 'M120 78 C120 106 150 122 185 138', plug: [185, 138] },
     { region: 'a2', d: 'M290 78 C290 106 262 122 245 138', plug: [245, 138] },
     { region: 'deb', d: 'M215 164 C215 186 228 200 240 219', plug: [240, 219] },
-    { region: 'a3', d: 'M430 78 C430 140 408 212 312 250', plug: [312, 250], isolated: true },
+    // A3 "corre" alto a la izquierda antes de descender → libera la fila de AE.
+    { region: 'a3', d: 'M420 76 C390 82 350 86 330 95 C300 115 268 180 252 245', plug: [252, 245], isolated: true },
+    { region: 'est', d: 'M420 162 C400 200 360 235 305 250', plug: [305, 250], isolated: true },
   ],
   debate: { x: 172, y: 136, w: 86, h: 28 },
-  divider: { x1: 352, y1: 52, x2: 352, y2: 242 },
+  divider: { x1: 350, y1: 44, x2: 350, y2: 255 },
   nucleoLabel: { x: 240, y: 330 },
   verdict: { x: 150, y: 338, w: 180, h: 26 },
 };
@@ -191,21 +198,20 @@ export const PORTRAIT_LAYOUT: HeroLayout = {
   chips: [
     { agent: 'a1', cx: 96, cy: 64, readoutY: 46 },
     { agent: 'a2', cx: 264, cy: 64, readoutY: 46 },
-    { agent: 'a3', cx: 330, cy: 150, readoutY: 134, isolated: true },
+    // Carril aislado: A3 + AE apilados a la derecha.
+    { agent: 'a3', cx: 320, cy: 120, readoutY: 104, isolated: true },
+    { agent: 'est', cx: 320, cy: 232, readoutY: 216, isolated: true },
   ],
   cables: [
     { region: 'a1', d: 'M96 76 C96 116 122 150 160 168', plug: [160, 168] },
     { region: 'a2', d: 'M264 76 C264 116 238 150 200 168', plug: [200, 168] },
-    { region: 'deb', d: 'M180 196 C180 234 180 262 180 285', plug: [180, 285] },
-    {
-      region: 'a3',
-      d: 'M330 162 C330 240 330 305 300 342 C285 360 270 372 252 378',
-      plug: [252, 378],
-      isolated: true,
-    },
+    { region: 'deb', d: 'M180 196 C180 232 180 258 180 282', plug: [180, 282] },
+    // A3 corre alto-izquierda antes de descender → libera la fila de AE.
+    { region: 'a3', d: 'M320 132 C290 140 250 150 232 178 C214 220 198 262 188 300', plug: [188, 300], isolated: true },
+    { region: 'est', d: 'M320 244 C300 290 250 330 212 352 C202 358 195 357 190 352', plug: [190, 352], isolated: true },
   ],
   debate: { x: 137, y: 168, w: 86, h: 28 },
-  divider: { x1: 300, y1: 60, x2: 300, y2: 430 },
+  divider: { x1: 296, y1: 56, x2: 296, y2: 400 },
   nucleoLabel: { x: 180, y: 438 },
   verdict: { x: 100, y: 446, w: 160, h: 28 },
 };

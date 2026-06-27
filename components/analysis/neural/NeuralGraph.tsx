@@ -22,7 +22,7 @@ function readoutFor(v: AgentVisual, domain: string): { text: string; cls: string
 
 export interface NeuralGraphProps {
   layout: HeroLayout;
-  agents: Record<'a1' | 'a2' | 'a3', AgentVisual>;
+  agents: { a1: AgentVisual; a2: AgentVisual; a3: AgentVisual; est?: AgentVisual };
   debate: { settled: boolean };
   litRegions: Set<Region>;
   cableFlow: Record<Region, boolean>;
@@ -69,19 +69,21 @@ export function NeuralGraph({
         strokeDasharray="3 6"
       />
 
-      {/* cables */}
-      {layout.cables.map((c) => (
-        <Cable key={c.region} d={c.d} plug={c.plug} flowing={cableFlow[c.region]} isolated={c.isolated} reduced={reduced} />
-      ))}
+      {/* cables (la pata de Estructura solo si está activa) */}
+      {layout.cables.map((c) => {
+        if (c.region === 'est' && !agents.est) return null;
+        return <Cable key={c.region} d={c.d} plug={c.plug} flowing={cableFlow[c.region]} isolated={c.isolated} reduced={reduced} />;
+      })}
 
       {/* chips + readouts */}
       {layout.chips.map((ch) => {
-        if (ch.agent === 'est') return null;
         const v = agents[ch.agent];
+        if (!v) return null; // Estructura ausente (opt-in)
         const ro = readoutFor(v, AGENT_DOMAIN[ch.agent]);
+        const id = ch.agent === 'est' ? 'AE' : ch.agent.toUpperCase();
         return (
           <g key={ch.agent}>
-            <Chip cx={ch.cx} cy={ch.cy} id={ch.agent.toUpperCase()} state={v.state} isolated={ch.isolated} reduced={reduced} />
+            <Chip cx={ch.cx} cy={ch.cy} id={id} state={v.state} isolated={ch.isolated} reduced={reduced} />
             <text className={cn('font-mono', ro.cls)} x={ch.cx} y={ch.readoutY} textAnchor="middle" fontSize={10}>
               {ro.text}
             </text>

@@ -577,6 +577,7 @@ function AnalysisInner() {
           a1={state.a1}
           a2={state.a2}
           a3={state.a3}
+          estructura={state.estructura}
         />
       )}
 

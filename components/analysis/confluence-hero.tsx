@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { A4Output_t as A4Output, A1Output_t, A2Output_t, A3Output_t } from '@/agents/shared/types';
+import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { ConfluenceResult } from '@/lib/confluence';
 import type { AgentStatus } from '@/components/agent-card-shell';
 import { normalizeDirection } from '@/components/agent-primitives';
@@ -60,6 +61,8 @@ interface ConfluenceHeroProps {
   a1?: A1Output_t | null;
   a2?: A2Output_t | null;
   a3?: A3Output_t | null;
+  /** Salida de Estructura (AE) — presentacional, para el glifo de dirección. */
+  estructura?: EstructuraOutput_t | null;
 }
 
 /** matchMedia(prefers-reduced-motion) — patrón de reduced-motion compartido. */
@@ -123,12 +126,14 @@ export function ConfluenceHero({
   running,
   resolved,
   statuses,
+  estructuraStatus,
   a4,
   confluence,
   debateStatus,
   a1,
   a2,
   a3,
+  estructura,
 }: ConfluenceHeroProps) {
   const reduced = useReducedMotion();
   const progress = useAsymptoticProgress(running && !resolved, resolved, reduced);
@@ -136,28 +141,44 @@ export function ConfluenceHero({
   const a1Dir = normalizeDirection(a1?.anomaly_type ?? null);
   const a2Dir = normalizeDirection(a2?.regime_outlook ?? (a2?.opportunity_detected ? 'risk_on' : null));
   const a3Dir = normalizeDirection(a3?.tendencia?.primaria ?? null);
+  // Estructura: compra→alcista, venta→bajista, ninguno→neutral (igual que la card).
+  const estRaw =
+    estructura?.setup.direccion === 'compra'
+      ? 'alcista'
+      : estructura?.setup.direccion === 'venta'
+        ? 'bajista'
+        : null;
+  const estDir = normalizeDirection(estRaw);
 
-  const agents: Record<'a1' | 'a2' | 'a3', AgentVisual> = {
+  // La pata de Estructura es opt-in: solo existe el nodo si llega `estructuraStatus`.
+  const est: AgentVisual | undefined = estructuraStatus
+    ? { state: chipState(estructuraStatus), dir: estDir }
+    : undefined;
+
+  const agents = {
     a1: { state: chipState(statuses.a1), dir: a1Dir },
     a2: { state: chipState(statuses.a2), dir: a2Dir },
     a3: { state: chipState(statuses.a3), dir: a3Dir },
+    est,
   };
 
   // Regiones encendidas = SOLO agentes aterrizados de verdad (errores no encienden,
   // ni siquiera en resolve — el cerebro resuelve pero la región fallida queda oscura).
   const debateSettled = settled(debateStatus);
+  const estSettled = settled(estructuraStatus);
   const litRegions = new Set<Region>();
   if (settled(statuses.a1)) litRegions.add('a1');
   if (settled(statuses.a2)) litRegions.add('a2');
   if (settled(statuses.a3)) litRegions.add('a3');
   if (debateSettled) litRegions.add('deb');
+  if (estSettled) litRegions.add('est');
 
   const cableFlow: Record<Region, boolean> = {
     a1: settled(statuses.a1),
     a2: settled(statuses.a2),
     a3: settled(statuses.a3),
     deb: debateSettled,
-    est: false,
+    est: estSettled,
   };
 
   const actionable =
