@@ -46,6 +46,17 @@ export default function WatchlistScreen() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
+  // Cierre con Escape del modal de confirmación de borrado (consistente con
+  // AssetPicker, que ya maneja Esc). Solo activo mientras el modal está abierto.
+  useEffect(() => {
+    if (!confirmDeleteId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmDeleteId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirmDeleteId]);
+
   // Clave estable del CONJUNTO de tickers (ordenada y deduplicada): así un
   // pin/reorden — que crea un nuevo objeto `radar` pero no cambia qué activos
   // hay — no dispara un refetch. Solo cambia al añadir/quitar un activo.
@@ -269,7 +280,9 @@ export default function WatchlistScreen() {
         }}
       />
 
-      {error && (
+      {/* Banner = errores de CRUD (add/delete/pin), que solo ocurren con el radar
+          ya cargado. El fallo de CARGA se muestra en el cuerpo (rama !radar). */}
+      {error && radar && (
         <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.06] px-3 py-2 font-mono text-[12px] text-white/80">
           {error}
         </div>
@@ -309,6 +322,23 @@ export default function WatchlistScreen() {
           <SkeletonRow />
           <SkeletonRow />
           <SkeletonRow />
+        </div>
+      ) : !radar ? (
+        <div className="mx-4 rounded-[15px] border border-white/25 bg-white/[0.05] px-3 py-10 text-center">
+          <div className="mb-1 text-2xl text-white/30">⚠</div>
+          <div className="mb-1 font-sans text-[11px] tracking-wider text-white/85">
+            no se pudo cargar el radar
+          </div>
+          <div className="mb-3 font-mono text-[11px] leading-relaxed text-white/66">
+            {error ?? 'reintenta en unos segundos'}
+          </div>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="rounded-md border border-white/30 bg-white/[0.08] px-3 py-1.5 font-mono text-[12px] text-white transition hover:bg-white/[0.14]"
+          >
+            reintentar
+          </button>
         </div>
       ) : rows.length === 0 ? (
         <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-10 text-center">
@@ -366,6 +396,7 @@ export default function WatchlistScreen() {
             </div>
             <div className="flex gap-2">
               <button
+                autoFocus
                 onClick={() => setConfirmDeleteId(null)}
                 className="flex-1 rounded-md border border-white/15 bg-transparent px-2 py-1.5 font-mono text-[12px] text-white/75 hover:border-white/35 transition"
               >

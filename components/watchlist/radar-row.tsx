@@ -113,7 +113,7 @@ export function RadarRow({
           onClick={onAnalyze}
           aria-label={`Analizar ${ticker}`}
           title="Analizar"
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] font-mono text-[12px] text-white/66 transition hover:border-white/40 hover:bg-white/[0.08] hover:text-white"
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] font-mono text-[12px] text-white/66 transition hover:border-white/40 hover:bg-white/[0.08] hover:text-white"
         >
           ▶
         </button>

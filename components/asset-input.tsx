@@ -95,7 +95,7 @@ export function AssetInput({ onSubmit, disabled }: AssetInputProps) {
           onClick={() => setPickerOpen(true)}
           disabled={disabled}
           className={cn(
-            'inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-ink/12 bg-ink/[0.03] px-3',
+            'inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-ink/12 bg-ink/[0.03] px-3',
             'font-mono text-fluid-caption text-ink/58 transition-colors',
             'hover:border-ink/25 hover:bg-ink/[0.06] hover:text-ink',
             'disabled:cursor-not-allowed disabled:opacity-30'

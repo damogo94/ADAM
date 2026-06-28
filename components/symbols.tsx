@@ -122,6 +122,19 @@ export function Origin({ className, strokeWidth = 1.5, title }: SymbolProps) {
   );
 }
 
+// ─── 07. Chronicle ───────────────────────────────────────────────────
+// Reloj — el registro en el tiempo · historial · runs pasados. Distinto de
+// AnomalyLoop (círculo roto) por las manecillas centrales.
+export function Chronicle({ className, strokeWidth = 1.5, title }: SymbolProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} role="img" aria-label={title ?? 'Chronicle'}>
+      {title && <title>{title}</title>}
+      <circle {...COMMON_PROPS} strokeWidth={strokeWidth} cx="12" cy="12" r="9" />
+      <path {...COMMON_PROPS} strokeWidth={strokeWidth} d="M 12 7 L 12 12 L 15.5 14" />
+    </svg>
+  );
+}
+
 // ─── Catálogo (para iteración fácil — ej. bottom-nav, asset board) ──
 export const SYMBOLS = {
   anomaly: AnomalyLoop,
@@ -130,5 +143,6 @@ export const SYMBOLS = {
   monogram: Monogram,
   signal: Signal,
   origin: Origin,
+  chronicle: Chronicle,
 } as const;
 export type SymbolName = keyof typeof SYMBOLS;

@@ -59,7 +59,7 @@ export function MiniCandleChart({
       height,
       layout: {
         background: { type: ColorType.Solid, color: bg },
-        textColor: '#475569', // slate
+        textColor: '#525252', // slate (token slate.DEFAULT)
         fontFamily: '"IBM Plex Mono", monospace',
         fontSize: 9,
       },
@@ -83,10 +83,10 @@ export function MiniCandleChart({
     });
 
     const series = chart.addCandlestickSeries({
-      upColor: '#10b981', // emerald
-      downColor: '#f43f5e', // rose
-      wickUpColor: '#10b981',
-      wickDownColor: '#f43f5e',
+      upColor: '#34D399', // emerald (token)
+      downColor: '#FB7185', // rose (token)
+      wickUpColor: '#34D399',
+      wickDownColor: '#FB7185',
       borderVisible: false,
     });
 
@@ -128,13 +128,13 @@ export function MiniCandleChart({
     // mejor mantener referencia local).
     const lines: ReturnType<typeof series.createPriceLine>[] = [];
     if (typeof entry === 'number' && Number.isFinite(entry)) {
-      lines.push(series.createPriceLine({ price: entry, color: '#a78bfa', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'entry' }));
+      lines.push(series.createPriceLine({ price: entry, color: '#FBBF24', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'entry' }));
     }
     if (typeof stop === 'number' && Number.isFinite(stop)) {
-      lines.push(series.createPriceLine({ price: stop, color: '#f43f5e', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'stop' }));
+      lines.push(series.createPriceLine({ price: stop, color: '#FB7185', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'stop' }));
     }
     if (typeof target === 'number' && Number.isFinite(target)) {
-      lines.push(series.createPriceLine({ price: target, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'target' }));
+      lines.push(series.createPriceLine({ price: target, color: '#34D399', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'target' }));
     }
 
     chart.timeScale().fitContent();

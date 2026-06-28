@@ -198,6 +198,9 @@ export default function SignalsScreen() {
         expanded={expandedId === s.id}
         onToggle={() => setExpandedId((cur) => (cur === s.id ? null : s.id))}
         onAck={() => onAck(s.id)}
+        onAnalyze={() =>
+          router.push(`/analysis?ticker=${encodeURIComponent(s.ticker)}&from=signal`)
+        }
       />
     );
   }
@@ -301,6 +304,7 @@ export default function SignalsScreen() {
             <button
               key={lv}
               onClick={() => setFilterLevel(lv)}
+              aria-pressed={filterLevel === lv}
               className={cn(
                 'flex-1 rounded-lg border px-2 py-3 font-mono text-[11px] uppercase tracking-wider transition',
                 // Filter activo: color del nivel correspondiente. Inactivo: B&W dim.
@@ -325,12 +329,14 @@ export default function SignalsScreen() {
             value={filterTicker}
             onChange={(e) => setFilterTicker(e.target.value)}
             placeholder="ticker..."
+            aria-label="Filtrar por ticker"
             className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-3 font-mono text-[11px] uppercase text-white placeholder-white/45 focus:border-accent focus:outline-none"
           />
           {(['all', 'unread', 'acknowledged'] as const).map((a) => (
             <button
               key={a}
               onClick={() => setFilterAck(a)}
+              aria-pressed={filterAck === a}
               className={cn(
                 'rounded-lg border px-2 py-3 font-mono text-[11px] uppercase tracking-wider transition',
                 filterAck === a
@@ -541,11 +547,13 @@ function SignalCard({
   expanded,
   onToggle,
   onAck,
+  onAnalyze,
 }: {
   signal: SignalWithOutcome;
   expanded: boolean;
   onToggle: () => void;
   onAck: () => void;
+  onAnalyze: () => void;
 }) {
   const meta = levelMeta(signal.level);
   const acknowledged = !!signal.acknowledged_at;
@@ -578,7 +586,7 @@ function SignalCard({
       )}
     >
       <div className={cn('absolute left-0 top-0 bottom-0 w-1', meta.band)} />
-      <button onClick={onToggle} className="block w-full px-3 pl-4 py-2.5 text-left">
+      <button onClick={onToggle} aria-expanded={expanded} className="block w-full px-3 pl-4 py-2.5 text-left">
         <div className="flex items-center gap-2">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -664,7 +672,16 @@ function SignalCard({
             <div className="font-mono text-[12px] text-white/90">{signal.invalidation_factor}</div>
           </div>
 
-          <div className="mt-3 flex gap-1.5">
+          {/* Puente al análisis completo del ticker — antes una señal era un
+              dead-end (solo copiar/marcar leído). accent = navegación de marca. */}
+          <button
+            onClick={onAnalyze}
+            className="mt-3 w-full rounded-lg border border-accent/40 bg-accent/[0.06] px-2 py-3 font-mono text-[11px] text-accent transition hover:bg-accent/[0.12] hover:border-accent/60"
+          >
+            analizar {signal.ticker} ▶
+          </button>
+
+          <div className="mt-1.5 flex gap-1.5">
             <button
               onClick={copyReport}
               className="flex-1 rounded-lg border border-white/10 px-2 py-3 font-mono text-[11px] text-white/66 hover:border-white/35 hover:text-white transition"

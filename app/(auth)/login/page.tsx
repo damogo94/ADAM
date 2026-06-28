@@ -18,6 +18,18 @@ function safeNext(raw: string | null): string {
   return raw;
 }
 
+/** Mensaje legible para el `?error=` con el que /auth/confirm rebota aquí. */
+function noticeFor(code: string | null): string | null {
+  switch (code) {
+    case 'enlace_caducado':
+      return 'El enlace de confirmación caducó o ya se había usado. Inicia sesión; si no puedes, vuelve a registrarte para recibir uno nuevo.';
+    case 'enlace_invalido':
+      return 'El enlace de confirmación no es válido.';
+    default:
+      return null;
+  }
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="w-full max-w-sm h-64" />}>
@@ -30,6 +42,7 @@ function LoginInner() {
   const router = useRouter();
   const search = useSearchParams();
   const next = safeNext(search.get('next'));
+  const notice = noticeFor(search.get('error'));
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,6 +81,12 @@ function LoginInner() {
         <h1 className="font-sans text-[14px] font-bold tracking-wider text-white mb-1">ACCESO</h1>
         <p className="font-mono text-[12px] text-white/66 mb-4">Access is earned.</p>
 
+        {notice && (
+          <div className="mb-3 rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2 font-mono text-[12px] text-white/85">
+            {notice}
+          </div>
+        )}
+
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <Field label="EMAIL">
             <input
@@ -93,7 +112,7 @@ function LoginInner() {
           </Field>
 
           {error && (
-            <div className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
+            <div role="alert" className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
               {error}
             </div>
           )}
