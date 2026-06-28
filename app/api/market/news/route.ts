@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fallbackNewsSentiment } from '@/lib/market/finnhub';
+import { rateLimitByIP } from '@/lib/api-helpers';
 
-export const runtime = 'edge';
+// Node runtime: rateLimitByIP usa @upstash/redis (no Edge). Auditoría Fase 0 · #2.
+export const runtime = 'nodejs';
 
 const RequestSchema = z.object({
   symbol: z.string().min(1).max(20),
@@ -10,6 +12,9 @@ const RequestSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const symbol = req.nextUrl.searchParams.get('symbol');
   const limit = req.nextUrl.searchParams.get('limit') ?? undefined;
   const parsed = RequestSchema.safeParse({ symbol, limit });

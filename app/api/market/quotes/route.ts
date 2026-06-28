@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
+import { rateLimitByIP } from '@/lib/api-helpers';
 
-export const runtime = 'edge';
+// Node runtime: rateLimitByIP usa @upstash/redis (no Edge-compatible). Antes
+// 'edge' sin throttle ni auth → superficie de DoS/coste (auditoría Fase 0 · #2).
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const SYMBOL_REGEX = /^[A-Z0-9.\-/=^]+$/i;
@@ -33,6 +36,9 @@ interface QuoteRow {
  * cliente, que quemaba el rate-limit AV en 10+ tickers.
  */
 export async function GET(req: NextRequest) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const symbols = req.nextUrl.searchParams.get('symbols');
   const sparkFlag = req.nextUrl.searchParams.get('spark') === '1';
   const parsed = RequestSchema.safeParse({ symbols, spark: req.nextUrl.searchParams.get('spark') ?? undefined });
