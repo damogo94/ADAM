@@ -8,6 +8,7 @@ import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { applyRunEvent } from '@/lib/run/apply-event';
 import { INITIAL, type RunState, type StreamEvent } from '@/lib/run/types';
+import { postEstructura } from '@/lib/estructura/post';
 import type {
   A1Output_t as A1Output,
   A2Output_t as A2Output,
@@ -35,12 +36,7 @@ async function fetchEstructura(
   signal?: AbortSignal
 ): Promise<EstructuraOutput_t | null> {
   try {
-    const r = await fetch('/api/agents/estructura', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker }),
-      signal,
-    });
+    const r = await postEstructura(ticker, signal);
     if (!r.ok) return null;
     return (await r.json()) as EstructuraOutput_t;
   } catch {
