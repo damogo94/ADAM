@@ -35,7 +35,7 @@ const ACCENT: Record<Accent, string> = {
 const KIND: Record<Exclude<NodeKind, 'agent' | 'agentIsolated'>, string> = {
   io: 'border-white/60 bg-white/[0.06]',
   data: 'border-white/15 bg-white/[0.02]',
-  compute: 'border-emerald/55 bg-emerald/[0.06]',
+  compute: 'border-accent/55 bg-accent/[0.06]',
   debate: 'border-white/25 border-dashed bg-white/[0.02]',
   persist: 'border-a4/40 bg-a4/[0.05]',
 };
@@ -59,7 +59,7 @@ function Node({
   const tone =
     kind === 'agent' || kind === 'agentIsolated' ? ACCENT[accent] : KIND[kind];
   const titleCls =
-    kind === 'compute' ? 'text-emerald' : 'text-white';
+    kind === 'compute' ? 'text-accent' : 'text-white';
   return (
     <div className={`rounded-lg border px-2.5 py-1.5 ${tone} ${className ?? ''}`}>
       <div className="flex items-center gap-1">
@@ -217,7 +217,7 @@ export function ArchitectureDiagram() {
 
       {/* Leyenda por tipo de nodo */}
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/5 pt-2 font-mono text-[10px] text-white/55">
-        <LegendDot className="border-emerald/55 bg-emerald/[0.06]" label="compute · sin LLM" />
+        <LegendDot className="border-accent/55 bg-accent/[0.06]" label="compute · sin LLM" />
         <LegendDot className="border-white/90 border-dashed bg-white/[0.08]" label="A3 aislado · solo OHLCV" />
         <LegendDot className="border-white/25 border-dashed bg-white/[0.02]" label="condicional (debate)" />
         <LegendDot className="border-a4/40 bg-a4/[0.05]" label="persistencia" />

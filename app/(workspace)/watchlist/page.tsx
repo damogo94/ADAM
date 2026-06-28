@@ -354,10 +354,10 @@ export default function WatchlistScreen() {
           aria-modal="true"
         >
           <div
-            className="rounded-[15px] border border-rose/30 bg-surface-2 px-4 py-3 max-w-xs w-full"
+            className="rounded-[15px] border border-white/15 bg-surface-2 px-4 py-3 max-w-xs w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="font-sans text-[12px] font-bold tracking-wider text-rose mb-1">
+            <div className="font-sans text-[12px] font-bold tracking-wider text-white mb-1">
               ¿Quitar de tus favoritos?
             </div>
             <div className="font-mono text-[12px] text-white/65 leading-snug mb-3">
@@ -373,7 +373,7 @@ export default function WatchlistScreen() {
               </button>
               <button
                 onClick={() => void onConfirmDelete(confirmDeleteId)}
-                className="flex-1 rounded-md border border-rose bg-rose/[0.12] px-2 py-1.5 font-mono text-[12px] text-rose hover:bg-rose/[0.18] transition"
+                className="flex-1 rounded-md border border-white/30 bg-white/[0.08] px-2 py-1.5 font-mono text-[12px] text-white hover:bg-white/[0.14] transition"
               >
                 quitar
               </button>

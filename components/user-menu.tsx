@@ -39,10 +39,10 @@ export function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2 py-1 transition hover:border-a1/40"
+        className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2 py-1 transition hover:border-accent/40"
         aria-label="User menu"
       >
-        <span className="font-sans text-[12px] font-bold text-a1">{initials}</span>
+        <span className="font-sans text-[12px] font-bold text-ink">{initials}</span>
         <span className="text-[12px] text-slate-l">▾</span>
       </button>
 
@@ -55,7 +55,7 @@ export function UserMenu() {
           <button
             onClick={logout}
             disabled={loading}
-            className="block w-full px-3 py-2 text-left font-mono text-[11px] text-rose hover:bg-rose/10 transition disabled:opacity-50"
+            className="block w-full px-3 py-2 text-left font-mono text-[11px] text-ink/70 hover:bg-ink/[0.06] hover:text-ink transition disabled:opacity-50"
           >
             {loading ? 'cerrando...' : 'cerrar sesión ▶'}
           </button>

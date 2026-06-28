@@ -278,7 +278,7 @@ export function RadarRow({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute right-2 top-2 rounded px-1.5 py-0.5 font-mono text-[12px] text-rose/70 opacity-0 transition hover:bg-rose/[0.08] hover:text-rose group-hover:opacity-100"
+        className="absolute right-2 top-2 rounded px-1.5 py-0.5 font-mono text-[12px] text-white/40 opacity-0 transition hover:bg-white/[0.08] hover:text-white/80 group-hover:opacity-100"
         aria-label={`Eliminar ${ticker}`}
       >
         ×
