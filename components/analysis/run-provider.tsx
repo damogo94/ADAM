@@ -109,7 +109,9 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
       });
       if (!r.ok) return;
       const cj = (await r.json()) as { a4?: A4Output };
-      if (cj.a4) setState((s) => ({ ...s, a4: cj.a4! }));
+      // Guard por ticker: un A4 re-narrado de un ticker viejo NO debe pisar el run
+      // actual (race del toggle de Estructura — auditoría Fase 0 · #3).
+      if (cj.a4) setState((s) => (s.ticker === params.ticker ? { ...s, a4: cj.a4! } : s));
     } catch {
       /* best-effort: conservamos el A4 anterior */
     }
@@ -315,9 +317,13 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
 
     const current = state.ticker;
     if (current && !state.estructura) {
+      // Señal del run en curso: si el usuario lanza otro ticker, su handleRun
+      // aborta este controller y cancela el fetch/reconsolidación en vuelo (evita
+      // contaminar el run nuevo con la pata de un ticker viejo — Fase 0 · #3).
+      const signal = abortRef.current?.signal;
       setState((s) => ({ ...s, estructuraStatus: 'scanning' }));
-      void fetchEstructura(current).then((est) => {
-        if (!estEnabledRef.current) return;
+      void fetchEstructura(current, signal).then((est) => {
+        if (signal?.aborted || !estEnabledRef.current) return;
         setState((s) =>
           s.ticker === current
             ? { ...s, estructura: est, estructuraStatus: est ? 'done' : 'error' }
@@ -332,6 +338,7 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
             debate: state.debate,
             estructura: est,
             analysisId: state.analysisId,
+            signal,
           });
         }
       });
