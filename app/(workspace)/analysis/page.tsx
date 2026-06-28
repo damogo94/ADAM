@@ -38,8 +38,15 @@ function AnalysisInner() {
   const { radar } = useRadar();
   const search = useSearchParams();
   const autoTicker = search.get('ticker');
-  // Origen "vienes del radar" (B3): ?ticker solo NO basta (deep-links/onboarding).
-  const fromRadar = search.get('from') === 'radar';
+  // Origen del deep-link (B3): ?ticker solo NO basta (deep-links/onboarding).
+  // Cada origen aporta su propia migaja de vuelta a la pantalla de procedencia.
+  const from = search.get('from');
+  const origin =
+    from === 'radar'
+      ? { href: '/watchlist', label: '← vienes del radar' }
+      : from === 'signal'
+        ? { href: '/signals', label: '← vienes de señales' }
+        : null;
   const autoRanRef = useRef<string | null>(null);
 
   // Auto-trigger desde /watchlist (?ticker=X). Si el run PERSISTIDO en el shell ya
@@ -90,14 +97,14 @@ function AnalysisInner() {
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-3xl lg:max-w-6xl xl:max-w-7xl">
       <Header status={headerStatus} />
 
-      {/* Breadcrumb de origen (Fase 1B·B3) — solo si vienes del radar (&from=radar). */}
-      {fromRadar && (
+      {/* Breadcrumb de origen (Fase 1B·B3) — radar (&from=radar) o señales (&from=signal). */}
+      {origin && (
         <div className="mx-4 mt-2 font-mono text-fluid-micro">
           <Link
-            href="/watchlist"
+            href={origin.href}
             className="inline-flex items-center gap-1 text-ink/45 underline-offset-2 transition-colors hover:text-ink/75 hover:underline"
           >
-            ← vienes del radar
+            {origin.label}
           </Link>
         </div>
       )}
@@ -112,7 +119,7 @@ function AnalysisInner() {
           onClick={toggleEstructura}
           aria-pressed={estEnabled}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
+            'inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
             estEnabled
               ? 'border-accent/60 bg-accent/10 text-accent'
               : 'border-dashed border-white/20 text-white/55 hover:border-white/35 hover:text-white/80'
@@ -149,7 +156,7 @@ function AnalysisInner() {
             disabled={state.alerta === 'pinning' || state.alerta === 'pinned'}
             aria-label="Fijar alerta CMT: añadir al radar para que el scanner lo vigile"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
+              'inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
               state.alerta === 'pinned'
                 ? 'border-accent/60 bg-accent/10 text-accent'
                 : 'border-white/20 text-white/70 hover:border-white/35 hover:text-white disabled:opacity-50'
@@ -168,7 +175,7 @@ function AnalysisInner() {
             <button
               type="button"
               onClick={toggleEstructura}
-              className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-dashed border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white"
             >
               + Sumar Estructura
             </button>
@@ -178,7 +185,7 @@ function AnalysisInner() {
             type="button"
             onClick={() => state.ticker && void handleRun(state.ticker)}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white disabled:opacity-50"
           >
             ↻ Re-analizar
           </button>
@@ -187,6 +194,7 @@ function AnalysisInner() {
 
       {state.error && (
         <div
+          role="alert"
           className={cn(
             'mx-4 mt-3 rounded-lg border px-3 py-2.5 transition-all',
             // Errores = chrome → severidad por INTENSIDAD de blanco, no por
@@ -215,7 +223,7 @@ function AnalysisInner() {
       )}
 
       {state.partial && state.failures.length > 0 && (
-        <div className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.05] px-3 py-2">
+        <div role="status" className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.05] px-3 py-2">
           <div className="font-sans text-fluid-caption font-bold tracking-wider text-white/80 mb-0.5">
             ANÁLISIS PARCIAL
           </div>

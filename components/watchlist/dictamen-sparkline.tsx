@@ -32,8 +32,8 @@ interface DictamenSparklineProps {
 }
 
 const COLORS: Record<RadarDirection_t | 'unknown', string> = {
-  positivo: 'rgb(16 185 129)', // emerald
-  negativo: 'rgb(244 63 94)', // rose
+  positivo: 'rgb(52 211 153)', // emerald (token #34D399)
+  negativo: 'rgb(251 113 133)', // rose (token #FB7185)
   neutral: 'rgb(255 255 255 / 0.6)', // blanco medio
   unknown: 'rgb(255 255 255 / 0.4)', // blanco bajo
 };

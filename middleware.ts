@@ -14,7 +14,7 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|fonts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };
 
-const APP_ROUTES = ['/analysis', '/estructura', '/watchlist', '/signals', '/system'];
+const APP_ROUTES = ['/analysis', '/estructura', '/watchlist', '/signals', '/historial', '/system'];
 const AUTH_ROUTES = ['/login', '/signup'];
 
 export async function middleware(req: NextRequest) {

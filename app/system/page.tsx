@@ -67,6 +67,7 @@ export default function SystemScreen() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [calibration, setCalibration] = useState<Calibration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -74,6 +75,7 @@ export default function SystemScreen() {
 
   async function load() {
     setLoading(true);
+    setError(null);
     try {
       const [statsRes, calRes] = await Promise.all([
         fetch('/api/system'),
@@ -84,10 +86,15 @@ export default function SystemScreen() {
           router.push('/login?next=/system');
           return;
         }
+        // No tragamos el fallo en silencio: sin esto la página pintaba ceros/"—"
+        // como si fueran datos reales (el `?? 0` de cada Stat). Mostramos banner.
+        setError(`No se pudieron cargar las métricas del sistema (HTTP ${statsRes.status}).`);
         return;
       }
       setStats(await statsRes.json());
       if (calRes.ok) setCalibration(await calRes.json());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo conectar con el sistema.');
     } finally {
       setLoading(false);
     }
@@ -120,6 +127,35 @@ export default function SystemScreen() {
       </section>
 
       <SectionLabel>métricas</SectionLabel>
+      {error && !stats ? (
+        <div
+          role="alert"
+          className="mx-4 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-white/80"
+        >
+          <div className="mb-1 uppercase tracking-wider text-white/60">métricas no disponibles</div>
+          {error} No se muestran contadores para no presentar ceros como si fueran datos reales.{' '}
+          <button
+            onClick={() => void load()}
+            className="underline underline-offset-2 transition-colors hover:text-white"
+          >
+            reintentar
+          </button>
+        </div>
+      ) : (
+      <>
+        {/* Retry fallido tras una carga previa OK: los datos son reales pero viejos.
+            No viola "cero ceros falsos" (hay datos), pero el fallo no debe quedar mudo. */}
+        {error && (
+          <div
+            role="alert"
+            className="mx-4 mb-2 rounded-[15px] border border-white/20 bg-white/[0.05] px-3 py-2 font-mono text-[11px] leading-snug text-white/75"
+          >
+            No se pudo actualizar — mostrando datos previos.{' '}
+            <button onClick={() => void load()} className="underline underline-offset-2 hover:text-white">
+              reintentar
+            </button>
+          </div>
+        )}
       <div className="px-4 grid grid-cols-2 gap-2">
         <Stat n={stats?.analyses_total ?? 0} l="análisis ejecutados" />
         <Stat n={stats?.signals_total ?? 0} l="señales generadas" />
@@ -144,6 +180,8 @@ export default function SystemScreen() {
           sub="acumulado del período"
         />
       </div>
+      </>
+      )}
 
       <SectionLabel>usuarios</SectionLabel>
       <UsersConsole />

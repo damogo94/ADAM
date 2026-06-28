@@ -121,7 +121,7 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
             autoFocus
           />
           {favorites.error && (
-            <div className="mt-2 font-mono text-[12px] text-rose">
+            <div role="alert" className="mt-2 rounded-lg border border-white/20 bg-white/[0.05] px-2.5 py-1.5 font-mono text-[12px] text-white/80">
               ⚠ no se pudo sincronizar favoritos — reintenta
             </div>
           )}
@@ -235,7 +235,7 @@ function TabChip({
       type="button"
       onClick={() => onSelect(id)}
       className={cn(
-        'flex-shrink-0 rounded-full border px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.08em] transition-all',
+        'inline-flex min-h-[44px] flex-shrink-0 items-center justify-center rounded-full border px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.08em] transition-all',
         active
           ? 'border-white bg-white text-black'
           : 'border-white/15 bg-white/[0.03] text-white/65 hover:border-white/35 hover:text-white'

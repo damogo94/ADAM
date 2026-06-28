@@ -20,7 +20,7 @@ export function Sparkline({ values, width = 60, height = 20, stroke, className }
   if (!values || values.length < 2) {
     return (
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={className}>
-        <line x1={0} y1={height / 2} x2={width} y2={height / 2} stroke="rgb(71 85 105 / 0.4)" strokeDasharray="2 2" strokeWidth={0.5} />
+        <line x1={0} y1={height / 2} x2={width} y2={height / 2} stroke="rgb(82 82 82 / 0.4)" strokeDasharray="2 2" strokeWidth={0.5} />
       </svg>
     );
   }
@@ -35,7 +35,7 @@ export function Sparkline({ values, width = 60, height = 20, stroke, className }
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   });
   const up = values[values.length - 1]! >= values[0]!;
-  const color = stroke ?? (up ? 'rgb(16 185 129)' : 'rgb(244 63 94)'); // emerald | rose
+  const color = stroke ?? (up ? 'rgb(52 211 153)' : 'rgb(251 113 133)'); // emerald | rose (tokens)
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={className}>

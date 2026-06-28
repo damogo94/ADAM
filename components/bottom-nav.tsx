@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType } from 'react';
 import { cn } from '@/lib/utils';
-import { AnomalyLoop, SplitA, Observer, Monogram, Origin } from './symbols';
+import { AnomalyLoop, SplitA, Observer, Monogram, Origin, Chronicle } from './symbols';
 
 interface NavItem {
   href: string;
@@ -23,6 +23,7 @@ const ITEMS: NavItem[] = [
   { href: '/analysis', label: 'ANÁLISIS', Icon: AnomalyLoop },
   { href: '/watchlist', label: 'WATCHLIST', Icon: SplitA },
   { href: '/signals', label: 'SEÑALES', Icon: Observer },
+  { href: '/historial', label: 'HISTORIAL', Icon: Chronicle },
   { href: '/system', label: 'SISTEMA', Icon: Monogram },
 ];
 
@@ -45,6 +46,12 @@ export function BottomNav() {
     };
   }, []);
 
+  // El bottom-nav (montado en el root layout) NO debe aparecer sobre las rutas
+  // de auth: ahí sus tabs redirigen en bucle a un usuario sin sesión. El return
+  // va DESPUÉS de los hooks (Rules of Hooks: BottomNav persiste entre navegaciones,
+  // el conteo de hooks debe ser estable). /inicio SÍ lleva nav (destino legítimo).
+  if (pathname === '/login' || pathname === '/signup') return null;
+
   const items = ITEMS.filter((it) => it.href !== '/system' || systemAllowed);
 
   return (
@@ -63,7 +70,7 @@ export function BottomNav() {
             <it.Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-white/66')} title={it.label} />
             <span
               className={cn(
-                'font-mono text-[12px] tracking-wider',
+                'font-mono text-[12px] tracking-wider whitespace-nowrap',
                 active ? 'text-accent' : 'text-white/66'
               )}
             >

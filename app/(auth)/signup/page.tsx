@@ -26,7 +26,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { display_name: displayName || email.split('@')[0] },
-        emailRedirectTo: `${window.location.origin}/analysis`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
       },
     });
     setLoading(false);
@@ -35,11 +35,15 @@ export default function SignupPage() {
       return;
     }
     if (data.user && data.session) {
-      // Auto-confirm activado en Supabase Auth → sesión inmediata
+      // Confirmación de email desactivada en Supabase → signUp ya devuelve sesión.
       router.push('/analysis');
       router.refresh();
     } else {
-      setInfo('Cuenta creada. Revisa tu email para confirmarla antes de entrar.');
+      // Confirmación activada: NO hay sesión hasta confirmar. El enlace del email
+      // lleva a /auth/confirm, que canjea el token y crea la sesión.
+      setInfo(
+        'Cuenta creada. Te enviamos un email de confirmación — mira también spam/promociones. El enlace caduca, confírmalo cuanto antes.'
+      );
     }
   }
 
@@ -52,7 +56,7 @@ export default function SignupPage() {
           Detect the unseen
         </div>
         <div className="mt-1 font-mono text-[12px] tracking-wider text-white/45 uppercase">
-          Anomaly Detection &amp; Analysis Modular
+          Anomaly Detection &amp; Analysis Module
         </div>
       </div>
 
@@ -96,7 +100,7 @@ export default function SignupPage() {
           </Field>
 
           {error && (
-            <div className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
+            <div role="alert" className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
               {error}
             </div>
           )}
