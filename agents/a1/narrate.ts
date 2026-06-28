@@ -1,18 +1,14 @@
 /**
  * A.D.A.M. — narrateA1
  *
- * Refactor Fase 1 · Tarea 1.5 (pipeline integrado)
+ * Versión "narrate-only" del agente A1, y hoy la ÚNICA: el viejo
+ * `agents/a1/client.ts runA1` y el endpoint `/api/agents/a1` fueron
+ * eliminados cuando el pipeline (`runADAM`) pasó a ser el camino vivo.
+ * narrateA1 solo lo invoca el pipeline; nunca un endpoint individual.
  *
- * Versión "narrate-only" del agente A1. Mantiene la misma firma semántica
- * que `runA1` (recibe ticker + market_snapshot, devuelve A1Output_t) pero:
+ * Recibe ticker + market_snapshot y devuelve A1Output_t. Además:
  *   1. Acepta un `traceId` para logging estructurado correlacionado.
- *   2. Importa el schema NUEVO de `agents/shared/types.ts` (strict).
- *   3. NO es invocado por endpoints individuales — solo por el pipeline.
- *      El viejo `agents/a1/client.ts runA1` sigue activo en
- *      `/api/agents/a1/route.ts` para no romper la integración existente.
- *
- * Cuando el pipeline esté validado y migremos endpoints, este archivo
- * reemplaza a `client.ts`.
+ *   2. Valida contra el schema strict de `agents/shared/types.ts`.
  */
 
 import { runAgent, MODELS, type AgentUsage } from '@/lib/anthropic';

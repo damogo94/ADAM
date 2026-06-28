@@ -1,6 +1,5 @@
 /**
- * Pantalla raíz — redirige a ANÁLISIS.
- * En Sprint 2 esto pasa a /(app)/analysis con auth gate.
+ * Pantalla raíz — redirige a /analysis (grupo (workspace), con auth gate).
  */
 import { redirect } from 'next/navigation';
 

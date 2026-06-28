@@ -21,7 +21,7 @@ pnpm test -t "A3 isolation"
 
 Engines: Node ≥20 <23 (Node 24 works with a benign engine warning). Canonical package manager is **pnpm@9.12.0** (`packageManager` field); if pnpm isn't on PATH, run everything via `corepack pnpm …`. ESLint is wired up (`.eslintrc.json` → `next/core-web-vitals` + `@typescript-eslint` plugin so disable-directives resolve); `pnpm lint` runs clean (only non-blocking warnings). eslint is pinned to **8.57.1** to satisfy `eslint-config-next@14`'s peer — do **not** bump it back to 9 without moving config-next too. **CI** (`.github/workflows/ci.yml`) runs `install --frozen-lockfile → typecheck → lint → test` on every PR and push to `main`.
 
-`feature/estetica` is the working branch; merging it into `main` (and pushing `main`) triggers the Vercel production deploy.
+Feature branches follow the `feat/*` / `redesign/*` pattern; merging one into `main` (and pushing `main`) triggers the Vercel production deploy.
 
 ## Architecture (big picture)
 
@@ -59,7 +59,7 @@ Model assignment (ADR-001, referenced inline in `agents/a3/narrate.ts` and `agen
 
 `/api/agents/run` passes `skipA2Narrate: true` to `runADAM`. A2 is read from the Upstash cache only; if missing, A2 stays `null` and the pipeline degrades gracefully. The frontend (`app/analysis/page.tsx`) fires `/api/agents/a2` in **parallel** to warm the cache in its own lambda — splitting load away from the 60s budget of `/run`. Tests and legacy callers that omit `skipA2Narrate` get the inline narrate behaviour. If you add a new caller, decide consciously which mode applies.
 
-**First-run A2 gap + re-narrate.** On a ticker's first analysis the A2 cache is cold, so `/run` returns `a2: null` and A4 is baked with "A2 unavailable" + degraded confluence. When the parallel `/api/agents/a2` resolves, the frontend updates the A2 card (the confluence indicator recomputes client-side via `lib/confluence`) **and** calls the `/api/agents/a4` consolidator to re-narrate A4 with the now-complete `a1/a2/a3` (best-effort — on failure the prior A4 stays). Note: this does **not** update the already-persisted `analyses_log` row (it still holds the a2-null A4) — a known follow-up.
+**First-run A2 gap + re-narrate.** On a ticker's first analysis the A2 cache is cold, so `/run` returns `a2: null` and A4 is baked with "A2 unavailable" + degraded confluence. When the parallel `/api/agents/a2` resolves, the frontend updates the A2 card (the confluence indicator recomputes client-side via `lib/confluence`) **and** calls the `/api/agents/a4` consolidator to re-narrate A4 with the now-complete `a1/a2/a3` (best-effort — on failure the prior A4 stays). When the frontend passes `analysisId` to the consolidator, it **also** updates the already-persisted `analyses_log` row via `consolidateAndPersistA4` (`app/api/agents/a4/route.ts` → `agents/a4/consolidate.ts`), so the stored A4 reflects the complete a1/a2/a3 — the first-run gap is closed in persistence too.
 
 ### Market data — Yahoo + Finnhub + FRED (macro) + crypto providers
 
