@@ -3,7 +3,7 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { buildCMTSignal } from '@/agents/cmt/build-signal';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
-import { checkSameOrigin } from '@/lib/api-helpers';
+import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import type { CMTOutput } from '@/agents/cmt/schema';
 
 export const runtime = 'nodejs';
@@ -116,6 +116,12 @@ export async function POST(req: NextRequest) {
   // CSRF aplica SOLO en path manual — cron viene de Vercel sin Origin
   const csrf = checkSameOrigin(req);
   if (csrf) return csrf;
+
+  // Rate-limit del path MANUAL (cookie-auth): el scan es CARO (loop con sleep
+  // 1s/ticker sobre toda la watchlist) y era el único mutante autenticado sin
+  // throttle. Bucket 'analysis' = 5/min + 30/día/IP. (Auditoría Fase 0 · #1.)
+  const rl = await rateLimitByIP(req, 'analysis');
+  if (rl) return rl;
 
   // Opcional: body `{ tickers: string[] }` para limitar el scan a un
   // subset (selección desde /signals). Sin body → escanea TODA la
