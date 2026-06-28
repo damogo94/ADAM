@@ -25,8 +25,8 @@ export default function GlobalError({
         style={{
           margin: 0,
           minHeight: '100vh',
-          background: '#020610',
-          color: '#fff',
+          background: '#0B0B0D',
+          color: '#F5F5F7',
           fontFamily: 'system-ui, -apple-system, sans-serif',
           display: 'flex',
           alignItems: 'center',
@@ -46,7 +46,7 @@ export default function GlobalError({
           >
             500 · ERROR INTERNO
           </div>
-          <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+          <p style={{ color: 'rgba(245,245,247,0.6)', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
             Algo se rompió y el sistema lo reportó automáticamente. Reintenta o vuelve a la pantalla de
             análisis.
           </p>
@@ -54,8 +54,8 @@ export default function GlobalError({
             href="/analysis"
             style={{
               display: 'inline-block',
-              background: '#3b82f6',
-              color: '#fff',
+              background: '#5B8AF0',
+              color: '#F5F5F7',
               padding: '10px 24px',
               borderRadius: 8,
               textDecoration: 'none',

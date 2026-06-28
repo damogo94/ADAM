@@ -126,11 +126,11 @@ export default function SystemScreen() {
         <Stat
           n={stats?.signals_urgentes ?? 0}
           l="urgentes"
-          cls={(stats?.signals_urgentes ?? 0) > 0 ? 'text-rose' : 'text-white/66'}
+          cls={(stats?.signals_urgentes ?? 0) > 0 ? 'text-accent' : 'text-white/66'}
           emphasis={(stats?.signals_urgentes ?? 0) > 0}
         />
         <Stat n={stats?.watchlist_tickers ?? 0} l="activos en watchlist" />
-        <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" cls="text-amber" />
+        <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" cls="text-ink" />
         <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media A4" />
         <Stat
           n={fmtTokens(stats?.tokens_total ?? 0)}
@@ -140,7 +140,7 @@ export default function SystemScreen() {
         <Stat
           n={`$${(stats?.cost_usd_estimated ?? 0).toFixed(2)}`}
           l="coste USD · últimos 100"
-          cls="text-emerald"
+          cls="text-accent"
           sub="acumulado del período"
         />
       </div>
@@ -163,7 +163,7 @@ export default function SystemScreen() {
           </div>
         ) : (
           <>
-            <div className="font-mono text-[12px] text-emerald uppercase tracking-wider font-medium mb-1.5">
+            <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium mb-1.5">
               hit-rate global: {calibration.total.hit_rate_pct}% · N={calibration.total.n}
             </div>
             <KV
@@ -302,7 +302,7 @@ export default function SystemScreen() {
               <div className="font-mono text-[12px] text-white/66 truncate">{a.model}</div>
             </div>
             {a.mode === 'compute' && (
-              <span className="font-mono text-[10px] uppercase tracking-wider text-emerald border border-emerald/35 bg-emerald/[0.05] rounded px-1.5 py-0.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-accent border border-accent/35 bg-accent/[0.05] rounded px-1.5 py-0.5">
                 hybrid
               </span>
             )}
@@ -315,8 +315,8 @@ export default function SystemScreen() {
       </div>
 
       <SectionLabel>pipeline determinístico</SectionLabel>
-      <div className="mx-4 rounded-[15px] border border-emerald/20 bg-emerald/[0.03] px-3 py-2.5 space-y-1.5">
-        <div className="font-mono text-[12px] text-emerald uppercase tracking-wider font-medium">
+      <div className="mx-4 rounded-[15px] border border-accent/20 bg-accent/[0.03] px-3 py-2.5 space-y-1.5">
+        <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium">
           refactor F1 — math fuera del LLM
         </div>
         <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-white/85" />
@@ -330,7 +330,7 @@ export default function SystemScreen() {
         <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-white/85" />
         <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-white/85" />
         <KV k="osciladores A3" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-white/85" />
-        <KV k="tests · CI" v="692 unitarios · GitHub Actions typecheck+lint+test" cls="text-emerald" />
+        <KV k="tests · CI" v="692 unitarios · GitHub Actions typecheck+lint+test" cls="text-accent" />
       </div>
 
       <SectionLabel>arquitectura</SectionLabel>
@@ -349,14 +349,14 @@ export default function SystemScreen() {
 
       <SectionLabel>seguridad</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2">
-        <KV k="A3 aislado" v="✓ 3 capas + compute sin LLM" cls="text-emerald" />
-        <KV k="Estructura aislado" v="✓ guard propio · solo OHLCV (+vanilla)" cls="text-emerald" />
-        <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-emerald" />
-        <KV k="rate-limit" v="✓ 5/min/IP + 30/día/IP + 30/día/user" cls="text-emerald" />
-        <KV k="CSRF" v="✓ checkSameOrigin en POST" cls="text-emerald" />
-        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT·Estructura (shared/types)" cls="text-emerald" />
-        <KV k="type-safety" v="✓ tipos Supabase generados · 0 casts as-any en src" cls="text-emerald" />
-        <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-emerald" />
+        <KV k="A3 aislado" v="✓ 3 capas + compute sin LLM" cls="text-accent" />
+        <KV k="Estructura aislado" v="✓ guard propio · solo OHLCV (+vanilla)" cls="text-accent" />
+        <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-accent" />
+        <KV k="rate-limit" v="✓ 5/min/IP + 30/día/IP + 30/día/user" cls="text-accent" />
+        <KV k="CSRF" v="✓ checkSameOrigin en POST" cls="text-accent" />
+        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT·Estructura (shared/types)" cls="text-accent" />
+        <KV k="type-safety" v="✓ tipos Supabase generados · 0 casts as-any en src" cls="text-accent" />
+        <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-accent" />
       </div>
 
       <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">

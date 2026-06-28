@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
+import { rateLimitByIP } from '@/lib/api-helpers';
 
-export const runtime = 'edge';
+// Node runtime: rateLimitByIP usa @upstash/redis (no Edge). Auditoría Fase 0 · #2.
+export const runtime = 'nodejs';
 
 const SYMBOL_REGEX = /^[A-Z0-9.\-/=^]+$/i;
 const RequestSchema = z.object({
@@ -16,6 +18,9 @@ const RequestSchema = z.object({
  * Si `spark=1`, añade `spark7d: number[]` con los últimos 7 closes.
  */
 export async function GET(req: NextRequest) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const symbol = req.nextUrl.searchParams.get('symbol');
   const wantSpark = req.nextUrl.searchParams.get('spark') === '1';
   const parsed = RequestSchema.safeParse({ symbol });

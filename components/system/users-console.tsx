@@ -156,7 +156,7 @@ export function UsersConsole() {
     return <Box><span className="font-mono text-[12px] text-white/66">cargando usuarios…</span></Box>;
   }
   if (error) {
-    return <Box><span className="font-mono text-[12px] text-rose">{error}</span></Box>;
+    return <Box><span className="font-mono text-[12px] text-ink/80">{error}</span></Box>;
   }
   if (!users || users.length === 0) {
     return <Box><span className="font-mono text-[12px] text-white/66">sin usuarios</span></Box>;

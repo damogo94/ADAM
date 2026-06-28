@@ -8,6 +8,7 @@ import { AssetInput } from '@/components/asset-input';
 import { SectionLabel } from '@/components/section-label';
 import { EstructuraCard } from '@/components/agents/estructura-card';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
+import { postEstructura } from '@/lib/estructura/post';
 import { cn } from '@/lib/utils';
 import type { AgentStatus } from '@/components/agent-card-shell';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
@@ -52,12 +53,7 @@ function EstructuraInner() {
     setError(null);
 
     try {
-      const res = await fetch('/api/agents/estructura', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticker: raw }),
-        signal: ctrl.signal,
-      });
+      const res = await postEstructura(raw, ctrl.signal);
       if (ctrl.signal.aborted) return;
       const json = await res.json();
       if (ctrl.signal.aborted) return;
