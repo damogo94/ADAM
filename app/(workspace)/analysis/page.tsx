@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Header } from '@/components/header';
 import { AssetInput } from '@/components/asset-input';
 import { SectionLabel, FlowArrow } from '@/components/section-label';
-import { ConfluenceHero } from '@/components/analysis/confluence-hero';
+import { OrbitalHero } from '@/components/analysis/orbital-hero';
 import { A1Card } from '@/components/agents/a1-card';
 import { A2Card } from '@/components/agents/a2-card';
 import { A3Card } from '@/components/agents/a3-card';
@@ -241,7 +241,7 @@ function AnalysisInner() {
           fatal (la caja de error manda). VerdictBar (sticky, glance) y A4 card
           (desglose) coexisten; la cifra accionable es única en las tres piezas. */}
       {state.ticker !== null && !state.error && (
-        <ConfluenceHero
+        <OrbitalHero
           running={isLoading}
           resolved={state.a4Status === 'done'}
           statuses={{ a1: state.a1Status, a2: state.a2Status, a3: state.a3Status }}

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { SectionLabel, FlowArrow } from '@/components/section-label';
-import { ConfluenceHero } from '@/components/analysis/confluence-hero';
+import { OrbitalHero } from '@/components/analysis/orbital-hero';
 import { A1Card } from '@/components/agents/a1-card';
 import { A2Card } from '@/components/agents/a2-card';
 import { A3Card } from '@/components/agents/a3-card';
@@ -96,7 +96,7 @@ export function StoredAnalysisView({ a }: { a: StoredAnalysis }) {
     <>
       {a4 && <VerdictBar a4={a4} confluence={confluence} aligned={confluence?.aligned ?? false} />}
 
-      <ConfluenceHero
+      <OrbitalHero
         running={false}
         resolved={true}
         statuses={{ a1: a1Status, a2: a2Status, a3: a3Status }}
