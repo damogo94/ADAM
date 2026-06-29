@@ -34,7 +34,7 @@ export function A4Card({ status, data, aligned = false, confluencePct }: A4CardP
     <AgentCardShell
       accent="slate"
       badge="A4"
-      title={<Glossed term="veredicto">Veredicto final</Glossed>}
+      title={<Glossed term="sintesis">Síntesis</Glossed>}
       status={status}
       summary={hasData ? <A4Summary data={data} confluencePct={confluencePct} /> : undefined}
     >
@@ -92,9 +92,9 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
       </div>
 
       <div className="mb-2 grid grid-cols-3 gap-1.5">
-        <ResumenBlock badge="A1" text={resumen_a1} />
-        <ResumenBlock badge="A2" text={resumen_a2} />
-        <ResumenBlock badge="A3" text={resumen_a3} />
+        <ResumenBlock badge="Activo" text={resumen_a1} />
+        <ResumenBlock badge="Economía" text={resumen_a2} />
+        <ResumenBlock badge="Gráfico" text={resumen_a3} />
       </div>
 
       <SignalBox tone={pct >= 67 ? 'conf' : 'neut'}>

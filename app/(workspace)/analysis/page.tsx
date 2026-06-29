@@ -285,7 +285,7 @@ function AnalysisInner() {
           {state.debate && (
             <>
               <FlowArrow>↓ anomalía detectada</FlowArrow>
-              <SectionLabel>debate A1 × A2</SectionLabel>
+              <SectionLabel>debate · activo × economía</SectionLabel>
               <div className="px-4">
                 <DebateCard status={state.debateStatus} data={state.debate} />
               </div>
@@ -333,7 +333,7 @@ function AnalysisInner() {
           {state.a4 && (
             <>
               <FlowArrow>↓ output al usuario</FlowArrow>
-              <SectionLabel>sistema · A4</SectionLabel>
+              <SectionLabel>síntesis · veredicto</SectionLabel>
               <div className="px-4">
                 <A4Card
                   status={state.a4Status}

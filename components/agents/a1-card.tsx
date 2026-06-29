@@ -2,6 +2,7 @@ import type { A1Output_t as A1Output } from '@/agents/shared/types';
 import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/components/agent-card-shell';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { cn, fmtPct, fmtMarketCap } from '@/lib/utils';
+import { Glossed } from '@/components/lens/glossed';
 
 interface A1CardProps {
   status: AgentStatus;
@@ -50,7 +51,7 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
   return (
     <AgentCardShell
       badge="A1"
-      title="Activos"
+      title={<Glossed term="activo">Activo</Glossed>}
       status={status}
       source={isCrypto ? 'Yahoo · CoinMarketCap · newsdata' : 'Yahoo · Finnhub'}
       summary={hasData ? <A1Summary data={data} /> : undefined}
@@ -145,7 +146,7 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
             confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
-          A1 · confianza {confidence}%
+          Activo · confianza {confidence}%
         </div>
         <div className="font-mono text-fluid-caption leading-snug text-ink/90">{narrative}</div>
       </SignalBox>

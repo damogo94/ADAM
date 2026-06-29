@@ -129,8 +129,8 @@ export function ArchitectureDiagram() {
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[1fr_auto_minmax(0,12rem)]">
             {/* narrativos: reciben contexto (news/macro/fundamentales) */}
             <div className="flex flex-col gap-1.5">
-              <Node kind="agent" accent="a1" title="A1 · Activos" sub="micro · fund + noticias · Haiku" />
-              <Node kind="agent" accent="a2" title="A2 · Macro" sub="ciclo · tipos · inflación · Sonnet" />
+              <Node kind="agent" accent="a1" title="A1 · Activo" sub="micro · fund + noticias · Haiku" />
+              <Node kind="agent" accent="a2" title="A2 · Economía" sub="ciclo · tipos · inflación · Sonnet" />
             </div>
             <IsolationDivider />
             {/* A3: SOLO OHLCV → compute → narrate. Sin aristas de news/macro. */}
@@ -139,7 +139,7 @@ export function ArchitectureDiagram() {
               <Node
                 kind="agentIsolated"
                 accent="a3"
-                title="A3 · Price action"
+                title="A3 · Gráfico"
                 sub="solo OHLCV · Haiku"
                 tag="aislado"
               />
@@ -173,7 +173,7 @@ export function ArchitectureDiagram() {
 
         {/* 6 · OUTPUT — A4 */}
         <Zone label="Output">
-          <Node kind="agent" accent="a4" title="A4 · ensamblado" sub="cita A3 verbatim · disclaimer literal · Haiku" />
+          <Node kind="agent" accent="a4" title="A4 · Síntesis" sub="cita A3 verbatim · disclaimer literal · Haiku" />
         </Zone>
         <FlowDown />
 

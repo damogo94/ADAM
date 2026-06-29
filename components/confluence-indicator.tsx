@@ -73,13 +73,13 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
       {/* Desagregación por pares — la intensidad de blanco comunica el nivel. */}
       <div className="flex flex-col gap-2">
         <ConfluenceRow
-          label="A3 solo"
+          label={<Glossed term="grafico">Gráfico</Glossed>}
           score={data?.a3_solo.score ?? 0}
           rightLabel={data ? labelFromScore(data.a3_solo.score) : '—'}
           rightCls={data ? intensityFromScore(data.a3_solo.score) : 'text-ink/66'}
         />
         <ConfluenceRow
-          label="A1 + A2"
+          label="Narrativa"
           score={data?.a1_a2.score ?? 0}
           rightLabel={data ? labelFromScore(data.a1_a2.score) : '—'}
           rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-ink/66'}

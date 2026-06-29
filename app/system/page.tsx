@@ -53,11 +53,11 @@ interface Calibration {
 }
 
 const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'compute' }[] = [
-  { id: 'A1', label: 'Activos · micro', model: 'haiku-4-5', mode: 'narrate' },
-  { id: 'A2', label: 'Macro · global', model: 'sonnet-4-6', mode: 'narrate' },
-  { id: 'A3', label: 'Trading · price action', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
-  { id: 'A4', label: 'Sistema · ensamblado', model: 'haiku-4-5 (narrate) + código (confluence)', mode: 'compute' },
-  { id: 'DEBATE', label: 'Debate · A1 × A2', model: 'sonnet-4-6', mode: 'narrate' },
+  { id: 'A1', label: 'Activo · micro', model: 'haiku-4-5', mode: 'narrate' },
+  { id: 'A2', label: 'Economía · macro', model: 'sonnet-4-6', mode: 'narrate' },
+  { id: 'A3', label: 'Gráfico · price action', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
+  { id: 'A4', label: 'Síntesis · ensamblado', model: 'haiku-4-5 (narrate) + código (confluence)', mode: 'compute' },
+  { id: 'DEBATE', label: 'Debate · Activo × Economía', model: 'sonnet-4-6', mode: 'narrate' },
   { id: 'CMT', label: 'Scanner autónomo', model: 'código (computeTechnical · sin LLM)', mode: 'compute' },
   { id: 'EST', label: 'Estructura · price action MTF', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
 ];
@@ -307,12 +307,12 @@ export default function SystemScreen() {
               cls="text-ink/85"
             />
             <KV
-              k="· A2 macro"
+              k="· A2 economía"
               v={`${calibration.by_agent?.a2?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a2?.n ?? 0}`}
               cls="text-ink/85"
             />
             <KV
-              k="· A3 técnico"
+              k="· A3 gráfico"
               v={`${calibration.by_agent?.a3?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a3?.n ?? 0}`}
               cls="text-ink/85"
             />

@@ -143,6 +143,26 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     explanation:
       'De las señales pasadas que ya se resolvieron, qué porcentaje acertó la dirección. Es historial para calibrar cuánto fiarte — no una promesa de resultados futuros.',
   },
+  activo: {
+    label: 'Activo',
+    explanation:
+      'El primer analista (A1): mira el activo en sí — precio, fundamentales, noticias y sentimiento del propio ticker. Es la lectura "micro".',
+  },
+  economia: {
+    label: 'Economía',
+    explanation:
+      'El segundo analista (A2): el contexto macro — ciclo, tipos de interés, inflación. Sitúa el activo en el entorno económico; no mira el ticker en concreto.',
+  },
+  grafico: {
+    label: 'Gráfico',
+    explanation:
+      'El tercer analista (A3): solo precio. Lee el gráfico (OHLCV) de forma aislada —sin noticias ni macro— para que el técnico no se contamine con la narrativa.',
+  },
+  sintesis: {
+    label: 'Síntesis',
+    explanation:
+      'El paso final (A4): une las 3 lecturas (Activo, Economía, Gráfico) en una sola conclusión —el veredicto—. No añade datos nuevos; ensambla y pondera.',
+  },
 };
 
 /** Helper: devuelve la entrada del glosario o null si no existe. */

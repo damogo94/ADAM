@@ -3,6 +3,7 @@ import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/compon
 import { cn } from '@/lib/utils';
 import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { DataSection, SignalBox } from './a1-card';
+import { Glossed } from '@/components/lens/glossed';
 
 interface A2CardProps {
   status: AgentStatus;
@@ -15,7 +16,7 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
   return (
     <AgentCardShell
       badge="A2"
-      title="Macro"
+      title={<Glossed term="economia">Economía</Glossed>}
       status={status}
       source="FRED"
       summary={hasData ? <A2Summary data={data} /> : undefined}
@@ -90,7 +91,7 @@ function A2Body({ data }: { data: A2Output }) {
             confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
-          A2 · confianza {confidence}%
+          Economía · confianza {confidence}%
         </div>
         <div className="font-mono text-fluid-caption leading-snug text-ink/90">{narrative}</div>
       </SignalBox>

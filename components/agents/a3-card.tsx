@@ -4,6 +4,7 @@ import { MiniCandleChart } from '@/components/mini-candle-chart';
 import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
+import { Glossed } from '@/components/lens/glossed';
 
 interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
 
@@ -27,7 +28,7 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
   return (
     <AgentCardShell
       badge="A3"
-      title="Trading · Price Action"
+      title={<Glossed term="grafico">Gráfico</Glossed>}
       status={dotStatus}
       source="Yahoo · OHLCV"
       subline="Solo el gráfico — sin noticias ni economía"
