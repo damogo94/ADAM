@@ -23,9 +23,10 @@ import type {
 import type { A3Output } from '@/agents/a3/schema';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { DebateOutput } from '@/agents/debate/schema';
+import type { TradeSummary, TradeOutcomeSummary } from '@/lib/analyses/trade-summary';
 
-/** Resumen de un run pasado (lista del historial — sin los outputs JSONB). */
-export interface AnalysisSummaryRow {
+/** Campos escalares comunes a la lista y al detalle del historial. */
+interface AnalysisScalars {
   id: string;
   ticker: string;
   confluence_pct: number;
@@ -38,8 +39,14 @@ export interface AnalysisSummaryRow {
   created_at: string;
 }
 
+/** Fila de la lista del historial: escalares + el trade derivado y su resultado. */
+export interface AnalysisSummaryRow extends AnalysisScalars {
+  trade: TradeSummary | null;
+  outcome: TradeOutcomeSummary | null;
+}
+
 /** Run pasado COMPLETO — incluye los outputs de cada agente para el render read-only. */
-export interface StoredAnalysis extends AnalysisSummaryRow {
+export interface StoredAnalysis extends AnalysisScalars {
   a1_output: A1Output | null;
   a2_output: A2Output | null;
   a3_output: A3Output | null;
