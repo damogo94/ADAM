@@ -49,8 +49,8 @@ export function UserMenu() {
       {open && (
         <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-white/10 bg-surface-2 shadow-xl z-50">
           <div className="border-b border-white/5 px-3 py-2">
-            <div className="font-mono text-[12px] uppercase tracking-wider text-white/66 mb-0.5">Sesión</div>
-            <div className="truncate font-mono text-[11px] text-white">{email}</div>
+            <div className="font-mono text-[12px] uppercase tracking-wider text-ink/66 mb-0.5">Sesión</div>
+            <div className="truncate font-mono text-[11px] text-ink">{email}</div>
           </div>
           <button
             onClick={logout}

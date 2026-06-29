@@ -36,8 +36,8 @@ export function PinButton({ pinned, onToggle, disabled }: PinButtonProps) {
       className={cn(
         'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border transition',
         pinned
-          ? 'border-white/40 bg-white/[0.08] text-white'
-          : 'border-white/10 bg-white/[0.02] text-white/66 hover:border-white/30 hover:text-white/85',
+          ? 'border-white/40 bg-white/[0.08] text-ink'
+          : 'border-white/10 bg-white/[0.02] text-ink/66 hover:border-white/30 hover:text-ink/85',
         disabled && 'cursor-not-allowed opacity-40'
       )}
     >

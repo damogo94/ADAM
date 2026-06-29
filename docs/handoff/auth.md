@@ -7,7 +7,7 @@ Acceso a ADAM. `/login` (email+password) y `/signup` (nombre opcional + email + 
 
 ## Layout
 `AuthLayout`: `min-h-screen bg-void flex items-center justify-center px-4`. Tarjeta `w-full max-w-sm`:
-- Cabecera centrada: `Monogram` (`h-12 w-12`) + wordmark Orbitron `text-2xl` + tagline "Detect the unseen" + sub "Anomaly Detection & Analysis Module".
+- Cabecera centrada: `Monogram` (`h-12 w-12`) + wordmark Inter `font-extrabold` `text-2xl` + tagline "Detect the unseen" + sub "Anomaly Detection & Analysis Module".
 - Caja `rounded-[15px] border-white/10 bg-surface-2 p-5`: título (`ACCESO` / `CREAR CUENTA`) + frase + form (`Field` label mono uppercase `white/66` + input) + botón submit (blanco, full-width) + link a la otra ruta (`text-accent`).
 - Footer disclaimer `white/45`.
 

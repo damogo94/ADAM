@@ -105,8 +105,8 @@ export function AgentCardShell({
           className={cn('flex items-center gap-1.5 border-b border-ink/8 px-2.5 py-2', ACCENT_BG[accent])}
         >
           {badgeEl}
-          <span className="flex-1 font-mono text-fluid-caption font-medium text-white">{title}</span>
-          {source && <span className="font-mono text-fluid-caption text-white/66 flex-shrink-0">{source}</span>}
+          <span className="flex-1 font-mono text-fluid-caption font-medium text-ink">{title}</span>
+          {source && <span className="font-mono text-fluid-caption text-ink/66 flex-shrink-0">{source}</span>}
           <StatusDot status={status} />
         </header>
         {subline && (
@@ -135,7 +135,7 @@ export function AgentCardShell({
         <StatusDot status={status} />
         <span
           className={cn(
-            'font-mono text-fluid-caption leading-none text-white/66 transition-transform duration-200 flex-shrink-0',
+            'font-mono text-fluid-caption leading-none text-ink/66 transition-transform duration-200 flex-shrink-0',
             open && 'rotate-90'
           )}
           aria-hidden="true"
@@ -147,8 +147,8 @@ export function AgentCardShell({
       {open && (
         <>
           {(title || source) && (
-            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-fluid-micro uppercase tracking-wider text-white/66">
-              <span className="font-medium text-white/70">{title}</span>
+            <div className="flex items-center gap-1 px-2.5 pt-1.5 font-mono text-fluid-micro uppercase tracking-wider text-ink/66">
+              <span className="font-medium text-ink/70">{title}</span>
               {source && <span className="opacity-80">· {source}</span>}
             </div>
           )}
@@ -178,7 +178,7 @@ function StatusDot({ status }: { status: AgentStatus }) {
     return (
       <div className="flex items-center gap-0.5 flex-shrink-0">
         <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
-        <span className="font-mono text-fluid-caption font-medium text-white tracking-wider">LIVE</span>
+        <span className="font-mono text-fluid-caption font-medium text-ink tracking-wider">LIVE</span>
       </div>
     );
   }
@@ -202,8 +202,8 @@ function StatusDot({ status }: { status: AgentStatus }) {
 export function IdleState({ label = 'standby' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-4">
-      <div className="text-xl text-white/15">◎</div>
-      <div className="font-mono text-fluid-micro tracking-wider text-white/66">{label}</div>
+      <div className="text-xl text-ink/15">◎</div>
+      <div className="font-mono text-fluid-micro tracking-wider text-ink/66">{label}</div>
     </div>
   );
 }
@@ -216,10 +216,10 @@ export function ScanSteps({ steps }: { steps: { label: string; done: boolean }[]
           key={i}
           className={cn(
             'flex items-start gap-1.5 py-px font-mono text-fluid-caption',
-            s.done ? 'text-white/75' : 'text-white/66'
+            s.done ? 'text-ink/75' : 'text-ink/66'
           )}
         >
-          <span className={cn('w-2.5 flex-shrink-0 text-fluid-caption', s.done && 'text-white')}>
+          <span className={cn('w-2.5 flex-shrink-0 text-fluid-caption', s.done && 'text-ink')}>
             {s.done ? '✓' : '—'}
           </span>
           <span>{s.label}</span>

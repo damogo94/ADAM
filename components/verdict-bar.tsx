@@ -27,7 +27,7 @@ export function VerdictBar({
       ? 'text-emerald'
       : a4.direccion === 'negativo'
         ? 'text-rose'
-        : 'text-white/70';
+        : 'text-ink/70';
   // Titular (Fase 1 · ejes separados): la cifra de cabecera es la CONFIANZA
   // ACCIONABLE (|net|×f(κ), ya descontada por la discrepancia). κ se muestra
   // como eje propio al lado. score_total_pct se retira al detalle (indicador).
@@ -48,19 +48,19 @@ export function VerdictBar({
         <span className="ml-auto flex items-center gap-2.5">
           {/* Cifra de cabecera = confianza accionable (ya descontada por κ). */}
           <span className="flex items-baseline gap-1.5">
-            <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-white/66 sm:inline">
+            <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-ink/66 sm:inline">
               accionable
             </span>
-            <span className="font-mono text-fluid-label font-bold tabular-nums text-white">{actionable}%</span>
+            <span className="font-mono text-fluid-label font-bold tabular-nums text-ink">{actionable}%</span>
           </span>
           {/* κ — eje de coherencia, dedicado. Oculto en filas viejas sin κ. */}
           {kappa !== null && (
             <span className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
-              <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-white/66 sm:inline">
+              <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-ink/66 sm:inline">
                 κ
               </span>
               <KappaDots kappa={kappa} />
-              <span className="font-mono text-fluid-caption tabular-nums text-white/75">{Math.round(kappa * 100)}%</span>
+              <span className="font-mono text-fluid-caption tabular-nums text-ink/75">{Math.round(kappa * 100)}%</span>
             </span>
           )}
           {aligned && (
@@ -70,7 +70,7 @@ export function VerdictBar({
           )}
         </span>
       </div>
-      <div className="mt-1 truncate font-mono text-fluid-caption leading-snug text-white/80">{a4.accion_sugerida}</div>
+      <div className="mt-1 truncate font-mono text-fluid-caption leading-snug text-ink/80">{a4.accion_sugerida}</div>
     </div>
   );
 }

@@ -29,8 +29,8 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
 
   return (
     <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
-      <div className="font-sans text-fluid-micro font-bold tracking-[0.1em] text-white mb-0.5">CONFLUENCIA</div>
-      <div className="font-mono text-fluid-micro text-white/66 mb-3">alineamiento entre agentes activos</div>
+      <div className="font-sans text-fluid-micro font-bold tracking-[0.1em] text-ink mb-0.5">CONFLUENCIA</div>
+      <div className="font-mono text-fluid-micro text-ink/66 mb-3">alineamiento entre agentes activos</div>
 
       {/* Titular = dial radial (mismo componente que /inicio), en accent. */}
       <div className="mb-3 flex flex-col items-center gap-2 rounded-[11px] border border-white/8 bg-white/[0.015] px-2 py-3">
@@ -44,14 +44,14 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
             <IdleDial />
           )}
         </div>
-        <div className="font-mono text-fluid-micro uppercase tracking-wider text-white/55">
+        <div className="font-mono text-fluid-micro uppercase tracking-wider text-ink/55">
           {level === null ? 'en espera' : `nivel · ${level}`}
         </div>
 
         {/* κ — eje de coherencia, dedicado. Oculto si no hay ejes nuevos. */}
         {kappa !== null && (
           <div className="flex w-full items-center justify-center gap-1.5 border-t border-white/5 pt-2">
-            <span className="font-mono text-fluid-micro uppercase tracking-wider text-white/55">κ coherencia</span>
+            <span className="font-mono text-fluid-micro uppercase tracking-wider text-ink/55">κ coherencia</span>
             <span className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((i) => (
                 <span
@@ -63,7 +63,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
                 />
               ))}
             </span>
-            <span className="font-mono text-fluid-micro tabular-nums text-white/66">{Math.round(kappa * 100)}%</span>
+            <span className="font-mono text-fluid-micro tabular-nums text-ink/66">{Math.round(kappa * 100)}%</span>
           </div>
         )}
       </div>
@@ -74,13 +74,13 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           label="A3 solo"
           score={data?.a3_solo.score ?? 0}
           rightLabel={data ? labelFromScore(data.a3_solo.score) : '—'}
-          rightCls={data ? intensityFromScore(data.a3_solo.score) : 'text-white/66'}
+          rightCls={data ? intensityFromScore(data.a3_solo.score) : 'text-ink/66'}
         />
         <ConfluenceRow
           label="A1 + A2"
           score={data?.a1_a2.score ?? 0}
           rightLabel={data ? labelFromScore(data.a1_a2.score) : '—'}
-          rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-white/66'}
+          rightCls={data ? intensityFromScore(data.a1_a2.score) : 'text-ink/66'}
         />
         {/* Estructura — solo cuando el usuario activó el agente (opt-in). */}
         {data?.estructura && (
@@ -95,7 +95,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           label="Alineados"
           score={data?.alineados.score ?? 0}
           rightLabel={data ? labelFromPct(data.total_pct) : '—'}
-          rightCls={data ? intensityFromPct(data.total_pct) : 'text-white/66'}
+          rightCls={data ? intensityFromPct(data.total_pct) : 'text-ink/66'}
         />
       </div>
     </div>
@@ -130,7 +130,7 @@ function ConfluenceRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-fluid-caption text-white/70 w-[68px] flex-shrink-0">{label}</span>
+      <span className="font-mono text-fluid-caption text-ink/70 w-[68px] flex-shrink-0">{label}</span>
       <div className="flex gap-1">
         {/* 5 dots = quintiles del score 0-100. Cada dot representa 20%. */}
         {[1, 2, 3, 4, 5].map((i) => (
@@ -164,12 +164,12 @@ function labelFromPct(p: number): string {
   return 'baja';
 }
 function intensityFromScore(s: number): string {
-  if (s >= 67) return 'text-white';
-  if (s >= 34) return 'text-white/70';
-  return 'text-white/66';
+  if (s >= 67) return 'text-ink';
+  if (s >= 34) return 'text-ink/70';
+  return 'text-ink/66';
 }
 function intensityFromPct(p: number): string {
-  if (p >= 67) return 'text-white';
-  if (p >= 34) return 'text-white/70';
-  return 'text-white/66';
+  if (p >= 67) return 'text-ink';
+  if (p >= 34) return 'text-ink/70';
+  return 'text-ink/66';
 }

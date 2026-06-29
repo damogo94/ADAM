@@ -69,7 +69,7 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
         <div className="py-2 space-y-1">
           <div className="font-mono text-fluid-caption text-ink/80">error en A1 — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">{failureMessage}</div>
+            <div className="font-mono text-fluid-caption text-ink/66 leading-snug break-words">{failureMessage}</div>
           )}
         </div>
       )}
@@ -92,7 +92,7 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
           v={price.change_pct_7d === null ? 'n/d' : fmtPct(price.change_pct_7d)}
           cls={
             price.change_pct_7d === null
-              ? 'text-white/66'
+              ? 'text-ink/66'
               : price.change_pct_7d >= 0
                 ? 'text-emerald'
                 : 'text-rose'
@@ -111,14 +111,14 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
         <DataSection label="Noticias" source={isCrypto ? 'newsdata.io' : 'Finnhub'}>
           {news.slice(0, 3).map((n, i) => (
             <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
-              <div className="font-mono text-fluid-caption leading-snug text-white">{n.headline}</div>
-              <div className="font-mono text-fluid-caption text-white/66">
+              <div className="font-mono text-fluid-caption leading-snug text-ink">{n.headline}</div>
+              <div className="font-mono text-fluid-caption text-ink/66">
                 {n.source} ·{' '}
                 <span
                   className={cn(
                     n.sentiment === 'bullish' && 'text-emerald',
                     n.sentiment === 'bearish' && 'text-rose',
-                    n.sentiment === 'neutral' && 'text-white/66'
+                    n.sentiment === 'neutral' && 'text-ink/66'
                   )}
                 >
                   {n.sentiment === 'bullish' ? '↑ alcista' : n.sentiment === 'bearish' ? '↓ bajista' : '→ neutral'}
@@ -134,7 +134,7 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
           <div className="font-mono text-fluid-micro font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ {data.anomaly_type ?? 'anomalía'} detectada
           </div>
-          <div className="font-mono text-fluid-caption leading-snug text-white/95">{anomaly_description}</div>
+          <div className="font-mono text-fluid-caption leading-snug text-ink/95">{anomaly_description}</div>
         </SignalBox>
       )}
 
@@ -160,7 +160,7 @@ function A1Summary({ data }: { data: A1Output }) {
   return (
     <>
       <DirectionBadge dir={dir} />
-      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium capitalize text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium capitalize text-ink">
         {titular}
       </span>
       <ConfidenceChip value={data.confidence} showBar />
@@ -173,7 +173,7 @@ function A1Summary({ data }: { data: A1Output }) {
 export function DataSection({ label, source, children }: { label: string; source?: string; children: React.ReactNode }) {
   return (
     <div className="mb-2">
-      <div className="mb-1 flex items-center gap-1 font-mono text-fluid-micro font-medium uppercase tracking-wider text-white/66">
+      <div className="mb-1 flex items-center gap-1 font-mono text-fluid-micro font-medium uppercase tracking-wider text-ink/66">
         {label}
         {source && <span className="font-light opacity-70">· {source}</span>}
       </div>
@@ -185,8 +185,8 @@ export function DataSection({ label, source, children }: { label: string; source
 export function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
   return (
     <div className="flex items-center justify-between border-b border-white/5 py-0.5 last:border-b-0">
-      <span className="font-mono text-fluid-caption text-white/66">{k}</span>
-      <span className={cn('font-mono text-fluid-caption font-medium text-white', cls)}>{v}</span>
+      <span className="font-mono text-fluid-caption text-ink/66">{k}</span>
+      <span className={cn('font-mono text-fluid-caption font-medium text-ink', cls)}>{v}</span>
     </div>
   );
 }

@@ -16,7 +16,7 @@ interface NavItem {
  * Iconos del bottom-nav = symbol library del brand system.
  * Asignación inicial (extensible — añadir items aquí cuando crezcan
  * las screens). Cada icono hereda currentColor, así la opacidad activa
- * vs. inactiva se controla con `text-white` / `text-white/66` arriba.
+ * vs. inactiva se controla con `text-ink` / `text-ink/66` arriba.
  */
 const ITEMS: NavItem[] = [
   { href: '/inicio', label: 'INICIO', Icon: Origin },
@@ -67,11 +67,11 @@ export function BottomNav() {
               active ? 'opacity-100' : 'opacity-40 hover:opacity-70'
             )}
           >
-            <it.Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-white/66')} title={it.label} />
+            <it.Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-ink/66')} title={it.label} />
             <span
               className={cn(
                 'font-mono text-[12px] tracking-wider whitespace-nowrap',
-                active ? 'text-accent' : 'text-white/66'
+                active ? 'text-accent' : 'text-ink/66'
               )}
             >
               {it.label}

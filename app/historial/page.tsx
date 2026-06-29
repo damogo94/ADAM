@@ -25,7 +25,7 @@ import {
 function dirMeta(d: string): { label: string; cls: string } {
   if (d === 'positivo') return { label: 'ALCISTA', cls: 'text-emerald' };
   if (d === 'negativo') return { label: 'BAJISTA', cls: 'text-rose' };
-  return { label: 'NEUTRAL', cls: 'text-white/70' };
+  return { label: 'NEUTRAL', cls: 'text-ink/70' };
 }
 
 const RESOLVED = new Set(['win', 'loss', 'timeout', 'no_fill']);
@@ -40,9 +40,9 @@ function outcomeMeta(o: string): { label: string; cls: string } {
     case 'timeout':
       return { label: 'TIMEOUT', cls: 'text-amber border-amber/35 bg-amber/[0.07]' };
     case 'no_fill':
-      return { label: 'NO FILL', cls: 'text-white/66 border-white/15 bg-white/[0.03]' };
+      return { label: 'NO FILL', cls: 'text-ink/66 border-white/15 bg-white/[0.03]' };
     default:
-      return { label: 'NO EVALUABLE', cls: 'text-white/66 border-white/10 bg-white/[0.02]' };
+      return { label: 'NO EVALUABLE', cls: 'text-ink/66 border-white/10 bg-white/[0.02]' };
   }
 }
 
@@ -93,7 +93,7 @@ function TradeBanner({
           {long ? '▲ TRADE · LONG' : '▼ TRADE · SHORT'}
         </span>
         {trade.horizonte && (
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-ink/45">
             {trade.horizonte}
           </span>
         )}
@@ -110,7 +110,7 @@ function TradeBanner({
         <Lvl label="R/B" value={trade.rb != null ? trade.rb.toFixed(2) : '—'} cls="text-amber" />
       </div>
       {outcome && (outcome.return_pct != null || outcome.resolved_days != null) && (
-        <div className="mt-2 font-mono text-[11px] text-white/66">
+        <div className="mt-2 font-mono text-[11px] text-ink/66">
           resultado:{' '}
           {outcome.return_pct != null && (
             <span className={cn('font-medium', outcome.return_pct >= 0 ? 'text-emerald' : 'text-rose')}>
@@ -122,13 +122,13 @@ function TradeBanner({
         </div>
       )}
       {!outcome && (
-        <div className="mt-2 font-mono text-[11px] text-white/55">
+        <div className="mt-2 font-mono text-[11px] text-ink/55">
           {trade.horizonte === 'intradia'
             ? 'intradía · sin seguimiento automático (el backtest solo evalúa swing/posicional)'
             : 'en seguimiento · el cron evalúa el resultado al tocar target o stop'}
         </div>
       )}
-      <div className="mt-1 font-mono text-[10px] text-white/40">
+      <div className="mt-1 font-mono text-[10px] text-ink/40">
         moneda: {ccy} · el análisis de abajo es el soporte de la decisión
       </div>
     </div>
@@ -138,8 +138,8 @@ function TradeBanner({
 function Lvl({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
     <div className="rounded-lg border border-white/8 bg-black/20 px-2 py-1.5">
-      <div className="font-mono text-[10px] uppercase tracking-wider text-white/45">{label}</div>
-      <div className={cn('mt-0.5 font-mono text-[12px] font-medium tabular-nums text-white', cls)}>
+      <div className="font-mono text-[10px] uppercase tracking-wider text-ink/45">{label}</div>
+      <div className={cn('mt-0.5 font-mono text-[12px] font-medium tabular-nums text-ink', cls)}>
         {value}
       </div>
     </div>
@@ -233,14 +233,14 @@ export default function HistorialScreen() {
         <div className="mx-4 mt-2 flex items-center justify-between gap-2 font-mono text-[12px]">
           <button
             onClick={back}
-            className="inline-flex items-center gap-1 text-white/45 underline-offset-2 transition-colors hover:text-white/75 hover:underline"
+            className="inline-flex items-center gap-1 text-ink/45 underline-offset-2 transition-colors hover:text-ink/75 hover:underline"
           >
             ← historial
           </button>
           {detail && (
             <Link
               href={`/analysis?ticker=${encodeURIComponent(detail.ticker)}`}
-              className="text-white/45 underline-offset-2 transition-colors hover:text-white/75 hover:underline"
+              className="text-ink/45 underline-offset-2 transition-colors hover:text-ink/75 hover:underline"
             >
               re-analizar en vivo →
             </Link>
@@ -248,22 +248,22 @@ export default function HistorialScreen() {
         </div>
 
         {detail && (
-          <div className="mx-4 mt-2 font-mono text-[12px] text-white/66">
+          <div className="mx-4 mt-2 font-mono text-[12px] text-ink/66">
             análisis guardado · {new Date(detail.created_at).toLocaleString()} — vista de solo lectura
           </div>
         )}
 
         {detailLoading ? (
-          <div className="px-4 py-10 text-center font-mono text-[12px] text-white/70">
+          <div className="px-4 py-10 text-center font-mono text-[12px] text-ink/70">
             cargando análisis guardado…
           </div>
         ) : detailError ? (
           <div
             role="alert"
-            className="mx-4 mt-3 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-white/80"
+            className="mx-4 mt-3 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
           >
             {detailError}{' '}
-            <button onClick={back} className="underline underline-offset-2 hover:text-white">
+            <button onClick={back} className="underline underline-offset-2 hover:text-ink">
               volver
             </button>
           </div>
@@ -272,7 +272,7 @@ export default function HistorialScreen() {
             {detailTrade ? (
               <TradeBanner trade={detailTrade} outcome={detailOutcome} ticker={detail.ticker} />
             ) : (
-              <div className="mx-4 mt-3 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-white/40">
+              <div className="mx-4 mt-3 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink/40">
                 solo análisis · este run no generó trade (hold / sin niveles)
               </div>
             )}
@@ -280,7 +280,7 @@ export default function HistorialScreen() {
           </div>
         ) : null}
 
-        <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
+        <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
           Análisis educativo · no constituye asesoramiento financiero regulado
         </footer>
       </div>
@@ -297,31 +297,31 @@ export default function HistorialScreen() {
       <SectionLabel>
         historial · {loading ? '—' : list.length}
         {!loading && tradeCount > 0 && (
-          <span className="ml-1 normal-case text-white/45">— {tradeCount} con trade</span>
+          <span className="ml-1 normal-case text-ink/45">— {tradeCount} con trade</span>
         )}
       </SectionLabel>
 
-      <p className="px-4 font-mono text-[12px] text-white/66 leading-snug">
-        Tus análisis guardados. El <span className="text-white/85">trade</span> (entrada · SL · TP) es lo
+      <p className="px-4 font-mono text-[12px] text-ink/66 leading-snug">
+        Tus análisis guardados. El <span className="text-ink/85">trade</span> (entrada · SL · TP) es lo
         accionable; el análisis es el soporte. Ábrelos sin re-ejecutar ni gastar cuota.
       </p>
 
       {loading ? (
-        <div className="px-4 py-10 text-center font-mono text-[12px] text-white/70">cargando historial…</div>
+        <div className="px-4 py-10 text-center font-mono text-[12px] text-ink/70">cargando historial…</div>
       ) : error ? (
         <div
           role="alert"
-          className="mx-4 mt-3 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-white/80"
+          className="mx-4 mt-3 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
         >
           {error}{' '}
-          <button onClick={() => void load()} className="underline underline-offset-2 hover:text-white">
+          <button onClick={() => void load()} className="underline underline-offset-2 hover:text-ink">
             reintentar
           </button>
         </div>
       ) : list.length === 0 ? (
         <div className="mx-4 mt-3 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
-          <div className="font-mono text-[12px] text-white/70 mb-1">sin análisis guardados</div>
-          <div className="font-mono text-[12px] text-white/66">
+          <div className="font-mono text-[12px] text-ink/70 mb-1">sin análisis guardados</div>
+          <div className="font-mono text-[12px] text-ink/66">
             cada análisis que ejecutes en{' '}
             <Link href="/analysis" className="text-accent underline-offset-2 hover:underline">
               /analysis
@@ -341,15 +341,15 @@ export default function HistorialScreen() {
                 className="block w-full rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5 text-left transition-colors hover:border-white/20"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[13px] font-bold tracking-wider text-white">{a.ticker}</span>
+                  <span className="font-mono text-[13px] font-bold tracking-wider text-ink">{a.ticker}</span>
                   <span className={cn('font-mono text-[11px] uppercase tracking-wider', dir.cls)}>
                     {dir.label}
                   </span>
-                  <span className="ml-auto font-sans text-[14px] font-bold text-white tabular-nums">
+                  <span className="ml-auto font-sans text-[14px] font-bold text-ink tabular-nums">
                     {pct}%
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] text-white/66">
+                <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] text-ink/66">
                   <span>{new Date(a.created_at).toLocaleString()}</span>
                   <span className="ml-auto uppercase tracking-wider">{a.confidence}</span>
                 </div>
@@ -364,8 +364,8 @@ export default function HistorialScreen() {
                     >
                       {a.trade.signal === 'buy' ? '▲ LONG' : '▼ SHORT'}
                     </span>
-                    <span className="text-white/55">
-                      in <span className="text-white/85">{fmtPrice(a.trade.entrada)}</span>
+                    <span className="text-ink/55">
+                      in <span className="text-ink/85">{fmtPrice(a.trade.entrada)}</span>
                     </span>
                     <span className="text-rose/90">SL {fmtPrice(a.trade.stop_loss)}</span>
                     <span className="text-emerald/90">TP {fmtPrice(a.trade.target)}</span>
@@ -375,13 +375,13 @@ export default function HistorialScreen() {
                         <OutcomeBadge outcome={a.outcome} />
                       </span>
                     ) : (
-                      <span className="ml-auto text-[10px] uppercase tracking-wider text-white/40">
+                      <span className="ml-auto text-[10px] uppercase tracking-wider text-ink/40">
                         {a.trade.horizonte === 'intradia' ? 'intradía · sin seguim.' : 'en seguimiento'}
                       </span>
                     )}
                   </div>
                 ) : (
-                  <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/30">
+                  <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/30">
                     solo análisis · sin trade
                   </div>
                 )}
@@ -391,7 +391,7 @@ export default function HistorialScreen() {
         </div>
       )}
 
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>

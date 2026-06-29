@@ -122,7 +122,7 @@ function AnalysisInner() {
             'inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
             estEnabled
               ? 'border-accent/60 bg-accent/10 text-accent'
-              : 'border-dashed border-white/20 text-white/55 hover:border-white/35 hover:text-white/80'
+              : 'border-dashed border-white/20 text-ink/55 hover:border-white/35 hover:text-ink/80'
           )}
         >
           <span
@@ -135,7 +135,7 @@ function AnalysisInner() {
         </button>
         <Link
           href="/estructura"
-          className="text-white/45 underline-offset-2 transition-colors hover:text-white/70 hover:underline"
+          className="text-ink/45 underline-offset-2 transition-colors hover:text-ink/70 hover:underline"
         >
           pantalla dedicada →
         </Link>
@@ -159,7 +159,7 @@ function AnalysisInner() {
               'inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors',
               state.alerta === 'pinned'
                 ? 'border-accent/60 bg-accent/10 text-accent'
-                : 'border-white/20 text-white/70 hover:border-white/35 hover:text-white disabled:opacity-50'
+                : 'border-white/20 text-ink/70 hover:border-white/35 hover:text-ink disabled:opacity-50'
             )}
           >
             {state.alerta === 'pinned'
@@ -175,7 +175,7 @@ function AnalysisInner() {
             <button
               type="button"
               onClick={toggleEstructura}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-dashed border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-dashed border-white/20 px-2.5 py-1 text-ink/70 transition-colors hover:border-white/35 hover:text-ink"
             >
               + Sumar Estructura
             </button>
@@ -185,7 +185,7 @@ function AnalysisInner() {
             type="button"
             onClick={() => state.ticker && void handleRun(state.ticker)}
             disabled={isLoading}
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1 text-white/70 transition-colors hover:border-white/35 hover:text-white disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1 text-ink/70 transition-colors hover:border-white/35 hover:text-ink disabled:opacity-50"
           >
             ↻ Re-analizar
           </button>
@@ -209,25 +209,25 @@ function AnalysisInner() {
           <div
             className={cn(
               'font-sans text-fluid-caption font-bold tracking-wider mb-0.5',
-              state.error.tone === 'auth' && 'text-white/75',
-              state.error.tone === 'transient' && 'text-white/80',
-              state.error.tone === 'rate_limit' && 'text-white/85',
-              state.error.tone === 'partial' && 'text-white/80',
-              state.error.tone === 'fatal' && 'text-white'
+              state.error.tone === 'auth' && 'text-ink/75',
+              state.error.tone === 'transient' && 'text-ink/80',
+              state.error.tone === 'rate_limit' && 'text-ink/85',
+              state.error.tone === 'partial' && 'text-ink/80',
+              state.error.tone === 'fatal' && 'text-ink'
             )}
           >
             {state.error.title}
           </div>
-          <div className="font-mono text-fluid-caption leading-snug text-white/85">{state.error.message}</div>
+          <div className="font-mono text-fluid-caption leading-snug text-ink/85">{state.error.message}</div>
         </div>
       )}
 
       {state.partial && state.failures.length > 0 && (
         <div role="status" className="mx-4 mt-3 rounded-lg border border-white/20 bg-white/[0.05] px-3 py-2">
-          <div className="font-sans text-fluid-caption font-bold tracking-wider text-white/80 mb-0.5">
+          <div className="font-sans text-fluid-caption font-bold tracking-wider text-ink/80 mb-0.5">
             ANÁLISIS PARCIAL
           </div>
-          <div className="font-mono text-fluid-caption leading-snug text-white/70">
+          <div className="font-mono text-fluid-caption leading-snug text-ink/70">
             {state.failures.length} agente{state.failures.length > 1 ? 's' : ''} con fallo transitorio (
             {state.failures.map((f) => f.agent).join(', ')}). Confluencia degradada — reintenta para vista completa.
           </div>
@@ -358,7 +358,7 @@ function AnalysisInner() {
       </div>
 
       {/* Disclaimer */}
-      <footer className="px-5 pt-6 text-center font-mono text-fluid-caption text-white/66 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-fluid-caption text-ink/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>

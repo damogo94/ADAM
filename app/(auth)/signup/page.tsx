@@ -50,19 +50,19 @@ export default function SignupPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-7 flex flex-col items-center">
-        <Monogram className="h-12 w-12 text-white mb-3" title="A.D.A.M." />
-        <div className="font-sans text-2xl font-extrabold tracking-[0.2em] text-white">A.D.A.M.</div>
-        <div className="mt-2 font-mono text-[12px] tracking-[0.18em] text-white/66 uppercase text-center">
+        <Monogram className="h-12 w-12 text-ink mb-3" title="A.D.A.M." />
+        <div className="font-sans text-2xl font-extrabold tracking-[0.2em] text-ink">A.D.A.M.</div>
+        <div className="mt-2 font-mono text-[12px] tracking-[0.18em] text-ink/66 uppercase text-center">
           Detect the unseen
         </div>
-        <div className="mt-1 font-mono text-[12px] tracking-wider text-white/45 uppercase">
+        <div className="mt-1 font-mono text-[12px] tracking-wider text-ink/45 uppercase">
           Anomaly Detection &amp; Analysis Module
         </div>
       </div>
 
       <div className="rounded-[15px] border border-white/10 bg-surface-2 p-5">
-        <h1 className="font-sans text-[14px] font-bold tracking-wider text-white mb-1">CREAR CUENTA</h1>
-        <p className="font-mono text-[12px] text-white/66 mb-4">Built to detect what others ignore.</p>
+        <h1 className="font-sans text-[14px] font-bold tracking-wider text-ink mb-1">CREAR CUENTA</h1>
+        <p className="font-mono text-[12px] text-ink/66 mb-4">Built to detect what others ignore.</p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <Field label="NOMBRE DISPLAY (opcional)">
@@ -71,7 +71,7 @@ export default function SignupPage() {
               autoComplete="name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-ink placeholder-ink/45 focus:border-accent"
               placeholder="ej. Trader_01"
             />
           </Field>
@@ -82,7 +82,7 @@ export default function SignupPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-ink placeholder-ink/45 focus:border-accent"
               placeholder="tu@email.com"
             />
           </Field>
@@ -94,18 +94,18 @@ export default function SignupPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-white placeholder-white/45 focus:border-accent focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[12px] text-ink placeholder-ink/45 focus:border-accent"
               placeholder="••••••••"
             />
           </Field>
 
           {error && (
-            <div role="alert" className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-white animate-blink-slow">
+            <div role="alert" className="rounded-lg border border-white/30 bg-white/[0.05] px-3 py-2 font-mono text-[12px] text-ink animate-blink-slow">
               {error}
             </div>
           )}
           {info && (
-            <div className="rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2 font-mono text-[12px] text-white/85">
+            <div className="rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2 font-mono text-[12px] text-ink/85">
               {info}
             </div>
           )}
@@ -113,7 +113,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 rounded-lg border border-white bg-white px-3 py-2.5 font-sans text-[11px] font-bold tracking-[0.15em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="mt-1 rounded-lg border border-ink bg-ink px-3 py-2.5 font-sans text-[11px] font-bold tracking-[0.15em] text-void transition hover:bg-ink/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? 'CREANDO...' : 'CREAR CUENTA ▶'}
           </button>
@@ -132,7 +132,7 @@ export default function SignupPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block font-mono text-[12px] uppercase tracking-wider text-white/66">{label}</span>
+      <span className="mb-1 block font-mono text-[12px] uppercase tracking-wider text-ink/66">{label}</span>
       {children}
     </label>
   );

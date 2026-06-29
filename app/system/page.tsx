@@ -109,18 +109,18 @@ export default function SystemScreen() {
       <Header status={loading ? 'running' : 'ok'} />
 
       <section className="mx-4 mt-3 rounded-[18px] border border-white/15 bg-surface-2 px-3.5 py-3.5">
-        <div className="font-sans text-[22px] font-extrabold tracking-[0.2em] text-white">
+        <div className="font-sans text-[22px] font-extrabold tracking-[0.2em] text-ink">
           A.D.A.M.
         </div>
-        <div className="mt-1 font-mono text-[12px] text-white/66 tracking-wider">
+        <div className="mt-1 font-mono text-[12px] text-ink/66 tracking-wider">
           Anomaly Detection &amp; Analysis Module · ATLAS CAPITAL
         </div>
         <div className="mt-2 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
-          <span className="font-mono text-[12px] text-white">sistema operativo</span>
-          <span className="ml-auto font-mono text-[12px] text-white/66">v0.5.0 · ejes A4 + Estructura 4ª pata</span>
+          <span className="font-mono text-[12px] text-ink">sistema operativo</span>
+          <span className="ml-auto font-mono text-[12px] text-ink/66">v0.5.0 · ejes A4 + Estructura 4ª pata</span>
         </div>
-        <div className="mt-1 font-mono text-[12px] text-white/66 leading-snug">
+        <div className="mt-1 font-mono text-[12px] text-ink/66 leading-snug">
           Pipeline determinístico: math en código (computeTechnical · computeConfluence) ·
           LLM solo para narrativa · retry 2× en parse/schema errors
         </div>
@@ -130,13 +130,13 @@ export default function SystemScreen() {
       {error && !stats ? (
         <div
           role="alert"
-          className="mx-4 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-white/80"
+          className="mx-4 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
         >
-          <div className="mb-1 uppercase tracking-wider text-white/60">métricas no disponibles</div>
+          <div className="mb-1 uppercase tracking-wider text-ink/60">métricas no disponibles</div>
           {error} No se muestran contadores para no presentar ceros como si fueran datos reales.{' '}
           <button
             onClick={() => void load()}
-            className="underline underline-offset-2 transition-colors hover:text-white"
+            className="underline underline-offset-2 transition-colors hover:text-ink"
           >
             reintentar
           </button>
@@ -148,10 +148,10 @@ export default function SystemScreen() {
         {error && (
           <div
             role="alert"
-            className="mx-4 mb-2 rounded-[15px] border border-white/20 bg-white/[0.05] px-3 py-2 font-mono text-[11px] leading-snug text-white/75"
+            className="mx-4 mb-2 rounded-[15px] border border-white/20 bg-white/[0.05] px-3 py-2 font-mono text-[11px] leading-snug text-ink/75"
           >
             No se pudo actualizar — mostrando datos previos.{' '}
-            <button onClick={() => void load()} className="underline underline-offset-2 hover:text-white">
+            <button onClick={() => void load()} className="underline underline-offset-2 hover:text-ink">
               reintentar
             </button>
           </div>
@@ -162,7 +162,7 @@ export default function SystemScreen() {
         <Stat
           n={stats?.signals_urgentes ?? 0}
           l="urgentes"
-          cls={(stats?.signals_urgentes ?? 0) > 0 ? 'text-accent' : 'text-white/66'}
+          cls={(stats?.signals_urgentes ?? 0) > 0 ? 'text-accent' : 'text-ink/66'}
           emphasis={(stats?.signals_urgentes ?? 0) > 0}
         />
         <Stat n={stats?.watchlist_tickers ?? 0} l="activos en watchlist" />
@@ -195,7 +195,7 @@ export default function SystemScreen() {
       <SectionLabel>calibración · backtesting modo B</SectionLabel>
       <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
         {!calibration || calibration.total.n === 0 ? (
-          <div className="font-mono text-[12px] text-white/66 leading-snug">
+          <div className="font-mono text-[12px] text-ink/66 leading-snug">
             Sin outcomes evaluados aún. El cron diario (22:00 UTC) evalúa
             análisis con horizonte 7d/30d madurado. Threshold v1: ±2%.
           </div>
@@ -207,119 +207,119 @@ export default function SystemScreen() {
             <KV
               k="horizonte 7d"
               v={`${calibration.by_horizon['7']?.hit_rate_pct ?? '—'}% · n=${calibration.by_horizon['7']?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="horizonte 30d"
               v={`${calibration.by_horizon['30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_horizon['30']?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="dirección alcista"
               v={`${calibration.by_direction.alcista?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.alcista?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="dirección bajista"
               v={`${calibration.by_direction.bajista?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.bajista?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="dirección neutral"
               v={`${calibration.by_direction.neutral?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.neutral?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confianza muy_alta"
               v={`${calibration.by_confidence.muy_alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.muy_alta?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confianza alta"
               v={`${calibration.by_confidence.alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.alta?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confianza media"
               v={`${calibration.by_confidence.media?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.media?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confianza baja"
               v={`${calibration.by_confidence.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.baja?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confluence 61-100"
               v={`${calibration.by_confluence['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['61-100']?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confluence 31-60"
               v={`${calibration.by_confluence['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['31-60']?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="confluence 0-30"
               v={`${calibration.by_confluence['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['0-30']?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             {/* Ejes nuevos (Fase 1): ¿hit-rate sube con actionable? ¿y con κ?
                 Comparar contra los buckets de confluence de arriba. */}
             <KV
               k="accionable 61-100"
               v={`${calibration.by_actionable?.['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['61-100']?.n ?? 0}`}
-              cls="text-white"
+              cls="text-ink"
             />
             <KV
               k="accionable 31-60"
               v={`${calibration.by_actionable?.['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['31-60']?.n ?? 0}`}
-              cls="text-white"
+              cls="text-ink"
             />
             <KV
               k="accionable 0-30"
               v={`${calibration.by_actionable?.['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['0-30']?.n ?? 0}`}
-              cls="text-white"
+              cls="text-ink"
             />
             <KV
               k="κ alta"
               v={`${calibration.by_kappa?.alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.alta?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="κ media"
               v={`${calibration.by_kappa?.media?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.media?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="κ baja"
               v={`${calibration.by_kappa?.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.baja?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="acierto direccional · por agente"
               v="track-record (medición — aún no repondera)"
-              cls="text-white/45"
+              cls="text-ink/45"
             />
             <KV
               k="· A1 activo"
               v={`${calibration.by_agent?.a1?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a1?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="· A2 macro"
               v={`${calibration.by_agent?.a2?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a2?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="· A3 técnico"
               v={`${calibration.by_agent?.a3?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a3?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
             <KV
               k="· Estructura"
               v={`${calibration.by_agent?.estructura?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.estructura?.n ?? 0}`}
-              cls="text-white/85"
+              cls="text-ink/85"
             />
           </>
         )}
@@ -332,12 +332,12 @@ export default function SystemScreen() {
             key={a.id}
             className="rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2 flex items-center gap-3"
           >
-            <span className="font-sans text-[12px] font-bold tracking-wider text-white w-14">
+            <span className="font-sans text-[12px] font-bold tracking-wider text-ink w-14">
               {a.id}
             </span>
             <div className="flex-1 min-w-0">
-              <div className="font-mono text-[12px] text-white truncate">{a.label}</div>
-              <div className="font-mono text-[12px] text-white/66 truncate">{a.model}</div>
+              <div className="font-mono text-[12px] text-ink truncate">{a.label}</div>
+              <div className="font-mono text-[12px] text-ink/66 truncate">{a.model}</div>
             </div>
             {a.mode === 'compute' && (
               <span className="font-mono text-[10px] uppercase tracking-wider text-accent border border-accent/35 bg-accent/[0.05] rounded px-1.5 py-0.5">
@@ -346,7 +346,7 @@ export default function SystemScreen() {
             )}
             <div className="flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
-              <span className="font-mono text-[12px] text-white/85 uppercase tracking-wider">ONLINE</span>
+              <span className="font-mono text-[12px] text-ink/85 uppercase tracking-wider">ONLINE</span>
             </div>
           </div>
         ))}
@@ -357,17 +357,17 @@ export default function SystemScreen() {
         <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium">
           refactor F1 — math fuera del LLM
         </div>
-        <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-white/85" />
-        <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-white/85" />
-        <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coherencia · accionable = |net|·f(κ)" cls="text-white/85" />
-        <KV k="Estructura · 4ª pata" v="opt-in · re-narra A4 a 4 patas + persiste estructura_output (mig 0017)" cls="text-white/85" />
-        <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché A2 + backfill A4 server-side (cierra el gap de A2)" cls="text-white/85" />
-        <KV k="track-record · por agente" v="acierto direccional A1/A2/A3/Estructura en /metrics — medición, aún no repondera" cls="text-white/85" />
-        <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-white/85" />
-        <KV k="A2 edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-white/85" />
-        <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-white/85" />
-        <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-white/85" />
-        <KV k="osciladores A3" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-white/85" />
+        <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-ink/85" />
+        <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-ink/85" />
+        <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coherencia · accionable = |net|·f(κ)" cls="text-ink/85" />
+        <KV k="Estructura · 4ª pata" v="opt-in · re-narra A4 a 4 patas + persiste estructura_output (mig 0017)" cls="text-ink/85" />
+        <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché A2 + backfill A4 server-side (cierra el gap de A2)" cls="text-ink/85" />
+        <KV k="track-record · por agente" v="acierto direccional A1/A2/A3/Estructura en /metrics — medición, aún no repondera" cls="text-ink/85" />
+        <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-ink/85" />
+        <KV k="A2 edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-ink/85" />
+        <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-ink/85" />
+        <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-ink/85" />
+        <KV k="osciladores A3" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-ink/85" />
         <KV k="tests · CI" v="692 unitarios · GitHub Actions typecheck+lint+test" cls="text-accent" />
       </div>
 
@@ -397,7 +397,7 @@ export default function SystemScreen() {
         <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-accent" />
       </div>
 
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>
@@ -435,9 +435,9 @@ function Stat({
         emphasis ? 'border-white/30 bg-white/[0.06]' : 'border-white/8'
       )}
     >
-      <div className={cn('font-mono text-[20px] font-black', cls ?? 'text-white')}>{n}</div>
-      <div className="mt-0.5 font-mono text-[12px] text-white/66">{l}</div>
-      {sub && <div className="mt-px font-mono text-[10px] text-white/45 italic">{sub}</div>}
+      <div className={cn('font-mono text-[20px] font-black', cls ?? 'text-ink')}>{n}</div>
+      <div className="mt-0.5 font-mono text-[12px] text-ink/66">{l}</div>
+      {sub && <div className="mt-px font-mono text-[10px] text-ink/45 italic">{sub}</div>}
     </div>
   );
 }
@@ -445,8 +445,8 @@ function Stat({
 function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
   return (
     <div className="flex items-start justify-between gap-2 border-b border-white/5 py-1 last:border-b-0">
-      <span className="font-mono text-[12px] text-white/66 flex-shrink-0">{k}</span>
-      <span className={cn('text-right font-mono text-[12px]', cls ?? 'text-white')}>{v}</span>
+      <span className="font-mono text-[12px] text-ink/66 flex-shrink-0">{k}</span>
+      <span className={cn('text-right font-mono text-[12px]', cls ?? 'text-ink')}>{v}</span>
     </div>
   );
 }
@@ -466,7 +466,7 @@ function AgentCostBreakdown({
   if (rows.length === 0) {
     return (
       <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
-        <div className="font-mono text-[12px] text-white/66 leading-snug">
+        <div className="font-mono text-[12px] text-ink/66 leading-snug">
           Sin runs con desglose por agente todavía. Cualquier análisis nuevo
           aparecerá aquí — la columna usage_breakdown (migración 0005) se
           puebla automáticamente desde /api/agents/run.
@@ -483,18 +483,18 @@ function AgentCostBreakdown({
             key={r.agent}
             className="flex items-center gap-3 border-b border-white/5 py-1.5 last:border-b-0"
           >
-            <span className="font-sans text-[11px] font-bold tracking-wider text-white w-14 flex-shrink-0">
+            <span className="font-sans text-[11px] font-bold tracking-wider text-ink w-14 flex-shrink-0">
               {r.agent}
             </span>
             <div className="flex-1 min-w-0">
-              <div className="font-mono text-[12px] text-white/85 truncate">
+              <div className="font-mono text-[12px] text-ink/85 truncate">
                 ${r.cost_usd.toFixed(4)} · {share}% del total
               </div>
-              <div className="font-mono text-[12px] text-white/66 truncate">
+              <div className="font-mono text-[12px] text-ink/66 truncate">
                 {r.models.map(shortModel).join(' · ')} · {r.runs} runs · cache {r.cache_hit_rate_pct}%
               </div>
             </div>
-            <div className="font-mono text-[12px] text-white/66 flex-shrink-0 tabular-nums">
+            <div className="font-mono text-[12px] text-ink/66 flex-shrink-0 tabular-nums">
               {fmtTokens(r.total_tokens)} tok
             </div>
             <div className="h-8 w-12 flex items-end gap-0.5 flex-shrink-0" aria-hidden>

@@ -68,17 +68,17 @@ export function RadarRow({
           <div className="flex items-baseline gap-2">
             {is_pinned && (
               <span
-                className="font-mono text-[12px] leading-none text-white/65"
+                className="font-mono text-[12px] leading-none text-ink/65"
                 aria-label="Fijado"
                 title="Fijado"
               >
                 ◆
               </span>
             )}
-            <span className="font-mono text-[13px] font-bold tracking-wider text-white">
+            <span className="font-mono text-[13px] font-bold tracking-wider text-ink">
               {ticker}
             </span>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-white/66">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-ink/66">
               {asset_type}
             </span>
           </div>
@@ -95,9 +95,9 @@ export function RadarRow({
         <div className="text-right">
           {quote ? (
             <>
-              <div className="font-mono text-[13px] font-medium text-white">
+              <div className="font-mono text-[13px] font-medium text-ink">
                 {quote.current.toFixed(2)}
-                <span className="ml-1 text-[12px] text-white/66">{currency}</span>
+                <span className="ml-1 text-[12px] text-ink/66">{currency}</span>
               </div>
               <div className={cn('font-mono text-[12px]', pos ? 'text-emerald' : 'text-rose')}>
                 {pos ? '↑ ' : '↓ '}
@@ -105,7 +105,7 @@ export function RadarRow({
               </div>
             </>
           ) : (
-            <span className="font-mono text-[12px] text-white/66">no quote</span>
+            <span className="font-mono text-[12px] text-ink/66">no quote</span>
           )}
         </div>
 
@@ -113,7 +113,7 @@ export function RadarRow({
           onClick={onAnalyze}
           aria-label={`Analizar ${ticker}`}
           title="Analizar"
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] font-mono text-[12px] text-white/66 transition hover:border-white/40 hover:bg-white/[0.08] hover:text-white"
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] font-mono text-[12px] text-ink/66 transition hover:border-white/40 hover:bg-white/[0.08] hover:text-ink"
         >
           ▶
         </button>
@@ -125,7 +125,7 @@ export function RadarRow({
       <div className="px-3 pt-1.5">
         {hasAnalysis ? (
           <div className="flex items-start gap-2">
-            <p className="flex-1 font-mono text-[12px] leading-snug text-white/75 line-clamp-2">
+            <p className="flex-1 font-mono text-[12px] leading-snug text-ink/75 line-clamp-2">
               {latest!.headline}
             </p>
             {latest!.a1_anomaly_detected && (
@@ -137,7 +137,7 @@ export function RadarRow({
             )}
           </div>
         ) : (
-          <p className="font-mono text-[12px] text-white/66 italic">
+          <p className="font-mono text-[12px] text-ink/66 italic">
             sin análisis previo · ejecuta uno con ▶
           </p>
         )}
@@ -158,13 +158,13 @@ export function RadarRow({
               <DirectionBadge dir={latest!.direction} />
               <ConfidenceChip value={latest!.confidence} />
               <Glossed term="confluencia">
-                <span className="font-mono text-[12px] text-white/66 tabular-nums">
+                <span className="font-mono text-[12px] text-ink/66 tabular-nums">
                   {latest!.confluence_pct}%
                 </span>
               </Glossed>
             </span>
           ) : (
-            <span className="font-mono text-[12px] text-white/66">—</span>
+            <span className="font-mono text-[12px] text-ink/66">—</span>
           )}
         </DataCell>
 
@@ -179,19 +179,19 @@ export function RadarRow({
             <span className="flex flex-col leading-tight">
               {/* reloj 1 · edad del veredicto */}
               <span
-                className={cn('font-mono text-[12px]', is_stale ? 'text-amber/80' : 'text-white/65')}
+                className={cn('font-mono text-[12px]', is_stale ? 'text-amber/80' : 'text-ink/65')}
                 title={`Veredicto · ${new Date(latest!.created_at).toLocaleString()}`}
               >
                 {timeAgo(latest!.created_at)}
               </span>
               {/* reloj 2 · cuánto se movió el precio desde el veredicto */}
               {price_drift_pct === null || price_drift_pct === undefined ? (
-                <span className="font-mono text-[12px] text-white/66">px —</span>
+                <span className="font-mono text-[12px] text-ink/66">px —</span>
               ) : (
                 <span
                   className={cn(
                     'font-mono text-[12px]',
-                    priceMoved(price_drift_pct) ? 'text-amber/80' : 'text-white/66'
+                    priceMoved(price_drift_pct) ? 'text-amber/80' : 'text-ink/66'
                   )}
                   title="Movimiento del precio desde que se emitió el veredicto"
                 >
@@ -201,7 +201,7 @@ export function RadarRow({
               )}
             </span>
           ) : (
-            <span className="font-mono text-[12px] text-white/66">—</span>
+            <span className="font-mono text-[12px] text-ink/66">—</span>
           )}
         </DataCell>
       </div>
@@ -217,7 +217,7 @@ export function RadarRow({
           )}
         >
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-white/66">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-ink/66">
               <Glossed term="accionable">
                 {distances.actionable ? 'accionable ahora' : 'en radar'}
               </Glossed>{' '}
@@ -232,7 +232,7 @@ export function RadarRow({
             )}
           </div>
           <div className="grid grid-cols-3 gap-2 font-mono text-[12px]">
-            <DistanceBlock label="Entrada" term="entrada" pct={distances.to_entry_pct} accent="text-white" />
+            <DistanceBlock label="Entrada" term="entrada" pct={distances.to_entry_pct} accent="text-ink" />
             <DistanceBlock label="Stop" term="stop" pct={distances.to_stop_pct} accent="text-rose" />
             <DistanceBlock label="Target" term="target" pct={distances.to_target_pct} accent="text-emerald" />
           </div>
@@ -265,10 +265,10 @@ export function RadarRow({
               CMT · {signal.level}
             </span>
           </Glossed>
-          <span className="flex-1 font-mono text-[12px] text-white/80 truncate">
+          <span className="flex-1 font-mono text-[12px] text-ink/80 truncate">
             {signal.setup_detected}
           </span>
-          <span className="font-mono text-[12px] text-white/66">{signal.confidence_pct}%</span>
+          <span className="font-mono text-[12px] text-ink/66">{signal.confidence_pct}%</span>
         </div>
       )}
 
@@ -278,7 +278,7 @@ export function RadarRow({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute right-2 top-2 rounded px-1.5 py-0.5 font-mono text-[12px] text-white/40 opacity-0 transition hover:bg-white/[0.08] hover:text-white/80 group-hover:opacity-100"
+        className="absolute right-2 top-2 rounded px-1.5 py-0.5 font-mono text-[12px] text-ink/40 opacity-0 transition hover:bg-white/[0.08] hover:text-ink/80 group-hover:opacity-100"
         aria-label={`Eliminar ${ticker}`}
       >
         ×
@@ -292,7 +292,7 @@ export function RadarRow({
 function DataCell({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <div className="mb-0.5 font-mono text-[11px] uppercase tracking-wider text-white/66">
+      <div className="mb-0.5 font-mono text-[11px] uppercase tracking-wider text-ink/66">
         {label}
       </div>
       <div className="truncate">{children}</div>
@@ -302,7 +302,7 @@ function DataCell({ label, children }: { label: React.ReactNode; children: React
 
 function DeltaCell({ delta }: { delta: RadarRow_t['delta'] }) {
   if (!delta.has_previous && !delta.anomaly_new) {
-    return <span className="font-mono text-[12px] text-white/66">—</span>;
+    return <span className="font-mono text-[12px] text-ink/66">—</span>;
   }
 
   // Prioridad de etiqueta: FLIP > NUEVO > Δ confluencia
@@ -328,9 +328,9 @@ function DeltaCell({ delta }: { delta: RadarRow_t['delta'] }) {
   }
 
   const d = delta.confluence_delta_pct;
-  if (d === null) return <span className="font-mono text-[12px] text-white/66">—</span>;
+  if (d === null) return <span className="font-mono text-[12px] text-ink/66">—</span>;
   const sign = d > 0 ? '↑' : d < 0 ? '↓' : '=';
-  const cls = d > 0 ? 'text-emerald' : d < 0 ? 'text-rose' : 'text-white/66';
+  const cls = d > 0 ? 'text-emerald' : d < 0 ? 'text-rose' : 'text-ink/66';
   return (
     <span className={cn('font-mono text-[12px]', cls)} title="Δ confluencia vs análisis anterior">
       {sign} {Math.abs(d)}pts
@@ -352,10 +352,10 @@ function DistanceBlock({
 }) {
   return (
     <div className="min-w-0">
-      <div className="font-mono text-[11px] uppercase tracking-wider text-white/66">
+      <div className="font-mono text-[11px] uppercase tracking-wider text-ink/66">
         <Glossed term={term}>{label}</Glossed>
       </div>
-      <div className={cn('font-mono text-[12px] font-medium', pct === null ? 'text-white/66' : accent)}>
+      <div className={cn('font-mono text-[12px] font-medium', pct === null ? 'text-ink/66' : accent)}>
         {pct === null ? '—' : `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}
       </div>
     </div>
@@ -388,7 +388,7 @@ function LeanGlyph({ lean }: { lean: Lean }) {
   if (lean === 'up') return <span className="text-emerald" aria-label="alza">▲</span>;
   if (lean === 'down') return <span className="text-rose" aria-label="baja">▼</span>;
   if (lean === 'flat') return <span className="text-slate-l" aria-label="plano">■</span>;
-  return <span className="text-white/66" aria-label="no disponible">—</span>;
+  return <span className="text-ink/66" aria-label="no disponible">—</span>;
 }
 
 function divStateMeta(state: string): { word: string; cls: string; border: string } {
@@ -396,13 +396,13 @@ function divStateMeta(state: string): { word: string; cls: string; border: strin
     case 'divergent':
       return { word: 'divergen', cls: 'text-amber', border: 'border-amber/30' };
     case 'aligned':
-      return { word: 'alineados', cls: 'text-white/66', border: 'border-white/10' };
+      return { word: 'alineados', cls: 'text-ink/66', border: 'border-white/10' };
     case 'mixed':
-      return { word: 'mixto', cls: 'text-white/66', border: 'border-white/8' };
+      return { word: 'mixto', cls: 'text-ink/66', border: 'border-white/8' };
     case 'neutral':
-      return { word: 'neutro', cls: 'text-white/66', border: 'border-white/8' };
+      return { word: 'neutro', cls: 'text-ink/66', border: 'border-white/8' };
     default: // unavailable
-      return { word: 'n/d', cls: 'text-white/66', border: 'border-white/8' };
+      return { word: 'n/d', cls: 'text-ink/66', border: 'border-white/8' };
   }
 }
 
@@ -426,12 +426,12 @@ function AxisCell({
   const m = divStateMeta(state);
   return (
     <div className={cn('rounded border px-1.5 py-1', m.border, isolated && 'border-dashed')}>
-      <div className="mb-0.5 font-mono text-[11px] uppercase tracking-wider text-white/66">{label}</div>
+      <div className="mb-0.5 font-mono text-[11px] uppercase tracking-wider text-ink/66">{label}</div>
       <div className="flex items-center gap-1 font-mono text-[12px]">
-        <span className="text-white/66">{leftTag}</span>
+        <span className="text-ink/66">{leftTag}</span>
         <LeanGlyph lean={leftLean} />
-        <span className="text-white/66">·</span>
-        <span className="text-white/66">{rightTag}</span>
+        <span className="text-ink/66">·</span>
+        <span className="text-ink/66">{rightTag}</span>
         <LeanGlyph lean={rightLean} />
         <span className={cn('ml-auto font-medium tracking-wider', m.cls)}>{m.word}</span>
       </div>
@@ -447,7 +447,7 @@ function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] 
     <div className="mx-3 mt-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5">
       <div className="mb-1 flex items-center gap-1.5">
         <Glossed term="confluencia">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-white/66">Desacuerdo</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-ink/66">Desacuerdo</span>
         </Glossed>
         {partial && (
           <span

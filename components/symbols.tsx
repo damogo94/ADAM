@@ -13,13 +13,13 @@
  *
  * Uso típico:
  *   <AnomalyLoop className="w-4 h-4" />        // hereda currentColor
- *   <Signal className="w-3 h-3 text-white/66" />
+ *   <Signal className="w-3 h-3 text-ink/66" />
  *
  * Para añadir un nuevo símbolo: copia el patrón, exporta. NO lo asocies
  * 1:1 con una pantalla — cualquier screen puede elegir cualquier símbolo.
  *
  * Todos heredan `currentColor` (stroke o fill) para que cambien con
- * `text-*` o `text-white/N`. Mantén `strokeWidth` consistente en ~1.5
+ * `text-*` o `text-ink/N`. Mantén `strokeWidth` consistente en ~1.5
  * para que la familia se vea coherente.
  */
 

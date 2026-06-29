@@ -26,10 +26,10 @@ const STATUS_LABEL: Record<Status, string> = {
  * - error     = stroke marcado + slight pulse
  */
 const STATUS_CLS: Record<Status, string> = {
-  offline: 'bg-white/[0.04] text-white/66 border-white/10',
-  running: 'bg-white/[0.06] text-white/80 border-white/20 animate-blink-slow',
-  ok: 'bg-white/[0.06] text-white/90 border-white/25',
-  error: 'bg-white/[0.10] text-white border-white/40 animate-blink-slow',
+  offline: 'bg-white/[0.04] text-ink/66 border-white/10',
+  running: 'bg-white/[0.06] text-ink/80 border-white/20 animate-blink-slow',
+  ok: 'bg-white/[0.06] text-ink/90 border-white/25',
+  error: 'bg-white/[0.10] text-ink border-white/40 animate-blink-slow',
 };
 
 export function Header({
@@ -40,10 +40,10 @@ export function Header({
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-void/95 backdrop-blur-xl px-5 py-2.5">
       <div className="flex flex-col">
-        <div className="font-sans text-lg font-extrabold tracking-[0.2em] text-white">
+        <div className="font-sans text-lg font-extrabold tracking-[0.2em] text-ink">
           A.D.A.M.
         </div>
-        <div className="font-mono text-fluid-caption tracking-wider text-white/66 mt-px">{tagline}</div>
+        <div className="font-mono text-fluid-caption tracking-wider text-ink/66 mt-px">{tagline}</div>
       </div>
       <div className="flex items-center gap-2">
         <span
