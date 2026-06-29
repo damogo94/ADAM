@@ -7,7 +7,7 @@ Landing/explainer público: cuenta qué es ADAM en una frase ("escribe un ticker
 
 ## Layout (scroll-driven, secciones)
 `AuroraBackground` (fondo evolutivo) detrás de `main` `min-h-screen pb-28`. Secciones centradas (`max-w-5xl`/`max-w-3xl`/`max-w-4xl`, `px-5`):
-1. **Hero** — `grid md:grid-cols-2`: izquierda copy (eyebrow mono · wordmark Orbitron 5xl/6xl · subtítulo · CTA "Abrir análisis" botón blanco), derecha caja 3D `h-[280px] md:h-[420px]` (Hero3D o `HeroFallback` si reduced-motion).
+1. **Hero** — `grid md:grid-cols-2`: izquierda copy (eyebrow mono · wordmark Inter `font-extrabold` 5xl/6xl · subtítulo · CTA "Abrir análisis" botón blanco), derecha caja 3D `h-[280px] md:h-[420px]` (Hero3D o `HeroFallback` si reduced-motion).
 2. **¿Qué es ADAM?** — "Cinco especialistas miran el mismo activo…".
 3. **Ejemplo ilustrativo** (`#ejemplo`) — input→ticker, 3 lecturas (micro/macro/técnico, la técnica con borde `dashed` + badge "aislado"), veredicto (caja `border-emerald/40`, dirección + %confluencia + nivel + acción + riesgo). Tag "Ejemplo ilustrativo" `amber`.
 4. **Agente de Estructura** — sección añadida con copy + CTA outline "Abrir Estructura →" (`/estructura`).

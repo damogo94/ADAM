@@ -22,7 +22,7 @@ const SEV_DOT: Record<DigestEntry_t['severity'], string> = {
 
 export function RelatedRadar({ count, preview }: { count: number; preview: DigestEntry_t[] }) {
   return (
-    <div className="rounded-[15px] border border-ink/8 bg-surface-2 px-3.5 py-3">
+    <div className="rounded-card-sm border border-ink/8 bg-surface-2 px-3.5 py-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="font-mono text-fluid-micro font-bold uppercase tracking-[0.1em] text-ink/72">
           tu radar

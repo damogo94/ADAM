@@ -95,13 +95,13 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
 
         <div className="shrink-0 px-4 pt-2 pb-3 border-b border-white/8">
           <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-[12px] font-medium uppercase tracking-[0.12em] text-white/65">
+            <p className="font-mono text-[12px] font-medium uppercase tracking-[0.12em] text-ink/65">
               ▸ catálogo · selecciona un activo
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="font-mono text-[14px] text-white/66 hover:text-white transition"
+              className="font-mono text-[14px] text-ink/66 hover:text-ink transition"
               aria-label="Cerrar"
             >
               ×
@@ -114,14 +114,14 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
             placeholder="buscar (AAPL · oro · btc…)"
             className={cn(
               'w-full rounded-[11px] border border-white/10 bg-black/40 px-3 py-2',
-              'font-mono text-[12px] text-white caret-white outline-none transition-[border-color]',
-              'placeholder:text-white/45',
+              'font-mono text-[12px] text-ink caret-white outline-none transition-[border-color]',
+              'placeholder:text-ink/45',
               'focus:border-accent'
             )}
             autoFocus
           />
           {favorites.error && (
-            <div role="alert" className="mt-2 rounded-lg border border-white/20 bg-white/[0.05] px-2.5 py-1.5 font-mono text-[12px] text-white/80">
+            <div role="alert" className="mt-2 rounded-lg border border-white/20 bg-white/[0.05] px-2.5 py-1.5 font-mono text-[12px] text-ink/80">
               ⚠ no se pudo sincronizar favoritos — reintenta
             </div>
           )}
@@ -148,7 +148,7 @@ export function AssetPicker({ open, onClose, onSelect }: AssetPickerProps) {
           {isEmptyFavTab ? (
             <FavEmptyState />
           ) : filtered.length === 0 ? (
-            <div className="py-8 text-center font-mono text-[12px] text-white/66">
+            <div className="py-8 text-center font-mono text-[12px] text-ink/66">
               sin resultados
             </div>
           ) : (
@@ -237,8 +237,8 @@ function TabChip({
       className={cn(
         'inline-flex min-h-[44px] flex-shrink-0 items-center justify-center rounded-full border px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.08em] transition-all',
         active
-          ? 'border-white bg-white text-black'
-          : 'border-white/15 bg-white/[0.03] text-white/65 hover:border-white/35 hover:text-white'
+          ? 'border-ink bg-ink text-void'
+          : 'border-white/15 bg-white/[0.03] text-ink/65 hover:border-white/35 hover:text-ink'
       )}
     >
       <span className="mr-1 opacity-70">{glyph}</span>
@@ -277,11 +277,11 @@ function AssetTile({
         onClick={onSelect}
         className="w-full px-2.5 py-2 text-left active:scale-[0.98] transition-transform"
       >
-        <div className="font-mono text-[13px] font-bold tracking-[0.08em] text-white truncate pr-5">
+        <div className="font-mono text-[13px] font-bold tracking-[0.08em] text-ink truncate pr-5">
           {asset.ticker}
         </div>
         <div className="flex items-center justify-between gap-1 mt-0.5">
-          <div className="font-mono text-[12px] text-white/66 truncate">
+          <div className="font-mono text-[12px] text-ink/66 truncate">
             {asset.label}
           </div>
           {changePct !== undefined && (
@@ -307,8 +307,8 @@ function AssetTile({
             'absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full',
             'font-mono text-[12px] transition-all',
             fav
-              ? 'text-white'
-              : 'text-white/25 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100'
+              ? 'text-ink'
+              : 'text-ink/25 hover:text-ink opacity-0 group-hover:opacity-100 focus:opacity-100'
           )}
           aria-label={fav ? `Quitar ${asset.ticker} de favoritos` : `Añadir ${asset.ticker} a favoritos`}
           aria-pressed={fav}
@@ -323,8 +323,8 @@ function AssetTile({
 function FavEmptyState() {
   return (
     <div className="px-3 py-8 text-center">
-      <div className="text-2xl text-white/15 mb-2">★</div>
-      <div className="font-mono text-[12px] text-white/66 leading-relaxed">
+      <div className="text-2xl text-ink/15 mb-2">★</div>
+      <div className="font-mono text-[12px] text-ink/66 leading-relaxed">
         sin favoritos · pulsa la estrella en cualquier activo
         <br />
         para guardarlo aquí y en tu watchlist

@@ -39,6 +39,8 @@ export function applyRunEvent(s: RunState, ev: StreamEvent): RunState {
         a4: ev.a4,
         a4Status: 'done',
         analysisId: ev.analysis_id ?? null,
+        traceId: ev.meta?.traceId ?? s.traceId,
+        durationMs: ev.meta?.durationMs ?? s.durationMs,
         // Si algún evento de agente se perdió, no dejes su card en scanning: deriva
         // su estado SOLO del dato realmente recibido (sin fabricar "done").
         a1Status:

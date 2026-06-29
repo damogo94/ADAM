@@ -32,6 +32,7 @@ export type StreamEvent =
       type: 'final';
       analysis_id?: string | null;
       a4: A4Output;
+      meta?: { traceId?: string; durationMs?: number; debateRan?: boolean };
       partial?: boolean;
       failures?: { agent: string; message: string }[];
       chart_data?: { daily: Candle[] };
@@ -54,6 +55,9 @@ export interface RunState {
   estructuraStatus: AgentStatus;
   /** id de la fila persistida (evento `final`) — lo usa el re-narrado con EST. */
   analysisId: string | null;
+  /** Trazado del run (evento `final`): id de soporte + duración. Meta antes sin exponer. */
+  traceId: string | null;
+  durationMs: number | null;
   error: UserError | null;
   partial: boolean;
   failures: { agent: string; message: string }[];
@@ -77,6 +81,8 @@ export const INITIAL: RunState = {
   estructura: null,
   estructuraStatus: 'idle',
   analysisId: null,
+  traceId: null,
+  durationMs: null,
   error: null,
   partial: false,
   failures: [],

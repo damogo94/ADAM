@@ -43,7 +43,7 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
         <div className="py-2 space-y-1">
           <div className="font-mono text-fluid-caption text-ink/80">error en A2 — reintenta</div>
           {failureMessage && (
-            <div className="font-mono text-fluid-caption text-white/66 leading-snug break-words">{failureMessage}</div>
+            <div className="font-mono text-fluid-caption text-ink/66 leading-snug break-words">{failureMessage}</div>
           )}
         </div>
       )}
@@ -57,7 +57,7 @@ function A2Body({ data }: { data: A2Output }) {
   return (
     <>
       <DataSection label="Régimen" source="FRED">
-        <div className="font-mono text-fluid-caption leading-snug text-white/90 py-0.5">
+        <div className="font-mono text-fluid-caption leading-snug text-ink/90 py-0.5">
           {macro_context.ciclo_economico} · tipos {macro_context.regimen_tipos} · inflación {macro_context.inflacion_trend}
         </div>
       </DataSection>
@@ -66,7 +66,7 @@ function A2Body({ data }: { data: A2Output }) {
         <DataSection label="Factores clave" source="FRED">
           {factores_clave.slice(0, 4).map((f, i) => (
             <div key={i} className="flex items-center gap-1.5 border-b border-white/5 py-0.5 last:border-b-0">
-              <span className="font-mono text-fluid-caption flex-1 text-white/65">{f.factor}</span>
+              <span className="font-mono text-fluid-caption flex-1 text-ink/65">{f.factor}</span>
               <SegmentBar value={f.magnitud} />
               <DirectionBadge dir={f.impacto} />
             </div>
@@ -79,7 +79,7 @@ function A2Body({ data }: { data: A2Output }) {
           <div className="font-mono text-fluid-micro font-medium text-emerald mb-0.5 uppercase tracking-wider">
             ⚡ oportunidad macro detectada
           </div>
-          <div className="font-mono text-fluid-caption leading-snug text-white/95">{opportunity_description}</div>
+          <div className="font-mono text-fluid-caption leading-snug text-ink/95">{opportunity_description}</div>
         </SignalBox>
       )}
 
@@ -107,7 +107,7 @@ function A2Summary({ data }: { data: A2Output }) {
   return (
     <>
       <DirectionBadge dir={dir} />
-      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium text-ink">
         {m.ciclo_economico} · {m.regimen_tipos} · {m.inflacion_trend}
       </span>
       <ConfidenceChip value={data.confidence} showBar />

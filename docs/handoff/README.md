@@ -34,11 +34,11 @@ Documentación de handoff **pantalla por pantalla** de A.D.A.M. (Next.js 14 + Ta
 ### Tipografía
 | Familia | Stack | Uso | Suelo |
 |---|---|---|---|
-| `font-orbitron` | Orbitron | **Solo** wordmark "A.D.A.M." | — |
+| (retirado) | Inter `font-extrabold` | Wordmark "A.D.A.M." + tracking ancho (Orbitron retirado 2026-06-22) | — |
 | `font-sans` | Inter | Labels bold (errores, onboarding, badges de estado) | — |
 | `font-mono` | IBM Plex Mono | Datos, tickers, números, casi todo el cuerpo | **10px mínimo** (post-polish a11y); cuerpo informativo ≥12px @ `white/66` (~8.4:1, AA ✓) |
 
-Fuentes cargadas en `app/layout.tsx` (Google Fonts: Orbitron 400/700/900, Inter 300–800, IBM Plex Mono 300/400/500).
+Fuentes self-host vía `next/font` en `app/layout.tsx` (Inter variable + IBM Plex Mono 400/500/600). Orbitron retirado; sin `<link>` bloqueante a Google Fonts.
 
 ### Animación (`tailwind.config.ts`)
 | Token | Efecto | Duración | Uso |
@@ -54,7 +54,7 @@ Fuentes cargadas en `app/layout.tsx` (Google Fonts: Orbitron 400/700/900, Inter 
 Tailwind estándar `sm`(640) · `md`(768) · `lg`(1024) · `xl`(1280), más custom `min-[360px]` y `min-[400px]`. Contenedor base mobile-first: `max-w-md mx-auto` que crece por pantalla (`md:max-w-2xl/3xl`, `lg:max-w-3xl/6xl`).
 
 ### Chrome compartido
-- **Header** (`components/header.tsx`): sticky `top-0 z-30`, `bg-void/95 backdrop-blur-xl`, borde inferior `white/5`. Izquierda: wordmark Orbitron + tagline mono `white/66`. Derecha: badge de estado (`offline`/`running`/`ok`/`error` por intensidad+animación) + `UserMenu`.
+- **Header** (`components/header.tsx`): sticky `top-0 z-30`, `bg-void/95 backdrop-blur-xl`, borde inferior `white/5`. Izquierda: wordmark Inter `font-extrabold` + tagline mono `ink/66`. Derecha: badge de estado (`offline`/`running`/`ok`/`error` por intensidad+animación) + `UserMenu`.
 - **BottomNav** (`components/bottom-nav.tsx`): `fixed bottom-0 z-50 h-16`, `bg-void/95 backdrop-blur-xl`, borde superior `white/5`. 5 tabs (INICIO·ANÁLISIS·WATCHLIST·SEÑALES·SISTEMA) con icono SVG (`components/symbols.tsx`) `h-4 w-4` + label mono 12px. **Activa** = `text-accent` + subrayo `w-3 h-px bg-accent`; inactiva `text-white/66 opacity-40`. `/system` solo aparece si `/api/system/access` autoriza (gate UX; la barrera real es server-side). Detección activa por `pathname.startsWith(href)`. Las pantallas reservan `pb-20` para no quedar tapadas. **A11y:** falta `aria-current="page"` (mejora pendiente).
 - **UserMenu** (`components/user-menu.tsx`): botón con iniciales (`text-a1`) + `▾`; dropdown `w-56` con cabecera "Sesión" + email y botón logout (`text-rose`). `aria-label="User menu"`.
 - **SectionLabel** (`components/section-label.tsx`): `px-4 pt-3.5 pb-1`, mono 11px uppercase `tracking-[0.12em] text-white/70` + línea-gradiente a la derecha. **FlowArrow**: `↓` centrado mono 11px `white/66`.

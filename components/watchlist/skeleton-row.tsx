@@ -8,7 +8,7 @@
 
 export function SkeletonRow() {
   return (
-    <div className="rounded-[15px] border border-white/8 bg-surface-2">
+    <div className="rounded-card-sm border border-white/8 bg-surface-2">
       {/* Cabecera */}
       <div className="flex items-center gap-3 px-3 pt-2.5">
         <div className="flex flex-1 flex-col gap-1">

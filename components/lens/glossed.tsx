@@ -150,10 +150,10 @@ export function Glossed({ term, children, variant = 'dashed' }: GlossedProps) {
               'shadow-[0_8px_24px_rgba(0,0,0,0.6)]'
             )}
           >
-            <span className="mb-0.5 block font-sans text-[11px] font-bold tracking-wider text-white">
+            <span className="mb-0.5 block font-sans text-[11px] font-bold tracking-wider text-ink">
               {entry.label}
             </span>
-            <span className="block font-mono text-[11px] leading-snug text-white/70">
+            <span className="block font-mono text-[11px] leading-snug text-ink/70">
               {entry.explanation}
             </span>
           </span>,

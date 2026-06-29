@@ -213,11 +213,11 @@ export default function WatchlistScreen() {
       {/* "Se aprende aquí": indicador discreto de que los términos técnicos
           son explicables al tocarlos. La palabra "subrayados" lleva el mismo
           subrayado dashed que el affordance real → telegrafía qué buscar. */}
-      <div className="mx-4 mt-2 flex items-center gap-1.5 font-mono text-[11px] leading-snug text-white/66">
-        <span aria-hidden="true" className="text-[13px] leading-none text-white/70">ⓘ</span>
+      <div className="mx-4 mt-2 flex items-center gap-1.5 font-mono text-[11px] leading-snug text-ink/66">
+        <span aria-hidden="true" className="text-[13px] leading-none text-ink/70">ⓘ</span>
         <span>
           Los términos{' '}
-          <span className="border-b border-dashed border-white/45 text-white/75">subrayados</span>{' '}
+          <span className="border-b border-dashed border-white/45 text-ink/75">subrayados</span>{' '}
           se explican al tocarlos
         </span>
       </div>
@@ -233,8 +233,8 @@ export default function WatchlistScreen() {
             disabled={adding}
             className={cn(
               'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04]',
-              'text-[14px] leading-none text-white/70 transition-all',
-              'hover:border-white/40 hover:bg-white/[0.08] hover:text-white',
+              'text-[14px] leading-none text-ink/70 transition-all',
+              'hover:border-white/40 hover:bg-white/[0.08] hover:text-ink',
               'disabled:opacity-30 disabled:cursor-not-allowed'
             )}
             aria-label="Catálogo"
@@ -247,12 +247,12 @@ export default function WatchlistScreen() {
             value={newTicker}
             onChange={(e) => setNewTicker(e.target.value)}
             placeholder="ticker (AAPL, BTC, EUR/USD…)"
-            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-[12px] uppercase text-white placeholder-white/45 focus:border-accent focus:outline-none"
+            className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-[12px] uppercase text-ink placeholder-ink/45 focus:border-accent"
           />
           <select
             value={newAssetType}
             onChange={(e) => setNewAssetType(e.target.value as AssetType)}
-            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2.5 font-mono text-[12px] text-white focus:border-accent focus:outline-none"
+            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2.5 font-mono text-[12px] text-ink focus:border-accent"
           >
             <option value="equity">equity</option>
             <option value="etf">etf</option>
@@ -264,7 +264,7 @@ export default function WatchlistScreen() {
           <button
             type="submit"
             disabled={adding}
-            className="rounded-lg border border-white bg-white px-3 py-2.5 font-sans text-[12px] font-bold tracking-[0.12em] text-black transition hover:bg-white/85 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded-lg border border-ink bg-ink px-3 py-2.5 font-sans text-[12px] font-bold tracking-[0.12em] text-void transition hover:bg-ink/85 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {adding ? '…' : '+'}
           </button>
@@ -283,14 +283,14 @@ export default function WatchlistScreen() {
       {/* Banner = errores de CRUD (add/delete/pin), que solo ocurren con el radar
           ya cargado. El fallo de CARGA se muestra en el cuerpo (rama !radar). */}
       {error && radar && (
-        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.06] px-3 py-2 font-mono text-[12px] text-white/80">
+        <div className="mx-4 mt-3 rounded-lg border border-white/30 bg-white/[0.06] px-3 py-2 font-mono text-[12px] text-ink/80">
           {error}
         </div>
       )}
 
       {/* Toggle de rango del sparkline */}
       <div className="mx-4 mt-3 flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/66">
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink/66">
           activos en radar · {rows.length}
         </span>
         <div
@@ -307,7 +307,7 @@ export default function WatchlistScreen() {
               onClick={() => setSparkRange(r)}
               className={cn(
                 'rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition',
-                sparkRange === r ? 'bg-white text-black' : 'text-white/66 hover:text-white'
+                sparkRange === r ? 'bg-ink text-void' : 'text-ink/66 hover:text-ink'
               )}
             >
               {r}
@@ -324,30 +324,30 @@ export default function WatchlistScreen() {
           <SkeletonRow />
         </div>
       ) : !radar ? (
-        <div className="mx-4 rounded-[15px] border border-white/25 bg-white/[0.05] px-3 py-10 text-center">
-          <div className="mb-1 text-2xl text-white/30">⚠</div>
-          <div className="mb-1 font-sans text-[11px] tracking-wider text-white/85">
+        <div className="mx-4 rounded-card-sm border border-white/25 bg-white/[0.05] px-3 py-10 text-center">
+          <div className="mb-1 text-2xl text-ink/30">⚠</div>
+          <div className="mb-1 font-sans text-[11px] tracking-wider text-ink/85">
             no se pudo cargar el radar
           </div>
-          <div className="mb-3 font-mono text-[11px] leading-relaxed text-white/66">
+          <div className="mb-3 font-mono text-[11px] leading-relaxed text-ink/66">
             {error ?? 'reintenta en unos segundos'}
           </div>
           <button
             type="button"
             onClick={() => void reload()}
-            className="rounded-md border border-white/30 bg-white/[0.08] px-3 py-1.5 font-mono text-[12px] text-white transition hover:bg-white/[0.14]"
+            className="rounded-md border border-white/30 bg-white/[0.08] px-3 py-1.5 font-mono text-[12px] text-ink transition hover:bg-white/[0.14]"
           >
             reintentar
           </button>
         </div>
       ) : rows.length === 0 ? (
-        <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-10 text-center">
+        <div className="mx-4 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-10 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">◎</div>
-          <div className="font-sans text-[11px] tracking-wider text-white/80 mb-1">
+          <div className="font-sans text-[11px] tracking-wider text-ink/80 mb-1">
             sin activos en radar
           </div>
-          <div className="font-mono text-[11px] text-white/66 leading-relaxed">
-            añade tu primer activo con <span className="text-white/75">⊞ catálogo</span> o
+          <div className="font-mono text-[11px] text-ink/66 leading-relaxed">
+            añade tu primer activo con <span className="text-ink/75">⊞ catálogo</span> o
             <br />
             escribiendo un ticker arriba (AAPL · BTC · EUR/USD…)
           </div>
@@ -384,13 +384,13 @@ export default function WatchlistScreen() {
           aria-modal="true"
         >
           <div
-            className="rounded-[15px] border border-white/15 bg-surface-2 px-4 py-3 max-w-xs w-full"
+            className="rounded-card-sm border border-white/15 bg-surface-2 px-4 py-3 max-w-xs w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="font-sans text-[12px] font-bold tracking-wider text-white mb-1">
+            <div className="font-sans text-[12px] font-bold tracking-wider text-ink mb-1">
               ¿Quitar de tus favoritos?
             </div>
-            <div className="font-mono text-[12px] text-white/65 leading-snug mb-3">
+            <div className="font-mono text-[12px] text-ink/65 leading-snug mb-3">
               El activo se eliminará del radar. Puedes volver a añadirlo cuando quieras —
               no perderás historial de análisis.
             </div>
@@ -398,13 +398,13 @@ export default function WatchlistScreen() {
               <button
                 autoFocus
                 onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 rounded-md border border-white/15 bg-transparent px-2 py-1.5 font-mono text-[12px] text-white/75 hover:border-white/35 transition"
+                className="flex-1 rounded-md border border-white/15 bg-transparent px-2 py-1.5 font-mono text-[12px] text-ink/75 hover:border-white/35 transition"
               >
                 cancelar
               </button>
               <button
                 onClick={() => void onConfirmDelete(confirmDeleteId)}
-                className="flex-1 rounded-md border border-white/30 bg-white/[0.08] px-2 py-1.5 font-mono text-[12px] text-white hover:bg-white/[0.14] transition"
+                className="flex-1 rounded-md border border-white/30 bg-white/[0.08] px-2 py-1.5 font-mono text-[12px] text-ink hover:bg-white/[0.14] transition"
               >
                 quitar
               </button>
@@ -413,7 +413,7 @@ export default function WatchlistScreen() {
         </div>
       )}
 
-      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-white/66 leading-relaxed">
+      <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
       </footer>
     </div>

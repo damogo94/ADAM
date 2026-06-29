@@ -59,18 +59,18 @@ function Node({
   const tone =
     kind === 'agent' || kind === 'agentIsolated' ? ACCENT[accent] : KIND[kind];
   const titleCls =
-    kind === 'compute' ? 'text-accent' : 'text-white';
+    kind === 'compute' ? 'text-accent' : 'text-ink';
   return (
     <div className={`rounded-lg border px-2.5 py-1.5 ${tone} ${className ?? ''}`}>
       <div className="flex items-center gap-1">
         <span className={`font-mono text-[10px] font-medium leading-tight ${titleCls}`}>{title}</span>
         {tag && (
-          <span className="ml-auto rounded bg-white/15 px-1 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-white/80">
+          <span className="ml-auto rounded bg-white/15 px-1 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-ink/80">
             {tag}
           </span>
         )}
       </div>
-      {sub && <div className="mt-0.5 font-mono text-[10px] leading-snug text-white/45">{sub}</div>}
+      {sub && <div className="mt-0.5 font-mono text-[10px] leading-snug text-ink/45">{sub}</div>}
     </div>
   );
 }
@@ -79,7 +79,7 @@ function Node({
 function Zone({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-stretch sm:gap-2">
-      <div className="flex-shrink-0 pt-1 font-sans text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 sm:w-16">
+      <div className="flex-shrink-0 pt-1 font-sans text-[10px] font-bold uppercase tracking-[0.15em] text-ink/30 sm:w-16">
         {label}
       </div>
       <div className="flex-1">{children}</div>
@@ -91,15 +91,15 @@ function Zone({ label, children }: { label: string; children: React.ReactNode })
 function FlowDown() {
   return (
     <div className="flex justify-center py-0.5 sm:pl-16" aria-hidden="true">
-      <span className="font-mono text-[11px] leading-none text-white/30">↓</span>
+      <span className="font-mono text-[11px] leading-none text-ink/30">↓</span>
     </div>
   );
 }
 
 export function ArchitectureDiagram() {
   return (
-    <div className="rounded-[15px] border border-white/5 bg-black/40 p-3">
-      <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-white/40">
+    <div className="rounded-card-sm border border-white/5 bg-black/40 p-3">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-ink/40">
         pipeline · compute (determinístico) + narrate (LLM)
       </div>
 
@@ -185,14 +185,14 @@ export function ArchitectureDiagram() {
 
       {/* Subsistema AUTÓNOMO — desconectado del flujo usuario→salida */}
       <div className="mt-3 border-t border-dashed border-white/10 pt-2.5">
-        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-white/35">
+        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-ink/35">
           subsistema autónomo · independiente del análisis
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Node kind="data" title="cron · watchlist-scan" sub="programado" className="flex-1 min-w-[7rem]" />
-          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="compute" title="CMT scanner" sub="computeTechnical · sin LLM" className="flex-1 min-w-[6rem]" />
-          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="persist" title="signals_history" className="flex-1 min-w-[6rem]" />
         </div>
       </div>
@@ -201,22 +201,22 @@ export function ArchitectureDiagram() {
           (POST /api/agents/estructura), fuera del pipeline runADAM. Aislado con
           su propio guard, igual que A3. */}
       <div className="mt-3 border-t border-dashed border-white/10 pt-2.5">
-        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-white/35">
+        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-ink/35">
           agente de estructura · módulo independiente · price action multi-temporal
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Node kind="data" title="Yahoo · futuros" sub="OHLCV 1D+1h · GC=F · NQ=F" tag="EST" className="flex-1 min-w-[7rem]" />
-          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="compute" title="computeEstructura" sub="Weekly/Daily/H4/H1 · rompe y apoya · redondos + vanilla" tag="sin LLM" className="flex-1 min-w-[8rem]" />
-          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="agentIsolated" accent="a3" title="narrate · Estructura" sub="Haiku · guard propio" tag="aislado" className="flex-1 min-w-[6rem]" />
-          <span className="font-mono text-[11px] text-white/30" aria-hidden="true">→</span>
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="io" title="/estructura" sub="render UI" className="flex-1 min-w-[5rem]" />
         </div>
       </div>
 
       {/* Leyenda por tipo de nodo */}
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/5 pt-2 font-mono text-[10px] text-white/55">
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-white/5 pt-2 font-mono text-[10px] text-ink/55">
         <LegendDot className="border-accent/55 bg-accent/[0.06]" label="compute · sin LLM" />
         <LegendDot className="border-white/90 border-dashed bg-white/[0.08]" label="A3 aislado · solo OHLCV" />
         <LegendDot className="border-white/25 border-dashed bg-white/[0.02]" label="condicional (debate)" />
@@ -231,7 +231,7 @@ function IsolationDivider() {
   return (
     <div className="hidden flex-col items-center justify-center sm:flex" aria-hidden="true">
       <div className="w-px flex-1 bg-gradient-to-b from-transparent via-white/25 to-transparent" />
-      <span className="my-1 rotate-180 font-mono text-[6px] uppercase tracking-widest text-white/30 [writing-mode:vertical-rl]">
+      <span className="my-1 rotate-180 font-mono text-[6px] uppercase tracking-widest text-ink/30 [writing-mode:vertical-rl]">
         aislado
       </span>
       <div className="w-px flex-1 bg-gradient-to-b from-transparent via-white/25 to-transparent" />

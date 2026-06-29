@@ -238,7 +238,7 @@ export function ConfluenceHero({
           {a4.accion_sugerida}
         </p>
       ) : (
-        <p className="text-center font-mono text-fluid-caption text-ink/28">
+        <p className="text-center font-mono text-fluid-caption text-ink/55">
           estimación · el núcleo no se completa al 100% hasta el resultado real
         </p>
       )}
