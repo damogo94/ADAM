@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/section-label';
+import { Glossed } from '@/components/lens/glossed';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
 import type { SignalHistory, SignalLevel, WatchlistItem, SignalTradeOutcome } from '@/types/db';
 
@@ -405,7 +406,7 @@ function TrackRecordPanel({ track }: { track: TrackRecord }) {
           <div className={cn('font-mono text-[28px] font-black leading-none', empty ? 'text-ink/66' : 'text-ink')}>
             {empty ? '—' : `${track.hitRate}%`}
           </div>
-          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-ink/66">tasa de acierto</div>
+          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-ink/66"><Glossed term="hit_rate">tasa de acierto</Glossed></div>
         </div>
 
         {/* Detalle */}
@@ -647,11 +648,11 @@ function SignalCard({
           )}
 
           <div className="grid grid-cols-3 gap-2 mb-2">
-            <KV label={`ENTRADA · ${ccy}`} value={fmtPx(signal.entry_price)} />
-            <KV label={`▼ STOP · ${ccy}`} value={fmtPx(signal.stop_loss)} cls="text-rose" />
-            <KV label={`▲ TARGET · ${ccy}`} value={fmtPx(signal.target_price)} cls="text-emerald" />
+            <KV label={<><Glossed term="entrada">ENTRADA</Glossed> · {ccy}</>} value={fmtPx(signal.entry_price)} />
+            <KV label={<><Glossed term="stop">▼ STOP</Glossed> · {ccy}</>} value={fmtPx(signal.stop_loss)} cls="text-rose" />
+            <KV label={<><Glossed term="target">▲ TARGET</Glossed> · {ccy}</>} value={fmtPx(signal.target_price)} cls="text-emerald" />
           </div>
-          <KV label="R/B" value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} cls="text-amber" />
+          <KV label={<Glossed term="rb">R/B</Glossed>} value={signal.risk_reward_ratio?.toFixed(2) ?? '—'} cls="text-amber" />
 
           {Object.keys(indicators).length > 0 && (
             <div className="mt-2">
@@ -720,7 +721,7 @@ function OutcomeBadge({ outcome }: { outcome: SignalTradeOutcome }) {
   );
 }
 
-function KV({ label, value, cls }: { label: string; value: string; cls?: string }) {
+function KV({ label, value, cls }: { label: React.ReactNode; value: string; cls?: string }) {
   return (
     <div className="rounded-lg border border-white/5 bg-black/30 px-2 py-3">
       <div className="font-mono text-[11px] uppercase tracking-wider text-ink/66 mb-0.5">{label}</div>

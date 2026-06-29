@@ -1,6 +1,7 @@
 import type { A4Output_t as A4Output } from '@/agents/shared/types';
 import type { ConfluenceResult } from '@/lib/confluence';
 import { DirectionBadge } from '@/components/agent-primitives';
+import { Glossed } from '@/components/lens/glossed';
 import { cn } from '@/lib/utils';
 
 /**
@@ -28,8 +29,8 @@ export function VerdictBar({
       : a4.direccion === 'negativo'
         ? 'text-rose'
         : 'text-ink/70';
-  // Titular (Fase 1 · ejes separados): la cifra de cabecera es la CONFIANZA
-  // ACCIONABLE (|net|×f(κ), ya descontada por la discrepancia). κ se muestra
+  // Titular (Fase 1 · ejes separados): la cifra de cabecera es la FIABILIDAD
+  // (|net|×f(κ), ya descontada por la discrepancia). κ se muestra
   // como eje propio al lado. score_total_pct se retira al detalle (indicador).
   // Null-guard: análisis/filas sin los ejes nuevos caen al confluence viejo.
   const actionable =
@@ -40,24 +41,24 @@ export function VerdictBar({
     <div className="sticky top-0 z-20 mx-4 mt-3 rounded-card border border-ink/10 bg-surface-2/90 px-3 py-2 shadow-e2 edge-hi backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ease-precise">
       <div className="flex items-center gap-2">
         <span className="flex flex-shrink-0 items-center gap-1.5 font-mono text-fluid-micro uppercase tracking-[0.2em] text-ink/58 before:h-px before:w-3 before:bg-accent/80 before:content-['']">
-          VEREDICTO
+          <Glossed term="veredicto">VEREDICTO</Glossed>
         </span>
         <DirectionBadge dir={a4.direccion} />
         <span className={cn('font-sans text-fluid-label font-bold tracking-wider', dirCls)}>{dirLabel}</span>
 
         <span className="ml-auto flex items-center gap-2.5">
-          {/* Cifra de cabecera = confianza accionable (ya descontada por κ). */}
+          {/* Cifra de cabecera = fiabilidad (ya descontada por κ). */}
           <span className="flex items-baseline gap-1.5">
             <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-ink/66 sm:inline">
-              accionable
+              <Glossed term="fiabilidad">fiabilidad</Glossed>
             </span>
             <span className="font-mono text-fluid-label font-bold tabular-nums text-ink">{actionable}%</span>
           </span>
-          {/* κ — eje de coherencia, dedicado. Oculto en filas viejas sin κ. */}
+          {/* κ — eje de coincidencia, dedicado. Oculto en filas viejas sin κ. */}
           {kappa !== null && (
             <span className="flex items-center gap-1.5 border-l border-white/10 pl-2.5">
               <span className="hidden font-mono text-fluid-micro uppercase tracking-wider text-ink/66 sm:inline">
-                κ
+                <Glossed term="coincidencia">κ</Glossed>
               </span>
               <KappaDots kappa={kappa} />
               <span className="font-mono text-fluid-caption tabular-nums text-ink/75">{Math.round(kappa * 100)}%</span>
@@ -75,7 +76,7 @@ export function VerdictBar({
   );
 }
 
-/** Medidor compacto de κ (coherencia): 5 puntos, llenos = round(κ × 5). */
+/** Medidor compacto de κ (coincidencia): 5 puntos, llenos = round(κ × 5). */
 function KappaDots({ kappa }: { kappa: number }) {
   const filled = Math.round(kappa * 5);
   return (

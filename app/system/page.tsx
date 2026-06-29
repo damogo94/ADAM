@@ -267,17 +267,17 @@ export default function SystemScreen() {
             {/* Ejes nuevos (Fase 1): ¿hit-rate sube con actionable? ¿y con κ?
                 Comparar contra los buckets de confluence de arriba. */}
             <KV
-              k="accionable 61-100"
+              k="fiabilidad 61-100"
               v={`${calibration.by_actionable?.['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['61-100']?.n ?? 0}`}
               cls="text-ink"
             />
             <KV
-              k="accionable 31-60"
+              k="fiabilidad 31-60"
               v={`${calibration.by_actionable?.['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['31-60']?.n ?? 0}`}
               cls="text-ink"
             />
             <KV
-              k="accionable 0-30"
+              k="fiabilidad 0-30"
               v={`${calibration.by_actionable?.['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['0-30']?.n ?? 0}`}
               cls="text-ink"
             />
@@ -359,7 +359,7 @@ export default function SystemScreen() {
         </div>
         <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-ink/85" />
         <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-ink/85" />
-        <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coherencia · accionable = |net|·f(κ)" cls="text-ink/85" />
+        <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coincidencia · fiabilidad = |net|·f(κ)" cls="text-ink/85" />
         <KV k="Estructura · 4ª pata" v="opt-in · re-narra A4 a 4 patas + persiste estructura_output (mig 0017)" cls="text-ink/85" />
         <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché A2 + backfill A4 server-side (cierra el gap de A2)" cls="text-ink/85" />
         <KV k="track-record · por agente" v="acierto direccional A1/A2/A3/Estructura en /metrics — medición, aún no repondera" cls="text-ink/85" />

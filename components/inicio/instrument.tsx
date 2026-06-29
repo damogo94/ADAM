@@ -236,7 +236,7 @@ export function Instrument() {
     <div className="w-full" onKeyDown={onShortcut}>
       {/* sr-only live region: resumen curado, NO el diff entero */}
       <span className="sr-only" aria-live="polite">
-        {`${scn.ticker}: ${tone.word}, accionable ${v.actionable_pct} sobre 100, coincidencia ${v.confianza}.`}
+        {`${scn.ticker}: ${tone.word}, fiabilidad ${v.actionable_pct} sobre 100, coincidencia ${v.confianza}.`}
       </span>
 
       {/* Conmutador de escenarios — tablist accesible */}
@@ -390,7 +390,7 @@ export function Instrument() {
             {/* micro-readout de la ecuación + prueba determinista [recalcular] */}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <p className="font-mono text-[0.7rem] leading-relaxed text-ink/45">
-                <span className="text-ink/58">modelo</span> · accionable ={' '}
+                <span className="text-ink/58">modelo</span> · fiabilidad ={' '}
                 <span className="text-ink/45">|net|</span> · f(κ{' '}
                 <span className="text-ink/72">{formatKappa(v.kappa)}</span>) ={' '}
                 <span className={cn('font-semibold', tone.text)}>{v.actionable_pct}</span>
@@ -410,7 +410,7 @@ export function Instrument() {
             </div>
             <span className="sr-only" aria-live="polite">
               {recalc > 0
-                ? `Recalculado con los mismos datos: accionable ${v.actionable_pct}, idéntico.`
+                ? `Recalculado con los mismos datos: fiabilidad ${v.actionable_pct}, idéntico.`
                 : ''}
             </span>
           </div>

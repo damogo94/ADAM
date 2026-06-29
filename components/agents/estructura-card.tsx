@@ -8,6 +8,7 @@ import {
   type AgentStatus,
 } from '@/components/agent-card-shell';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
+import { Glossed } from '@/components/lens/glossed';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
 
 interface EstructuraCardProps {
@@ -38,7 +39,7 @@ export function EstructuraCard({ status, data, ticker, failureMessage }: Estruct
     <AgentCardShell
       accent="slate"
       badge="EST"
-      title="Estructura · Price Action MTF"
+      title={<>Estructura · <Glossed term="mtf">Price Action MTF</Glossed></>}
       status={status}
       source="Yahoo · OHLCV"
       subline="multi-temporal · rompe y apoya · confluencia vanilla"
@@ -124,14 +125,14 @@ function Body({ data, currency }: { data: EstructuraOutput_t; currency: string }
       {hasPlan ? (
         <div className="my-2 grid grid-cols-2 gap-1.5">
           <TechBox
-            label={`ENTRADA${gestion.entry_type === 'limit' ? ' LÍMITE' : ''} · ${currency}`}
+            label={<><Glossed term="entrada">ENTRADA</Glossed>{gestion.entry_type === 'limit' ? ' LÍMITE' : ''} · {currency}</>}
             value={px(gestion.entrada)}
             valueCls="text-ink"
           />
-          <TechBox label={`▼ STOP · ${currency}`} value={px(gestion.stop_loss)} valueCls="text-rose" />
-          <TechBox label={`▲ OBJETIVO · ${currency}`} value={px(gestion.take_profit)} valueCls="text-emerald" />
+          <TechBox label={<><Glossed term="stop">▼ STOP</Glossed> · {currency}</>} value={px(gestion.stop_loss)} valueCls="text-rose" />
+          <TechBox label={<><Glossed term="target">▲ OBJETIVO</Glossed> · {currency}</>} value={px(gestion.take_profit)} valueCls="text-emerald" />
           <TechBox
-            label="R/B RATIO"
+            label={<Glossed term="rb">R/B RATIO</Glossed>}
             value={gestion.ratio_riesgo_beneficio?.toFixed(2) ?? '—'}
             valueCls="text-ink"
           />
@@ -238,7 +239,7 @@ function DataSection({
   );
 }
 
-function TechBox({ label, value, valueCls }: { label: string; value: string; valueCls?: string }) {
+function TechBox({ label, value, valueCls }: { label: React.ReactNode; value: string; valueCls?: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5">
       <div className="mb-0.5 font-mono text-fluid-micro uppercase tracking-wider text-ink/66">{label}</div>

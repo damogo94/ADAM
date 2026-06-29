@@ -106,7 +106,7 @@ export function HowToRead() {
         </summary>
         <div className="grid gap-3 px-5 pb-5">
           <p className="text-[0.86rem] leading-relaxed text-ink/58">
-            <b className="font-semibold text-ink">Confianza accionable</b> — cuánto fiarte del
+            <b className="font-semibold text-ink">Fiabilidad</b> — cuánto fiarte del
             resultado, de 0 a 100. Combina la fuerza de la señal con cuánto coinciden los agentes.
           </p>
           <p className="text-[0.86rem] leading-relaxed text-ink/58">

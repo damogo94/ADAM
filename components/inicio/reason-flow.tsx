@@ -99,7 +99,7 @@ export function ReasonFlow() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <Chip label="confluencia" value={v.confluence_pct} />
                 <Chip label="κ" value={formatKappa(v.kappa)} />
-                <Chip label="accionable" value={v.actionable_pct} />
+                <Chip label="fiabilidad" value={v.actionable_pct} />
               </div>
               <span className="mt-3 block font-mono text-[0.62rem] tracking-[0.03em] text-ink/40">
                 mismos datos → mismo resultado
