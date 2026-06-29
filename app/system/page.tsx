@@ -62,6 +62,15 @@ const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'co
   { id: 'EST', label: 'Estructura · price action MTF', model: 'haiku-4-5 (narrate) + código (compute)', mode: 'compute' },
 ];
 
+// Mapa código (cost agent, UPPERCASE) → rol visible + clave de calibración.
+const AGENT_ROLE: Record<string, string> = {
+  A1: 'Activo', A2: 'Economía', A3: 'Gráfico', A4: 'Síntesis',
+  DEBATE: 'Debate', ESTRUCTURA: 'Estructura', EST: 'Estructura', CMT: 'CMT',
+};
+const AGENT_CALKEY: Record<string, string> = {
+  A1: 'a1', A2: 'a2', A3: 'a3', ESTRUCTURA: 'estructura', EST: 'estructura',
+};
+
 export default function SystemScreen() {
   const router = useRouter();
   const [stats, setStats] = useState<SystemStats | null>(null);
@@ -103,6 +112,7 @@ export default function SystemScreen() {
   const lastAnalysis = stats?.last_analysis_at
     ? new Date(stats.last_analysis_at).toLocaleString()
     : '—';
+  const hasCal = !!calibration && calibration.total.n > 0;
 
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
@@ -118,7 +128,7 @@ export default function SystemScreen() {
         <div className="mt-2 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
           <span className="font-mono text-[12px] text-ink">sistema operativo</span>
-          <span className="ml-auto font-mono text-[12px] text-ink/66">v0.5.0 · ejes A4 + Estructura 4ª pata</span>
+          <span className="ml-auto font-mono text-[12px] text-ink/66">v0.5.0 · ejes síntesis + Estructura 4ª pata</span>
         </div>
         <div className="mt-1 font-mono text-[12px] text-ink/66 leading-snug">
           Pipeline determinístico: math en código (computeTechnical · computeConfluence) ·
@@ -167,7 +177,7 @@ export default function SystemScreen() {
         />
         <Stat n={stats?.watchlist_tickers ?? 0} l="activos en watchlist" />
         <Stat n={`${stats?.avg_confluence_pct ?? 0}%`} l="confluencia media" cls="text-ink" />
-        <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media A4" />
+        <Stat n={`${stats?.avg_latency_ms ?? 0}ms`} l="latencia media · síntesis" />
         <Stat
           n={fmtTokens(stats?.tokens_total ?? 0)}
           l="tokens · últimos 100 runs"
@@ -186,141 +196,63 @@ export default function SystemScreen() {
       <SectionLabel>usuarios</SectionLabel>
       <UsersConsole />
 
-      <SectionLabel>coste por agente · últimos 100 runs</SectionLabel>
+      <SectionLabel>por agente · coste + acierto</SectionLabel>
       <AgentCostBreakdown
         rows={stats?.by_agent ?? []}
         totalCost={stats?.cost_usd_estimated ?? 0}
+        calByAgent={calibration?.by_agent}
       />
 
       <SectionLabel>calibración · backtesting modo B</SectionLabel>
       <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5">
-        {!calibration || calibration.total.n === 0 ? (
+        {!hasCal ? (
           <div className="font-mono text-[12px] text-ink/66 leading-snug">
             Sin outcomes evaluados aún. El cron diario (22:00 UTC) evalúa
             análisis con horizonte 7d/30d madurado. Threshold v1: ±2%.
           </div>
         ) : (
           <>
-            <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium mb-1.5">
-              hit-rate global: {calibration.total.hit_rate_pct}% · N={calibration.total.n}
+            {/* Banner global con barra prominente. */}
+            <div className="mb-2.5">
+              <div className="mb-1 font-mono text-[12px] font-medium uppercase tracking-wider text-accent">
+                hit-rate global · {calibration!.total.hit_rate_pct ?? '—'}% · N={calibration!.total.n}
+              </div>
+              <HitBar pct={calibration!.total.hit_rate_pct} tall />
             </div>
-            <KV
-              k="horizonte 7d"
-              v={`${calibration.by_horizon['7']?.hit_rate_pct ?? '—'}% · n=${calibration.by_horizon['7']?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="horizonte 30d"
-              v={`${calibration.by_horizon['30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_horizon['30']?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="dirección alcista"
-              v={`${calibration.by_direction.alcista?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.alcista?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="dirección bajista"
-              v={`${calibration.by_direction.bajista?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.bajista?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="dirección neutral"
-              v={`${calibration.by_direction.neutral?.hit_rate_pct ?? '—'}% · n=${calibration.by_direction.neutral?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confianza muy_alta"
-              v={`${calibration.by_confidence.muy_alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.muy_alta?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confianza alta"
-              v={`${calibration.by_confidence.alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.alta?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confianza media"
-              v={`${calibration.by_confidence.media?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.media?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confianza baja"
-              v={`${calibration.by_confidence.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_confidence.baja?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confluence 61-100"
-              v={`${calibration.by_confluence['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['61-100']?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confluence 31-60"
-              v={`${calibration.by_confluence['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['31-60']?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="confluence 0-30"
-              v={`${calibration.by_confluence['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_confluence['0-30']?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            {/* Ejes nuevos (Fase 1): ¿hit-rate sube con actionable? ¿y con κ?
-                Comparar contra los buckets de confluence de arriba. */}
-            <KV
-              k="fiabilidad 61-100"
-              v={`${calibration.by_actionable?.['61-100']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['61-100']?.n ?? 0}`}
-              cls="text-ink"
-            />
-            <KV
-              k="fiabilidad 31-60"
-              v={`${calibration.by_actionable?.['31-60']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['31-60']?.n ?? 0}`}
-              cls="text-ink"
-            />
-            <KV
-              k="fiabilidad 0-30"
-              v={`${calibration.by_actionable?.['0-30']?.hit_rate_pct ?? '—'}% · n=${calibration.by_actionable?.['0-30']?.n ?? 0}`}
-              cls="text-ink"
-            />
-            <KV
-              k="κ alta"
-              v={`${calibration.by_kappa?.alta?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.alta?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="κ media"
-              v={`${calibration.by_kappa?.media?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.media?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="κ baja"
-              v={`${calibration.by_kappa?.baja?.hit_rate_pct ?? '—'}% · n=${calibration.by_kappa?.baja?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="acierto direccional · por agente"
-              v="track-record (medición — aún no repondera)"
-              cls="text-ink/45"
-            />
-            <KV
-              k="· A1 activo"
-              v={`${calibration.by_agent?.a1?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a1?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="· A2 economía"
-              v={`${calibration.by_agent?.a2?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a2?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="· A3 gráfico"
-              v={`${calibration.by_agent?.a3?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.a3?.n ?? 0}`}
-              cls="text-ink/85"
-            />
-            <KV
-              k="· Estructura"
-              v={`${calibration.by_agent?.estructura?.hit_rate_pct ?? '—'}% · n=${calibration.by_agent?.estructura?.n ?? 0}`}
-              cls="text-ink/85"
-            />
+
+            {/* Barra en accent/blanco (NO emerald/rose): el acierto es métrica de
+                desempeño, no dato de mercado direccional → respeta el firewall. */}
+            <CalGroup title="horizonte">
+              <CalRow label="7 días" bucket={calibration!.by_horizon['7']} />
+              <CalRow label="30 días" bucket={calibration!.by_horizon['30']} />
+            </CalGroup>
+            <CalGroup title="dirección">
+              <CalRow label="alcista" bucket={calibration!.by_direction.alcista} />
+              <CalRow label="bajista" bucket={calibration!.by_direction.bajista} />
+              <CalRow label="neutral" bucket={calibration!.by_direction.neutral} />
+            </CalGroup>
+            <CalGroup title="confianza">
+              <CalRow label="muy alta" bucket={calibration!.by_confidence.muy_alta} />
+              <CalRow label="alta" bucket={calibration!.by_confidence.alta} />
+              <CalRow label="media" bucket={calibration!.by_confidence.media} />
+              <CalRow label="baja" bucket={calibration!.by_confidence.baja} />
+            </CalGroup>
+            <CalGroup title="confluencia">
+              <CalRow label="61-100" bucket={calibration!.by_confluence['61-100']} />
+              <CalRow label="31-60" bucket={calibration!.by_confluence['31-60']} />
+              <CalRow label="0-30" bucket={calibration!.by_confluence['0-30']} />
+            </CalGroup>
+            {/* Eje rey (Fase 1): ¿sube el acierto con la fiabilidad? */}
+            <CalGroup title="fiabilidad">
+              <CalRow label="61-100" bucket={calibration!.by_actionable?.['61-100']} strong />
+              <CalRow label="31-60" bucket={calibration!.by_actionable?.['31-60']} strong />
+              <CalRow label="0-30" bucket={calibration!.by_actionable?.['0-30']} strong />
+            </CalGroup>
+            <CalGroup title="κ coincidencia">
+              <CalRow label="alta" bucket={calibration!.by_kappa?.alta} />
+              <CalRow label="media" bucket={calibration!.by_kappa?.media} />
+              <CalRow label="baja" bucket={calibration!.by_kappa?.baja} />
+            </CalGroup>
           </>
         )}
       </div>
@@ -352,50 +284,61 @@ export default function SystemScreen() {
         ))}
       </div>
 
-      <SectionLabel>pipeline determinístico</SectionLabel>
-      <div className="mx-4 rounded-card-sm border border-accent/20 bg-accent/[0.03] px-3 py-2.5 space-y-1.5">
-        <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium">
-          refactor F1 — math fuera del LLM
+      {/* ─── Ficha técnica (config estática · plegada por defecto) ─────────── */}
+      <div className="mx-4 mt-4 mb-1 flex items-center gap-2" aria-hidden>
+        <span className="h-px flex-1 bg-white/8" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/35">ficha técnica</span>
+        <span className="h-px flex-1 bg-white/8" />
+      </div>
+
+      <FoldSection title="pipeline determinístico">
+        <div className="space-y-1.5">
+          <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium">
+            refactor F1 — math fuera del LLM
+          </div>
+          <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-ink/85" />
+          <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-ink/85" />
+          <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coincidencia · fiabilidad = |net|·f(κ)" cls="text-ink/85" />
+          <KV k="Estructura · 4ª pata" v="opt-in · re-narra Síntesis a 4 patas + persiste estructura_output (mig 0017)" cls="text-ink/85" />
+          <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché Economía + backfill Síntesis server-side" cls="text-ink/85" />
+          <KV k="track-record · por agente" v="acierto direccional Activo/Economía/Gráfico/Estructura — medición, aún no repondera" cls="text-ink/85" />
+          <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-ink/85" />
+          <KV k="Economía edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-ink/85" />
+          <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-ink/85" />
+          <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-ink/85" />
+          <KV k="osciladores Gráfico" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-ink/85" />
+          <KV k="tests · CI" v="700 unitarios · GitHub Actions typecheck+lint+test" cls="text-accent" />
         </div>
-        <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-ink/85" />
-        <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-ink/85" />
-        <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coincidencia · fiabilidad = |net|·f(κ)" cls="text-ink/85" />
-        <KV k="Estructura · 4ª pata" v="opt-in · re-narra A4 a 4 patas + persiste estructura_output (mig 0017)" cls="text-ink/85" />
-        <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché A2 + backfill A4 server-side (cierra el gap de A2)" cls="text-ink/85" />
-        <KV k="track-record · por agente" v="acierto direccional A1/A2/A3/Estructura en /metrics — medición, aún no repondera" cls="text-ink/85" />
-        <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-ink/85" />
-        <KV k="A2 edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-ink/85" />
-        <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-ink/85" />
-        <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-ink/85" />
-        <KV k="osciladores A3" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-ink/85" />
-        <KV k="tests · CI" v="692 unitarios · GitHub Actions typecheck+lint+test" cls="text-accent" />
-      </div>
+      </FoldSection>
 
-      <SectionLabel>arquitectura</SectionLabel>
-      <div className="px-4">
+      <FoldSection title="arquitectura">
         <ArchitectureDiagram />
-      </div>
+      </FoldSection>
 
-      <SectionLabel>actividad reciente</SectionLabel>
-      <div className="mx-4 rounded-card-sm border border-white/5 bg-surface-2 px-3 py-2">
+      <FoldSection title="actividad reciente">
         <KV k="último análisis" v={lastAnalysis} />
-        <KV k="modelos" v="Haiku 4.5 (narrate) · Sonnet 4.6 (A2 · Debate) · código (compute)" />
+        <KV k="modelos" v="Haiku 4.5 (narrate) · Sonnet 4.6 (Economía · Debate) · código (compute)" />
         <KV k="data provider" v="Yahoo /v8/chart · Finnhub 60/min · cripto: CMC ∥ CoinGecko → CoinStats + newsdata.io" />
         <KV k="cache" v="Upstash L1+L2 + prompt caching ephemeral 5min" />
         <KV k="timeout" v="25s/agente · maxDuration 60s · ~50s worst case" />
-      </div>
+      </FoldSection>
 
-      <SectionLabel>seguridad</SectionLabel>
-      <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2">
-        <KV k="A3 aislado" v="✓ 3 capas + compute sin LLM" cls="text-accent" />
-        <KV k="Estructura aislado" v="✓ guard propio · solo OHLCV (+vanilla)" cls="text-accent" />
-        <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-accent" />
-        <KV k="rate-limit" v="✓ 5/min/IP + 30/día/IP + 30/día/user" cls="text-accent" />
-        <KV k="CSRF" v="✓ checkSameOrigin en POST" cls="text-accent" />
-        <KV k="schemas Zod strict" v="✓ A1·A2·A3·A4·Debate·CMT·Estructura (shared/types)" cls="text-accent" />
-        <KV k="type-safety" v="✓ tipos Supabase generados · 0 casts as-any en src" cls="text-accent" />
-        <KV k="disclaimer literal" v="✓ A4Output + footer" cls="text-accent" />
-      </div>
+      <FoldSection title="seguridad">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-1.5">
+          {SECURITY.map((s) => (
+            <div
+              key={s.k}
+              className="flex items-start gap-1.5 rounded-md border border-accent/20 bg-accent/[0.04] px-2 py-1.5"
+            >
+              <span className="mt-px flex-shrink-0 font-mono text-[12px] leading-none text-accent">✓</span>
+              <div className="min-w-0">
+                <div className="font-mono text-[11px] text-ink truncate">{s.k}</div>
+                <div className="font-mono text-[10px] leading-snug text-ink/55">{s.v}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </FoldSection>
 
       <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado
@@ -404,10 +347,42 @@ export default function SystemScreen() {
   );
 }
 
+const SECURITY: { k: string; v: string }[] = [
+  { k: 'A3 aislado', v: '3 capas + compute sin LLM' },
+  { k: 'Estructura aislado', v: 'guard propio · solo OHLCV (+vanilla)' },
+  { k: 'RLS Supabase', v: '13 policies activas' },
+  { k: 'rate-limit', v: '5/min · 30/día IP · 30/día user' },
+  { k: 'CSRF', v: 'checkSameOrigin en POST' },
+  { k: 'schemas Zod strict', v: 'A1·A2·A3·A4·Debate·CMT·Estructura' },
+  { k: 'type-safety', v: 'tipos Supabase generados · 0 casts as-any' },
+  { k: 'disclaimer literal', v: 'A4Output + footer' },
+];
+
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
+}
+
+/** Sección plegable para la ficha técnica (config estática). Nativa <details>. */
+function FoldSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group mx-4 mt-1.5 rounded-card-sm border border-white/8 bg-surface-2" open={defaultOpen}>
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink/70 transition-colors hover:text-ink [&::-webkit-details-marker]:hidden">
+        <span className="font-bold text-accent transition-transform group-open:rotate-90" aria-hidden>›</span>
+        {title}
+      </summary>
+      <div className="border-t border-white/5 px-3 py-2.5">{children}</div>
+    </details>
+  );
 }
 
 function Stat({
@@ -451,17 +426,69 @@ function KV({ k, v, cls }: { k: string; v: string; cls?: string }) {
   );
 }
 
+/** Barra de hit-rate. Accent/blanco — NUNCA emerald/rose (firewall: el acierto
+ *  es desempeño, no dirección de mercado). Vacía cuando no hay dato (pct null). */
+function HitBar({ pct, tall }: { pct: number | null; tall?: boolean }) {
+  return (
+    <span className={cn('relative block w-full overflow-hidden rounded-full bg-white/8', tall ? 'h-2' : 'h-1.5')}>
+      <span
+        className="absolute inset-y-0 left-0 rounded-full bg-accent/80 transition-[width] duration-500"
+        style={{ width: `${pct ?? 0}%` }}
+      />
+    </span>
+  );
+}
+
+/** Fila de calibración: label + barra de hit-rate + % + n. */
+function CalRow({ label, bucket, strong }: { label: string; bucket?: CalibrationBucket; strong?: boolean }) {
+  const pct = bucket?.hit_rate_pct ?? null;
+  const n = bucket?.n ?? 0;
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className={cn('w-[72px] flex-shrink-0 font-mono text-[11px]', strong ? 'text-ink' : 'text-ink/66')}>
+        {label}
+      </span>
+      <span className="min-w-0 flex-1">
+        <HitBar pct={pct} />
+      </span>
+      <span className="w-[40px] flex-shrink-0 text-right font-mono text-[11px] tabular-nums text-ink/85">
+        {pct === null ? '—' : `${pct}%`}
+      </span>
+      <span className="w-[36px] flex-shrink-0 text-right font-mono text-[10px] tabular-nums text-ink/45">
+        n={n}
+      </span>
+    </div>
+  );
+}
+
+function CalGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-2.5 first:mt-0">
+      <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/40">{title}</div>
+      {children}
+    </div>
+  );
+}
+
 function shortModel(m: string): string {
   // claude-sonnet-4-6 → sonnet-4-6 · claude-haiku-4-5-20251001 → haiku-4-5
   return m.replace(/^claude-/, '').replace(/-\d{8}$/, '');
 }
 
+/**
+ * Tabla unificada POR AGENTE: une coste (stats.by_agent, clave UPPERCASE) con
+ * acierto direccional (calibration.by_agent, clave lowercase a1/a2/a3/estructura).
+ * Conducida por las filas de coste (todo run las puebla); el acierto se adjunta
+ * cuando existe (A4/Debate/CMT no tienen track-record direccional → sin %).
+ */
 function AgentCostBreakdown({
   rows,
   totalCost,
+  calByAgent,
 }: {
   rows: AgentAggregate[];
   totalCost: number;
+  calByAgent?: Record<string, CalibrationBucket>;
 }) {
   if (rows.length === 0) {
     return (
@@ -477,24 +504,34 @@ function AgentCostBreakdown({
   return (
     <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5 space-y-1.5">
       {rows.map((r) => {
+        const code = r.agent.toUpperCase();
+        const role = AGENT_ROLE[code] ?? r.agent;
+        const calKey = AGENT_CALKEY[code];
+        const cal = calKey ? calByAgent?.[calKey] : undefined;
+        const hit = cal && cal.n > 0 ? cal.hit_rate_pct : null;
         const share = totalCost > 0 ? Math.round((r.cost_usd / totalCost) * 100) : 0;
         return (
           <div
             key={r.agent}
             className="flex items-center gap-3 border-b border-white/5 py-1.5 last:border-b-0"
           >
-            <span className="font-sans text-[11px] font-bold tracking-wider text-ink w-14 flex-shrink-0">
-              {r.agent}
+            <span className="w-12 flex-shrink-0 font-sans text-[11px] font-bold tracking-wider text-ink">
+              {code}
             </span>
-            <div className="flex-1 min-w-0">
-              <div className="font-mono text-[12px] text-ink/85 truncate">
-                ${r.cost_usd.toFixed(4)} · {share}% del total
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate font-mono text-[12px] text-ink">{role}</span>
+                {hit !== null && (
+                  <span className="flex-shrink-0 font-mono text-[10px] tabular-nums text-ink/60">
+                    · {hit}% acierto
+                  </span>
+                )}
               </div>
-              <div className="font-mono text-[12px] text-ink/66 truncate">
-                {r.models.map(shortModel).join(' · ')} · {r.runs} runs · cache {r.cache_hit_rate_pct}%
+              <div className="truncate font-mono text-[11px] text-ink/66">
+                ${r.cost_usd.toFixed(4)} · {share}% · {r.models.map(shortModel).join(' · ')} · {r.runs} runs · cache {r.cache_hit_rate_pct}%
               </div>
             </div>
-            <div className="font-mono text-[12px] text-ink/66 flex-shrink-0 tabular-nums">
+            <div className="flex-shrink-0 font-mono text-[11px] tabular-nums text-ink/66">
               {fmtTokens(r.total_tokens)} tok
             </div>
             <div className="h-8 w-12 flex items-end gap-0.5 flex-shrink-0" aria-hidden>
