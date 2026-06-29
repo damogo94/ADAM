@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { ConfluenceResult } from '@/lib/confluence';
 import { Gauge } from '@/components/inicio/gauge';
+import { Glossed } from '@/components/lens/glossed';
 
 interface ConfluenceIndicatorProps {
   data: ConfluenceResult | null;
@@ -8,7 +10,7 @@ interface ConfluenceIndicatorProps {
 
 /**
  * Titular del rail: el MISMO dial radial que /inicio (`Gauge`), para amarrar
- * /analysis al lenguaje visual del landing. Cifra = CONFIANZA ACCIONABLE
+ * /analysis al lenguaje visual del landing. Cifra = FIABILIDAD
  * (|net|×f(κ)); κ se muestra como eje propio debajo; la desagregación por pares
  * va al pie.
  *
@@ -20,7 +22,7 @@ interface ConfluenceIndicatorProps {
  * el piso es 55% (no 40%) para no caer bajo el umbral de contraste AA.
  */
 export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
-  // Fase 1 · ejes separados: la cifra grande es la CONFIANZA ACCIONABLE; nivel y
+  // Fase 1 · ejes separados: la cifra grande es la FIABILIDAD; nivel y
   // tono derivan de actionable. Null-guard: datos sin ejes nuevos caen al
   // total_pct viejo. (Sin análisis → dial en reposo "—", sin nivel fantasma.)
   const actionable = Math.max(0, Math.min(100, data?.actionable_pct ?? data?.total_pct ?? 0));
@@ -29,14 +31,14 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
 
   return (
     <div className="rounded-card-sm border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
-      <div className="font-sans text-fluid-micro font-bold tracking-[0.1em] text-ink mb-0.5">CONFLUENCIA</div>
-      <div className="font-mono text-fluid-micro text-ink/66 mb-3">alineamiento entre agentes activos</div>
+      <div className="font-sans text-fluid-micro font-bold tracking-[0.1em] text-ink mb-0.5"><Glossed term="fiabilidad">FIABILIDAD</Glossed></div>
+      <div className="font-mono text-fluid-micro text-ink/66 mb-3">fuerza direccional ajustada por coincidencia</div>
 
       {/* Titular = dial radial (mismo componente que /inicio), en accent. */}
       <div className="mb-3 flex flex-col items-center gap-2 rounded-[11px] border border-white/8 bg-white/[0.015] px-2 py-3">
         <div
           aria-live="polite"
-          aria-label={level === null ? 'confianza accionable: en espera' : `confianza accionable: ${actionable}%`}
+          aria-label={level === null ? 'fiabilidad: en espera' : `fiabilidad: ${actionable}%`}
         >
           {data && actionable > 0 ? (
             <Gauge value={actionable} hex="var(--accent)" restless={level === 'baja'} />
@@ -48,10 +50,10 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           {level === null ? 'en espera' : `nivel · ${level}`}
         </div>
 
-        {/* κ — eje de coherencia, dedicado. Oculto si no hay ejes nuevos. */}
+        {/* κ — eje de coincidencia, dedicado. Oculto si no hay ejes nuevos. */}
         {kappa !== null && (
           <div className="flex w-full items-center justify-center gap-1.5 border-t border-white/5 pt-2">
-            <span className="font-mono text-fluid-micro uppercase tracking-wider text-ink/55">κ coherencia</span>
+            <span className="font-mono text-fluid-micro uppercase tracking-wider text-ink/55"><Glossed term="coincidencia">κ coincidencia</Glossed></span>
             <span className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((i) => (
                 <span
@@ -92,7 +94,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           />
         )}
         <ConfluenceRow
-          label="Alineados"
+          label={<Glossed term="confluencia">Confluencia</Glossed>}
           score={data?.alineados.score ?? 0}
           rightLabel={data ? labelFromPct(data.total_pct) : '—'}
           rightCls={data ? intensityFromPct(data.total_pct) : 'text-ink/66'}
@@ -111,7 +113,7 @@ function IdleDial() {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="font-mono text-2xl font-semibold leading-none text-ink/35">—</span>
-        <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/50">accionable</span>
+        <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/50">fiabilidad</span>
       </div>
     </div>
   );
@@ -123,7 +125,7 @@ function ConfluenceRow({
   rightLabel,
   rightCls,
 }: {
-  label: string;
+  label: ReactNode;
   score: number;
   rightLabel: string;
   rightCls: string;

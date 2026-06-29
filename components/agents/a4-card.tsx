@@ -3,6 +3,7 @@ import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-
 import { cn } from '@/lib/utils';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { SignalBox } from './a1-card';
+import { Glossed } from '@/components/lens/glossed';
 
 interface A4CardProps {
   status: AgentStatus;
@@ -33,7 +34,7 @@ export function A4Card({ status, data, aligned = false, confluencePct }: A4CardP
     <AgentCardShell
       accent="slate"
       badge="A4"
-      title="Veredicto final"
+      title={<Glossed term="veredicto">Veredicto final</Glossed>}
       status={status}
       summary={hasData ? <A4Summary data={data} confluencePct={confluencePct} /> : undefined}
     >

@@ -128,7 +128,7 @@ export function Gauge({
           {formatInt(value)}
         </span>
         <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/58">
-          accionable
+          fiabilidad
         </span>
       </div>
     </div>

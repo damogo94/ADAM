@@ -24,9 +24,9 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'Porcentaje 0-100 que mide cuánto se alinean los 3 agentes (A1 fundamentales, A2 macro, A3 técnico). Más alto = más señales apuntando al mismo sitio.',
   },
   dictamen: {
-    label: 'Dictamen',
+    label: 'Veredicto',
     explanation:
-      'Veredicto del agente A4 sobre el activo: dirección (positivo/negativo/neutral) + nivel de confianza, ensamblando lo que dijeron A1, A2 y A3.',
+      'La conclusión consolidada del sistema (A4) sobre el activo: dirección (positivo/negativo/neutral) + nivel de confianza, ensamblando lo que dijeron A1, A2 y A3. Mismo concepto que "veredicto".',
   },
   anomalia: {
     label: 'Anomalía',
@@ -104,9 +104,44 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'El análisis tiene más de 24h. Los datos pueden haber cambiado; vuelve a correrlo para refrescar antes de tomar decisiones.',
   },
   accionable: {
-    label: 'Accionable',
+    label: 'Operable ahora',
     explanation:
-      'El precio actual está dentro de un 2% de la entrada del setup técnico. El trade se podría abrir AHORA con poco slippage vs el plan original.',
+      'El precio actual está a menos de un 2% de la entrada del setup técnico: el trade se podría abrir AHORA con poco desvío respecto al plan original. (Solo /watchlist — mide la distancia a la entrada, no la fiabilidad del veredicto.)',
+  },
+  fiabilidad: {
+    label: 'Fiabilidad',
+    explanation:
+      'La cifra grande del veredicto, de 0 a 100: cuánto fiarte de la conclusión. Combina la fuerza de la señal (|net|) con la coincidencia entre las 3 lecturas — si chocan, baja.',
+  },
+  coincidencia: {
+    label: 'Coincidencia (κ)',
+    explanation:
+      'De 0 a 1: cuánto se confirman entre sí las 3 lecturas (activo, economía, gráfico). Alta = todas apuntan al mismo sitio; baja = se contradicen y la fiabilidad cae.',
+  },
+  veredicto: {
+    label: 'Veredicto',
+    explanation:
+      'La conclusión consolidada del sistema (A4): dirección (positivo/negativo/neutral) + nivel de confianza, ensamblando lo que dijeron A1, A2 y A3. No es una orden de compra ni de venta.',
+  },
+  setup: {
+    label: 'Setup',
+    explanation:
+      'La oportunidad o plan operativo del técnico: dirección, zona de entrada, stop y target. Describe cómo se vería el trade si se diera — no es una recomendación de operarlo.',
+  },
+  mtf: {
+    label: 'MTF (multi-temporal)',
+    explanation:
+      'Mirar el mismo activo en varias escalas de tiempo a la vez (semana / día / horas). Si todas apuntan igual, la lectura se confirma; si chocan, se descuenta.',
+  },
+  delta: {
+    label: 'Cambio (Δ)',
+    explanation:
+      'Qué cambió respecto al análisis anterior del mismo activo: un giro de dirección (FLIP), una anomalía nueva, o la variación de la confluencia en puntos.',
+  },
+  hit_rate: {
+    label: 'Tasa de acierto',
+    explanation:
+      'De las señales pasadas que ya se resolvieron, qué porcentaje acertó la dirección. Es historial para calibrar cuánto fiarte — no una promesa de resultados futuros.',
   },
 };
 

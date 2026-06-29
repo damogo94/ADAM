@@ -241,7 +241,7 @@ export function RadarRow({
           <div className="mb-1 flex items-baseline justify-between">
             <span className="font-mono text-[11px] uppercase tracking-wider text-ink/66">
               <Glossed term="accionable">
-                {distances.actionable ? 'accionable ahora' : 'en radar'}
+                {distances.actionable ? 'operable ahora' : 'al alcance'}
               </Glossed>{' '}
               · {latest!.a3_signal === 'buy' ? 'LONG' : 'SHORT'}
             </span>
@@ -510,7 +510,7 @@ function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] 
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         <AxisCell
-          label="Empresa vs Economía"
+          label="Activo vs Economía"
           leftTag="A1"
           leftLean={narrative.a1}
           rightTag="A2"

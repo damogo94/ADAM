@@ -29,14 +29,14 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
 // el carrusel teatral se retiró al pasar /run a streaming). El progreso real lo
 // da el stream NDJSON: la card flipea a contenido en cuanto su agente aterriza.
 // Sobre la card se superpone una fina línea `animate-sweep` en `accent` (chrome
-// ambiental) que la ata al lenguaje visual del ConfluenceHero — decoración PURA:
+// ambiental) que la ata al lenguaje visual del hero — decoración PURA:
 // no afirma progreso ni completado; el ✓/done viven solo en StatusDot, derivado
 // del AgentStatus real. `motion-reduce:hidden` la oculta.
 
 interface AgentCardShellProps {
   accent?: AgentAccent;
   badge: string;
-  title: string;
+  title: React.ReactNode;
   status: AgentStatus;
   source?: string;
   dashed?: boolean;
@@ -93,7 +93,7 @@ export function AgentCardShell({
   if (!collapsible) {
     return (
       <div className={cardCls}>
-        {/* Línea de barrido ambiental — chrome accent atado al ConfluenceHero.
+        {/* Línea de barrido ambiental — chrome accent atado al hero.
             Solo en scanning; decoración pura (no afirma nada). reduced-motion la oculta. */}
         {isScanning && (
           <span
