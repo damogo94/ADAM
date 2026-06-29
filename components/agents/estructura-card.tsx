@@ -18,11 +18,11 @@ interface EstructuraCardProps {
 }
 
 const ESTADO_LABEL: Record<EstructuraOutput_t['setup']['estado'], string> = {
-  listo: 'SETUP LISTO',
-  esperando_confirmacion: 'ESPERANDO GATILLO',
-  esperando_zona: 'ESPERANDO ZONA',
-  sin_setup: 'SIN SETUP',
-  sin_estructura: 'SIN ESTRUCTURA',
+  listo: 'Plan listo',
+  esperando_confirmacion: 'Esperando confirmación',
+  esperando_zona: 'Esperando que el precio llegue',
+  sin_setup: 'Aún sin plan',
+  sin_estructura: 'Sin estructura clara',
 };
 
 /** compra → alcista (▲), venta → bajista (▼), ninguno → neutral (■). */

@@ -279,15 +279,15 @@ export default function SignalsScreen() {
           className="w-full rounded-lg border border-ink bg-ink px-3 py-2.5 font-sans text-[11px] font-bold tracking-[0.15em] text-void transition hover:bg-ink/85 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {scanning
-            ? 'ESCANEANDO…'
+            ? 'BUSCANDO…'
             : selectedTickers.length > 0
-              ? `EJECUTAR SCAN · ${selectedTickers.length} ACTIVO${selectedTickers.length > 1 ? 'S' : ''} ▶`
-              : 'EJECUTAR SCAN CMT ▶'}
+              ? `Buscar en ${selectedTickers.length} activo${selectedTickers.length > 1 ? 's' : ''} ▶`
+              : 'Buscar señales ahora ▶'}
         </button>
         <p className="mt-1.5 font-mono text-[12px] text-ink/66 text-center">
           {selectedTickers.length > 0
-            ? `escaneando solo: ${selectedTickers.join(' · ')}`
-            : 'escanea tus tickers · usa Haiku (rápido)'}
+            ? `buscando solo en: ${selectedTickers.join(' · ')}`
+            : 'revisa tus activos en busca de señales técnicas · resultado al instante'}
         </p>
       </div>
 
@@ -405,7 +405,7 @@ function TrackRecordPanel({ track }: { track: TrackRecord }) {
           <div className={cn('font-mono text-[28px] font-black leading-none', empty ? 'text-ink/66' : 'text-ink')}>
             {empty ? '—' : `${track.hitRate}%`}
           </div>
-          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-ink/66">hit-rate</div>
+          <div className="mt-1 font-mono text-[11px] uppercase tracking-wider text-ink/66">tasa de acierto</div>
         </div>
 
         {/* Detalle */}
@@ -429,7 +429,7 @@ function TrackRecordPanel({ track }: { track: TrackRecord }) {
                 {track.denom} resuelta{track.denom > 1 ? 's' : ''}
                 {track.avgR != null && (
                   <>
-                    {' · R medio '}
+                    {' · ganancia media '}
                     <span className={cn('font-medium', track.avgR >= 0 ? 'text-emerald' : 'text-rose')}>
                       {track.avgR >= 0 ? '+' : ''}
                       {track.avgR.toFixed(2)}

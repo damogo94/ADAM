@@ -127,7 +127,7 @@ export function RadarRow({
               </div>
             </>
           ) : (
-            <span className="font-mono text-[12px] text-ink/66">no quote</span>
+            <span className="font-mono text-[12px] text-ink/66">sin precio</span>
           )}
         </div>
 
@@ -171,7 +171,7 @@ export function RadarRow({
       {/* ───── 3. Dictamen + DELTA + FRESCURA ───── */}
       <div className="mt-2 grid grid-cols-3 gap-2 border-t border-white/5 px-3 py-2">
         {/* Dictamen + confluencia */}
-        <DataCell label={<Glossed term="dictamen">Dictamen</Glossed>}>
+        <DataCell label={<Glossed term="dictamen">Veredicto</Glossed>}>
           {hasAnalysis ? (
             // Dos ejes SEPARADOS (regla de framing): dirección = glifo/color,
             // convicción = intensidad (slate/amber/emerald). La confluencia A4
@@ -191,12 +191,12 @@ export function RadarRow({
         </DataCell>
 
         {/* Delta */}
-        <DataCell label="Delta">
+        <DataCell label="Cambio">
           <DeltaCell delta={delta} />
         </DataCell>
 
         {/* Frescura — DOS relojes (umbral por reloj): veredicto + precio */}
-        <DataCell label="Frescura">
+        <DataCell label="Actualidad">
           {hasAnalysis ? (
             <span className="flex flex-col leading-tight">
               {/* reloj 1 · edad del veredicto */}
@@ -444,15 +444,15 @@ function LeanGlyph({ lean }: { lean: Lean }) {
 function divStateMeta(state: string): { word: string; cls: string; border: string } {
   switch (state) {
     case 'divergent':
-      return { word: 'divergen', cls: 'text-amber', border: 'border-amber/30' };
+      return { word: 'chocan', cls: 'text-amber', border: 'border-amber/30' };
     case 'aligned':
-      return { word: 'alineados', cls: 'text-ink/66', border: 'border-white/10' };
+      return { word: 'coinciden', cls: 'text-ink/66', border: 'border-white/10' };
     case 'mixed':
       return { word: 'mixto', cls: 'text-ink/66', border: 'border-white/8' };
     case 'neutral':
       return { word: 'neutro', cls: 'text-ink/66', border: 'border-white/8' };
     default: // unavailable
-      return { word: 'n/d', cls: 'text-ink/66', border: 'border-white/8' };
+      return { word: 'sin datos', cls: 'text-ink/66', border: 'border-white/8' };
   }
 }
 
@@ -497,7 +497,7 @@ function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] 
     <div className="mx-3 mt-2 rounded-md border border-white/8 bg-white/[0.02] px-2 py-1.5">
       <div className="mb-1 flex items-center gap-1.5">
         <Glossed term="confluencia">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-ink/66">Desacuerdo</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-ink/66">¿Coinciden?</span>
         </Glossed>
         {partial && (
           <span
@@ -510,7 +510,7 @@ function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] 
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         <AxisCell
-          label="Narrativa · A1↔A2"
+          label="Empresa vs Economía"
           leftTag="A1"
           leftLean={narrative.a1}
           rightTag="A2"
@@ -518,7 +518,7 @@ function DivergenceBlock({ divergence }: { divergence: RadarRow_t['divergence'] 
           state={narrative.state}
         />
         <AxisCell
-          label="Técnico · A3 aislado"
+          label="Gráfico (solo precio)"
           leftTag="A3"
           leftLean={technical.a3}
           rightTag="narr"

@@ -33,7 +33,7 @@ export function A4Card({ status, data, aligned = false, confluencePct }: A4CardP
     <AgentCardShell
       accent="slate"
       badge="A4"
-      title="Sistema · Ensamblado final"
+      title="Veredicto final"
       status={status}
       summary={hasData ? <A4Summary data={data} confluencePct={confluencePct} /> : undefined}
     >
@@ -103,7 +103,7 @@ function A4Body({ data, aligned, confluencePct }: { data: A4Output; aligned: boo
             pct >= 67 ? 'text-ink' : 'text-ink/66'
           )}
         >
-          recomendación del sistema
+          qué sugiere el análisis
         </div>
         <div className="font-mono text-fluid-caption leading-snug text-ink/95 mb-1">{accion_sugerida}</div>
         <div className="font-mono text-fluid-caption leading-snug text-ink/65 border-t border-white/10 pt-1 mt-1">
