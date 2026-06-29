@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import type { TradeOutcomeSummary } from '@/lib/analyses/trade-summary';
 
 export const runtime = 'nodejs';
 
@@ -10,13 +12,13 @@ const DETAIL_COLUMNS =
   'id, ticker, confluence_pct, net_pct, kappa, actionable_pct, direction, confidence, latency_ms, created_at, a1_output, a2_output, a3_output, debate_output, a4_output, estructura_output';
 
 /**
- * GET /api/analyses/[id] → un run PROPIO, completo (outputs JSONB) para el render
- * read-only del historial.
+ * GET /api/analyses/[id] → un run PROPIO completo (outputs JSONB) + el outcome
+ * del trade si ya se evaluó.
  *
- * RLS (`analyses_select_own`) garantiza que solo devuelve filas del usuario
- * autenticado: un id ajeno (o inexistente) cae a `not_found`. Client de SESIÓN —
- * a diferencia de /api/system/analyses/[id], que usa admin porque sirve el dato
- * GLOBAL de cualquier usuario tras el gate de /system.
+ * RLS (`analyses_select_own`) garantiza que `data` es del usuario autenticado (un
+ * id ajeno cae a not_found). El outcome vive en `trade_outcomes` (service-role,
+ * sin RLS): se lee con admin acotado a este analysis_id, que YA está validado
+ * como del usuario por la query anterior → sin fuga.
  */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const parsed = Uuid.safeParse(params.id);
@@ -42,5 +44,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!data) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
-  return NextResponse.json({ analysis: data });
+
+  let outcome: TradeOutcomeSummary | null = null;
+  try {
+    const admin = createSupabaseAdmin();
+    const { data: o } = await admin
+      .from('trade_outcomes')
+      .select('outcome, r_multiple, return_pct, resolved_days')
+      .eq('analysis_id', parsed.data)
+      .maybeSingle();
+    outcome = o ?? null;
+  } catch {
+    /* best-effort: el outcome es opcional para el render */
+  }
+
+  return NextResponse.json({ analysis: data, outcome });
 }
