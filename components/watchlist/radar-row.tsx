@@ -50,6 +50,12 @@ export function RadarRow({
   const currency = quote?.currency ?? getCurrencyFromTicker(ticker);
   const pos = (quote?.change_pct_24h ?? 0) >= 0;
   const hasAnalysis = latest !== null;
+  // Tarea 3 (A+B): riel de veredicto (dirección A4) en el borde izq. + punto de
+  // urgencia junto al ticker. Canales distintos que NO compiten: el riel dice
+  // "qué opina ADAM" (dirección = dato de mercado), el punto "cuánto urge mirarlo"
+  // (estado-de-señal). La dirección sigue también en el DirectionBadge (no solo color).
+  const railClass = verdictRailClass(latest?.direction ?? null, hasAnalysis, is_stale);
+  const urgency = rowUrgency(row);
 
   return (
     <div
@@ -62,6 +68,12 @@ export function RadarRow({
         is_stale && 'opacity-90'
       )}
     >
+      {/* Riel de veredicto (A) — canal de dato direccional, no decoración. */}
+      <span
+        aria-hidden
+        className={cn('pointer-events-none absolute left-0 top-2 bottom-2 w-[3px] rounded-full', railClass)}
+      />
+
       {/* ───── 1. Cabecera ───── */}
       <div className="flex items-center gap-3 px-3 pt-2.5">
         <div className="min-w-0 flex-1">
@@ -74,6 +86,16 @@ export function RadarRow({
               >
                 ◆
               </span>
+            )}
+            {urgency && (
+              <span
+                className={cn(
+                  'inline-block h-1.5 w-1.5 flex-shrink-0 self-center rounded-full',
+                  urgency === 'high' ? 'bg-rose animate-urg-pulse' : 'bg-amber'
+                )}
+                aria-label={urgency === 'high' ? 'Urgente · mirar hoy' : 'Atención · vigilar'}
+                title={urgency === 'high' ? 'Urgente · mirar hoy' : 'Atención · vigilar'}
+              />
             )}
             <span className="font-mono text-[13px] font-bold tracking-wider text-ink">
               {ticker}
@@ -360,6 +382,34 @@ function DistanceBlock({
       </div>
     </div>
   );
+}
+
+// ─── Color-coding de fila (tarea 3) ─────────────────────────────────
+// A · Riel de veredicto: color = dirección del dictamen A4 (dato de mercado).
+//   positivo→emerald, negativo→rose, neutral→slate, sin análisis→ink (gris).
+//   Stale → desatura (un veredicto viejo no se lee como "vivo").
+function verdictRailClass(direction: string | null, hasAnalysis: boolean, stale: boolean): string {
+  if (!hasAnalysis) return 'bg-ink/12';
+  if (direction === 'positivo') return stale ? 'bg-emerald/35' : 'bg-emerald/70';
+  if (direction === 'negativo') return stale ? 'bg-rose/35' : 'bg-rose/70';
+  return 'bg-slate-l/45'; // neutral — gris neutro, NUNCA un color de mercado por defecto
+}
+
+// B · Urgencia de la fila: estado-de-señal derivado (misma lógica que el digest).
+//   high = señal CMT urgente o anomalía nueva · medium = atención/flip/anomalía.
+//   "calma" → null (sin punto), NUNCA emerald (chocaría con emerald=alcista).
+function rowUrgency(row: RadarRow_t): 'high' | 'medium' | null {
+  const { signal, delta, latest } = row;
+  if (signal?.level === 'urgente' || delta.anomaly_new) return 'high';
+  if (
+    signal?.level === 'atencion' ||
+    delta.direction_flipped ||
+    delta.a3_signal_flipped ||
+    latest?.a1_anomaly_detected
+  ) {
+    return 'medium';
+  }
+  return null;
 }
 
 function timeAgo(iso: string): string {
