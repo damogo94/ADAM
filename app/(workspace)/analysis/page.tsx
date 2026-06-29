@@ -131,7 +131,7 @@ function AnalysisInner() {
               estEnabled ? 'bg-accent' : 'bg-white/30'
             )}
           />
-          {estEnabled ? 'Estructura activa · futuros MTF' : '+ Sumar Estructura · futuros MTF'}
+          {estEnabled ? 'Estructura activa · varias escalas' : '+ Añadir estructura · varias escalas de tiempo'}
         </button>
         <Link
           href="/estructura"
@@ -393,7 +393,7 @@ function OnboardingCard() {
     {
       n: '2',
       t: 'Los agentes lo analizan',
-      d: '5 agentes en paralelo — micro · macro · técnico aislado · síntesis',
+      d: '4 analistas a la vez: la empresa, la economía, el gráfico y un resumen que lo une',
     },
     {
       n: '3',

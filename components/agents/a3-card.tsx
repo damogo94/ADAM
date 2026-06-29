@@ -30,7 +30,7 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
       title="Trading · Price Action"
       status={dotStatus}
       source="Yahoo · OHLCV"
-      subline="usuario · único comandante · solo gráfico"
+      subline="Solo el gráfico — sin noticias ni economía"
       summary={hasData ? <A3Summary data={data} /> : undefined}
     >
       {status === 'idle' && <IdleState label="esperando activo..." />}

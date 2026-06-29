@@ -273,7 +273,7 @@ export default function HistorialScreen() {
               <TradeBanner trade={detailTrade} outcome={detailOutcome} ticker={detail.ticker} />
             ) : (
               <div className="mx-4 mt-3 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink/40">
-                solo análisis · este run no generó trade (hold / sin niveles)
+                solo análisis · esta vez no salió una operación concreta
               </div>
             )}
             <StoredAnalysisView a={detail} />
