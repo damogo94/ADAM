@@ -22,7 +22,8 @@ import { normalizeDirection } from '@/components/agent-primitives';
  * scanning→calibrando); el número del núcleo es asintótico (capado ~0.92) y solo
  * salta al valor real al `resolved`. Color de mercado (emerald/rose/ink) SOLO en
  * dato: número resuelto + glifo del veredicto + glifo de dirección por satélite.
- * El resto (anillos, filamentos, halos, núcleo, glow) = accent/ink (cromo).
+ * El resto (anillos, filamentos, halos, núcleo) = accent/ink (cromo). EXCEPCIÓN
+ * aprobada: el GLOW del núcleo es una "aurora" del color de la dirección al resolver.
  */
 
 interface OrbitalHeroProps {
@@ -160,6 +161,7 @@ export function OrbitalHero({
     const tether = q('[data-tether]');
     const stationG = q('[data-node="deb"]');
     const coreGlow = q('[data-core-glow]');
+    const glowStops = Array.from(svg.querySelectorAll('#orbGlow stop'));
     const coreArc = q('[data-core-arc]') as SVGCircleElement | null;
     const coreGroup = q('[data-core-group]');
 
@@ -237,8 +239,13 @@ export function OrbitalHero({
       numV += acc * dt; num += numV * dt;
       if (f.reduced) { num = f.targetNum; numV = 0; }
       const shown = Math.max(0, Math.round(num));
-      glow = lerp(glow, f.resolved ? 0.7 : Math.min(0.5, num / 170), 1 - Math.pow(0.002, dt));
+      glow = lerp(glow, f.resolved ? 0.78 : Math.min(0.5, num / 170), 1 - Math.pow(0.002, dt));
       if (coreGlow) (coreGlow as SVGElement).style.opacity = String(glow);
+      // Aurora direccional: al resolver, el glow toma el color de la dirección
+      // (alcista→emerald, bajista→rose, neutral→accent). Excepción al invariante
+      // "color de mercado solo en dato", aprobada por el owner SOLO para el glow del hero.
+      const glowCol = !f.resolved ? COL.accent : f.dirCore === 'up' ? COL.emerald : f.dirCore === 'down' ? COL.rose : COL.accent;
+      glowStops.forEach((s) => s.setAttribute('stop-color', glowCol));
       if (coreArc) coreArc.setAttribute('stroke-dasharray', `${(ARC_C * Math.min(num, 100) / 100).toFixed(1)} 999`);
 
       if (f.resolved && !lastResolved) popStart = now;
