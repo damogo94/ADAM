@@ -55,7 +55,7 @@ export function RadarRow({
     <div
       data-ticker={ticker}
       className={cn(
-        'group relative rounded-[15px] border bg-surface-2 transition-all duration-300',
+        'group relative rounded-card-sm border bg-surface-2 transition-all duration-300',
         highlighted
           ? 'border-white/40 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]'
           : 'border-white/8 hover:border-white/25',

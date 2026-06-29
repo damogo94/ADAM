@@ -260,7 +260,7 @@ export default function HistorialScreen() {
         ) : detailError ? (
           <div
             role="alert"
-            className="mx-4 mt-3 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
+            className="mx-4 mt-3 rounded-card-sm border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
           >
             {detailError}{' '}
             <button onClick={back} className="underline underline-offset-2 hover:text-ink">
@@ -272,7 +272,7 @@ export default function HistorialScreen() {
             {detailTrade ? (
               <TradeBanner trade={detailTrade} outcome={detailOutcome} ticker={detail.ticker} />
             ) : (
-              <div className="mx-4 mt-3 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink/40">
+              <div className="mx-4 mt-3 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink/40">
                 solo análisis · este run no generó trade (hold / sin niveles)
               </div>
             )}
@@ -311,7 +311,7 @@ export default function HistorialScreen() {
       ) : error ? (
         <div
           role="alert"
-          className="mx-4 mt-3 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
+          className="mx-4 mt-3 rounded-card-sm border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
         >
           {error}{' '}
           <button onClick={() => void load()} className="underline underline-offset-2 hover:text-ink">
@@ -319,7 +319,7 @@ export default function HistorialScreen() {
           </button>
         </div>
       ) : list.length === 0 ? (
-        <div className="mx-4 mt-3 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
+        <div className="mx-4 mt-3 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
           <div className="font-mono text-[12px] text-ink/70 mb-1">sin análisis guardados</div>
           <div className="font-mono text-[12px] text-ink/66">
             cada análisis que ejecutes en{' '}
@@ -338,7 +338,7 @@ export default function HistorialScreen() {
               <button
                 key={a.id}
                 onClick={() => void openDetail(a.id)}
-                className="block w-full rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5 text-left transition-colors hover:border-white/20"
+                className="block w-full rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5 text-left transition-colors hover:border-white/20"
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[13px] font-bold tracking-wider text-ink">{a.ticker}</span>

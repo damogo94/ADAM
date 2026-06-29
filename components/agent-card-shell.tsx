@@ -71,7 +71,7 @@ export function AgentCardShell({
   const [open, setOpen] = useState(defaultOpen);
 
   const cardCls = cn(
-    'relative overflow-hidden rounded-[15px] border bg-surface-2 shadow-e1 edge-hi transition-[border-color,box-shadow] duration-300 ease-precise',
+    'relative overflow-hidden rounded-card-sm border bg-surface-2 shadow-e1 edge-hi transition-[border-color,box-shadow] duration-300 ease-precise',
     dashed ? 'border-dashed' : 'border-solid',
     isScanning ? ACCENT_SCAN[accent] : 'border-ink/8'
   );

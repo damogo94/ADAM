@@ -60,7 +60,7 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="rounded-[15px] border border-white/10 bg-surface-2 p-5">
+      <div className="rounded-card-sm border border-white/10 bg-surface-2 p-5">
         <h1 className="font-sans text-[14px] font-bold tracking-wider text-ink mb-1">CREAR CUENTA</h1>
         <p className="font-mono text-[12px] text-ink/66 mb-4">Built to detect what others ignore.</p>
 

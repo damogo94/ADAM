@@ -108,7 +108,7 @@ export default function SystemScreen() {
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
       <Header status={loading ? 'running' : 'ok'} />
 
-      <section className="mx-4 mt-3 rounded-[18px] border border-white/15 bg-surface-2 px-3.5 py-3.5">
+      <section className="mx-4 mt-3 rounded-card-md border border-white/15 bg-surface-2 px-3.5 py-3.5">
         <div className="font-sans text-[22px] font-extrabold tracking-[0.2em] text-ink">
           A.D.A.M.
         </div>
@@ -130,7 +130,7 @@ export default function SystemScreen() {
       {error && !stats ? (
         <div
           role="alert"
-          className="mx-4 rounded-[15px] border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
+          className="mx-4 rounded-card-sm border border-white/30 bg-white/[0.06] px-3 py-3 font-mono text-[12px] leading-snug text-ink/80"
         >
           <div className="mb-1 uppercase tracking-wider text-ink/60">métricas no disponibles</div>
           {error} No se muestran contadores para no presentar ceros como si fueran datos reales.{' '}
@@ -148,7 +148,7 @@ export default function SystemScreen() {
         {error && (
           <div
             role="alert"
-            className="mx-4 mb-2 rounded-[15px] border border-white/20 bg-white/[0.05] px-3 py-2 font-mono text-[11px] leading-snug text-ink/75"
+            className="mx-4 mb-2 rounded-card-sm border border-white/20 bg-white/[0.05] px-3 py-2 font-mono text-[11px] leading-snug text-ink/75"
           >
             No se pudo actualizar — mostrando datos previos.{' '}
             <button onClick={() => void load()} className="underline underline-offset-2 hover:text-ink">
@@ -193,7 +193,7 @@ export default function SystemScreen() {
       />
 
       <SectionLabel>calibración · backtesting modo B</SectionLabel>
-      <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
+      <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5">
         {!calibration || calibration.total.n === 0 ? (
           <div className="font-mono text-[12px] text-ink/66 leading-snug">
             Sin outcomes evaluados aún. El cron diario (22:00 UTC) evalúa
@@ -330,7 +330,7 @@ export default function SystemScreen() {
         {AGENTS.map((a) => (
           <div
             key={a.id}
-            className="rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2 flex items-center gap-3"
+            className="rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2 flex items-center gap-3"
           >
             <span className="font-sans text-[12px] font-bold tracking-wider text-ink w-14">
               {a.id}
@@ -353,7 +353,7 @@ export default function SystemScreen() {
       </div>
 
       <SectionLabel>pipeline determinístico</SectionLabel>
-      <div className="mx-4 rounded-[15px] border border-accent/20 bg-accent/[0.03] px-3 py-2.5 space-y-1.5">
+      <div className="mx-4 rounded-card-sm border border-accent/20 bg-accent/[0.03] px-3 py-2.5 space-y-1.5">
         <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium">
           refactor F1 — math fuera del LLM
         </div>
@@ -377,7 +377,7 @@ export default function SystemScreen() {
       </div>
 
       <SectionLabel>actividad reciente</SectionLabel>
-      <div className="mx-4 rounded-[15px] border border-white/5 bg-surface-2 px-3 py-2">
+      <div className="mx-4 rounded-card-sm border border-white/5 bg-surface-2 px-3 py-2">
         <KV k="último análisis" v={lastAnalysis} />
         <KV k="modelos" v="Haiku 4.5 (narrate) · Sonnet 4.6 (A2 · Debate) · código (compute)" />
         <KV k="data provider" v="Yahoo /v8/chart · Finnhub 60/min · cripto: CMC ∥ CoinGecko → CoinStats + newsdata.io" />
@@ -386,7 +386,7 @@ export default function SystemScreen() {
       </div>
 
       <SectionLabel>seguridad</SectionLabel>
-      <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2">
+      <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2">
         <KV k="A3 aislado" v="✓ 3 capas + compute sin LLM" cls="text-accent" />
         <KV k="Estructura aislado" v="✓ guard propio · solo OHLCV (+vanilla)" cls="text-accent" />
         <KV k="RLS Supabase" v="✓ 13 policies activas" cls="text-accent" />
@@ -431,7 +431,7 @@ function Stat({
   return (
     <div
       className={cn(
-        'rounded-[15px] border bg-surface-2 px-3 py-2.5 transition-all',
+        'rounded-card-sm border bg-surface-2 px-3 py-2.5 transition-all',
         emphasis ? 'border-white/30 bg-white/[0.06]' : 'border-white/8'
       )}
     >
@@ -465,7 +465,7 @@ function AgentCostBreakdown({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
+      <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5">
         <div className="font-mono text-[12px] text-ink/66 leading-snug">
           Sin runs con desglose por agente todavía. Cualquier análisis nuevo
           aparecerá aquí — la columna usage_breakdown (migración 0005) se
@@ -475,7 +475,7 @@ function AgentCostBreakdown({
     );
   }
   return (
-    <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5 space-y-1.5">
+    <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5 space-y-1.5">
       {rows.map((r) => {
         const share = totalCost > 0 ? Math.round((r.cost_usd / totalCost) * 100) : 0;
         return (

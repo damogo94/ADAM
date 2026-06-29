@@ -83,9 +83,13 @@ const config: Config = {
         'fluid-h1': ['clamp(2.25rem, 1.62rem + 2.7vw, 3.75rem)', { lineHeight: '1.05' }],
         'fluid-display': ['clamp(2.6rem, 1.7rem + 4vw, 4.75rem)', { lineHeight: '1.02' }],
       },
-      // Radio de card del prototipo (r-xl = 22px). El resto mapea a Tailwind.
+      // Radios de card del sistema. card = r-xl (22px, hero/verdict/inicio).
+      // card-sm/md tokenizan los [15px]/[18px] ubicuos (antes arbitrarios). El
+      // resto (inputs/chips puntuales) mapea a Tailwind o queda arbitrario.
       borderRadius: {
         card: '22px',
+        'card-sm': '15px',
+        'card-md': '18px',
       },
       // Curva maestra del sistema (mismo cubic-bezier de todo el motion). Se usa
       // como `ease-precise`, evitando un valor arbitrario ambiguo para Tailwind.

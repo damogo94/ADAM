@@ -356,7 +356,7 @@ export default function SignalsScreen() {
       {loading ? (
         <div className="px-4 py-8 text-center font-mono text-[11px] text-ink/70">cargando señales…</div>
       ) : signals.length === 0 ? (
-        <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
+        <div className="mx-4 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">⚡</div>
           <div className="font-mono text-[11px] text-ink/70 mb-1">sin señales</div>
           <div className="font-mono text-[12px] text-ink/66">
@@ -364,7 +364,7 @@ export default function SignalsScreen() {
           </div>
         </div>
       ) : filteredSignals.length === 0 ? (
-        <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-6 text-center">
+        <div className="mx-4 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-6 text-center">
           <div className="font-mono text-[11px] text-ink/70">ninguna señal cumple los filtros</div>
         </div>
       ) : (
@@ -398,7 +398,7 @@ export default function SignalsScreen() {
 function TrackRecordPanel({ track }: { track: TrackRecord }) {
   const empty = track.denom === 0;
   return (
-    <div className="rounded-[15px] border border-white/8 bg-surface-2 px-3.5 py-3">
+    <div className="rounded-card-sm border border-white/8 bg-surface-2 px-3.5 py-3">
       <div className="flex items-center gap-4">
         {/* Hit-rate */}
         <div className="flex flex-col items-center">
@@ -502,7 +502,7 @@ function CountBox({ label, value, tone }: { label: string; value: number; tone: 
           ? 'text-emerald border-emerald/40 bg-emerald/[0.07]'
           : 'text-emerald/30 border-emerald/12 bg-emerald/[0.02]';
   return (
-    <div className={cn('rounded-[15px] border px-2 py-2.5 text-center transition-all', cls)}>
+    <div className={cn('rounded-card-sm border px-2 py-2.5 text-center transition-all', cls)}>
       <div className="font-mono text-[20px] font-black">{value}</div>
       <div className="font-mono text-[11px] tracking-wider opacity-80 mt-0.5">{label}</div>
     </div>
@@ -580,7 +580,7 @@ function SignalCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-[15px] border bg-surface-2 transition-all',
+        'relative overflow-hidden rounded-card-sm border bg-surface-2 transition-all',
         acknowledged ? 'border-white/5 opacity-60' : 'border-white/10',
         meta.pulse && !acknowledged && 'animate-urg-pulse'
       )}

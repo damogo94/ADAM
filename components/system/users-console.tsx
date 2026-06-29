@@ -170,7 +170,7 @@ export function UsersConsole() {
           <div
             key={u.user_id}
             className={cn(
-              'rounded-[15px] border bg-surface-2 transition-colors',
+              'rounded-card-sm border bg-surface-2 transition-colors',
               open ? 'border-white/25' : 'border-white/8 hover:border-white/20'
             )}
           >
@@ -328,7 +328,7 @@ function AnalysisDetailView({ detail }: { detail: AnalysisDetail }) {
 
 // ── átomos ───────────────────────────────────────────────────────────────────
 function Box({ children }: { children: React.ReactNode }) {
-  return <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-4 text-center">{children}</div>;
+  return <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-4 text-center">{children}</div>;
 }
 
 function Metric({ n, l, boxed }: { n: number | string; l: string; boxed?: boolean }) {

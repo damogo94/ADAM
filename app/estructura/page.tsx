@@ -137,7 +137,7 @@ function OnboardingCard() {
     { n: '3', t: 'Sigue el plan', d: 'entrada, stop estructural y objetivo con R/B ≥ 1.5, si hay setup' },
   ];
   return (
-    <section className="mx-4 mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-surface-2 px-4 py-4">
+    <section className="mx-4 mt-3 overflow-hidden rounded-card-md border border-white/8 bg-surface-2 px-4 py-4">
       <div className="mb-3 flex items-center gap-2">
         <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-ink/70">
           cómo funciona

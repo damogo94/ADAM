@@ -324,7 +324,7 @@ export default function WatchlistScreen() {
           <SkeletonRow />
         </div>
       ) : !radar ? (
-        <div className="mx-4 rounded-[15px] border border-white/25 bg-white/[0.05] px-3 py-10 text-center">
+        <div className="mx-4 rounded-card-sm border border-white/25 bg-white/[0.05] px-3 py-10 text-center">
           <div className="mb-1 text-2xl text-ink/30">⚠</div>
           <div className="mb-1 font-sans text-[11px] tracking-wider text-ink/85">
             no se pudo cargar el radar
@@ -341,7 +341,7 @@ export default function WatchlistScreen() {
           </button>
         </div>
       ) : rows.length === 0 ? (
-        <div className="mx-4 rounded-[15px] border border-dashed border-white/10 bg-surface-2 px-3 py-10 text-center">
+        <div className="mx-4 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-10 text-center">
           <div className="text-2xl text-slate-l opacity-15 mb-1">◎</div>
           <div className="font-sans text-[11px] tracking-wider text-ink/80 mb-1">
             sin activos en radar
@@ -384,7 +384,7 @@ export default function WatchlistScreen() {
           aria-modal="true"
         >
           <div
-            className="rounded-[15px] border border-white/15 bg-surface-2 px-4 py-3 max-w-xs w-full"
+            className="rounded-card-sm border border-white/15 bg-surface-2 px-4 py-3 max-w-xs w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="font-sans text-[12px] font-bold tracking-wider text-ink mb-1">

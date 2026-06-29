@@ -98,7 +98,7 @@ function FlowDown() {
 
 export function ArchitectureDiagram() {
   return (
-    <div className="rounded-[15px] border border-white/5 bg-black/40 p-3">
+    <div className="rounded-card-sm border border-white/5 bg-black/40 p-3">
       <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-ink/40">
         pipeline · compute (determinístico) + narrate (LLM)
       </div>

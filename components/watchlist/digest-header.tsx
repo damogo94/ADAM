@@ -32,7 +32,7 @@ export function DigestHeader({ entries, onSelect, generatedAt }: DigestHeaderPro
   const isEmpty = entries.length === 0;
 
   return (
-    <div className="mx-4 rounded-[15px] border border-white/8 bg-surface-2 px-3 py-2.5">
+    <div className="mx-4 rounded-card-sm border border-white/8 bg-surface-2 px-3 py-2.5">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <div className="font-sans text-[12px] font-bold uppercase tracking-[0.12em] text-ink">
           3 cosas que mirar hoy

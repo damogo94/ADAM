@@ -357,6 +357,23 @@ function AnalysisInner() {
         </aside>
       </div>
 
+      {/* id de soporte (B8) — expone meta.traceId/durationMs del stream (antes sin
+          usar), útil para correlación de logs al reportar una incidencia. */}
+      {state.a4Status === 'done' && state.traceId && (
+        <div className="mx-4 mt-3 text-center font-mono text-fluid-micro text-ink/35">
+          id de soporte:{' '}
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard.writeText(state.traceId ?? '')}
+            className="underline underline-offset-2 transition-colors hover:text-ink/60"
+            title="Copiar id de soporte (para reportar incidencias)"
+          >
+            {state.traceId.slice(0, 8)}
+          </button>
+          {state.durationMs != null && ` · ${(state.durationMs / 1000).toFixed(1)}s`}
+        </div>
+      )}
+
       {/* Disclaimer */}
       <footer className="px-5 pt-6 text-center font-mono text-fluid-caption text-ink/66 leading-relaxed">
         Análisis educativo · no constituye asesoramiento financiero regulado

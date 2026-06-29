@@ -28,7 +28,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
   const level = data && actionable > 0 ? labelFromScore(actionable) : null;
 
   return (
-    <div className="rounded-[15px] border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
+    <div className="rounded-card-sm border border-white/5 bg-surface-2 px-3.5 py-3 transition-all duration-500">
       <div className="font-sans text-fluid-micro font-bold tracking-[0.1em] text-ink mb-0.5">CONFLUENCIA</div>
       <div className="font-mono text-fluid-micro text-ink/66 mb-3">alineamiento entre agentes activos</div>
 
