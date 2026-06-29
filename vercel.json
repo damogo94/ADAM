@@ -11,6 +11,10 @@
       "schedule": "30 21 * * *"
     },
     {
+      "path": "/api/cmt/scan",
+      "schedule": "0 21 * * *"
+    },
+    {
       "path": "/api/cron/evaluate-signals",
       "schedule": "0 22 * * *"
     },
