@@ -132,7 +132,7 @@ function ConfluenceRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono text-fluid-caption text-ink/70 w-[68px] flex-shrink-0">{label}</span>
+      <span className="font-mono text-fluid-caption text-ink/70 w-[76px] flex-shrink-0">{label}</span>
       <div className="flex gap-1">
         {/* 5 dots = quintiles del score 0-100. Cada dot representa 20%. */}
         {[1, 2, 3, 4, 5].map((i) => (
