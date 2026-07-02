@@ -337,6 +337,7 @@ export type Database = {
           rb_ratio: number | null
           resolved_days: number | null
           return_pct: number | null
+          source: string
           stop_loss: number | null
           target: number | null
         }
@@ -353,6 +354,7 @@ export type Database = {
           rb_ratio?: number | null
           resolved_days?: number | null
           return_pct?: number | null
+          source?: string
           stop_loss?: number | null
           target?: number | null
         }
@@ -369,6 +371,7 @@ export type Database = {
           rb_ratio?: number | null
           resolved_days?: number | null
           return_pct?: number | null
+          source?: string
           stop_loss?: number | null
           target?: number | null
         }
@@ -376,7 +379,7 @@ export type Database = {
           {
             foreignKeyName: "trade_outcomes_analysis_id_fkey"
             columns: ["analysis_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "analyses_log"
             referencedColumns: ["id"]
           },
