@@ -5,6 +5,7 @@ import { cn, getCurrencyFromTicker } from '@/lib/utils';
 import { Glossed } from '@/components/lens/glossed';
 import { outcomeMeta } from '@/components/signals/outcome';
 import { RESOLVED_OUTCOMES } from '@/components/signals/helpers';
+import { KV } from '@/components/signals/primitives';
 import type { RadarSignal_t, RadarSignalOutcome_t } from '@/lib/radar/types';
 
 /**
@@ -17,15 +18,17 @@ import type { RadarSignal_t, RadarSignalOutcome_t } from '@/lib/radar/types';
  * `prefers-reduced-motion`: el chevron y la altura NO se animan bajo
  * `motion-reduce` (usamos `motion-reduce:transition-none` en la transición).
  *
- * DESAJUSTE DE TIPOS (documentado): el radar trae `RadarSignal_t`, un SUBSET de
- * `signals_history` (id·level·timeframe·setup·confidence·emitted_at·outcome). NO
- * carga entry/stop/target/R-B/invalidación/indicadores (esos NO están en el
- * contrato `RadarSignal_t` — solo en la tabla completa que consume /signals).
- * Por eso el panel muestra lo disponible y, para el detalle de niveles, remite
- * al histórico (`GET /api/signals`) / al análisis. El outcome usa
- * `RadarSignalOutcome_t` (no `SignalTradeOutcome`), así que reutilizamos
- * `outcomeMeta()` vía un `RadarOutcomeBadge` local en vez de `OutcomeBadge`
- * (que exige el Row completo) — sin duplicar `outcomeMeta`.
+ * NIVELES ACCIONABLES (F4b): `RadarSignal_t` ahora sí propaga
+ * entrada/stop/target/R-B/invalidación desde el jsonb `latest_unacked_signal`
+ * (subset enriquecido de `signals_history`). Se muestran en el detalle con
+ * divisa (`getCurrencyFromTicker`) reutilizando el helper `KV`, con paridad de
+ * formato con la tarjeta de /signals. Son opcionales en el origen → si TODOS
+ * son null (p.ej. señal intradía sin niveles) la sección no se renderiza.
+ * Indicadores NO viajan en el contrato del radar → siguen viviendo en el
+ * histórico completo (`GET /api/signals`). El outcome usa `RadarSignalOutcome_t`
+ * (no `SignalTradeOutcome`), así que reutilizamos `outcomeMeta()` vía un
+ * `RadarOutcomeBadge` local en vez de `OutcomeBadge` (que exige el Row
+ * completo) — sin duplicar `outcomeMeta`.
  */
 
 interface RadarSignalPanelProps {
@@ -49,14 +52,25 @@ export function RadarSignalPanel({ signal, ticker, onAck }: RadarSignalPanelProp
   const ccy = getCurrencyFromTicker(ticker);
 
   function onCopy() {
-    // El radar no carga E/S/T/R-B/invalidación (no están en RadarSignal_t), así
-    // que copiamos el resumen disponible. El reporte completo vive en /signals.
     const lines = [
       `${ticker} · CMT ${signal.level} · ${signal.timeframe}`,
       `Confianza: ${signal.confidence_pct}%`,
       `Setup: ${signal.setup_detected}`,
       `Emitida: ${new Date(signal.emitted_at).toLocaleString()}`,
     ];
+    // Niveles accionables — solo los que existen (sin fabricar datos). El fmtPx
+    // añade divisa; los omitimos si son null en vez de imprimir "—".
+    const fmtPx = (v: number | null) => (v === null ? null : `${v} ${ccy}`);
+    const eLine = fmtPx(signal.entrada);
+    const sLine = fmtPx(signal.stop_loss);
+    const tLine = fmtPx(signal.target);
+    const levelParts: string[] = [];
+    if (eLine) levelParts.push(`Entrada: ${eLine}`);
+    if (sLine) levelParts.push(`Stop: ${sLine}`);
+    if (tLine) levelParts.push(`Target: ${tLine}`);
+    if (levelParts.length > 0) lines.push(levelParts.join(' · '));
+    if (signal.risk_reward !== null) lines.push(`R/B: ${signal.risk_reward.toFixed(2)}`);
+    if (signal.invalidation !== null) lines.push(`Invalida: ${signal.invalidation}`);
     if (signal.outcome) {
       const o = signal.outcome;
       const om = outcomeMeta(o.outcome);
@@ -113,12 +127,10 @@ export function RadarSignalPanel({ signal, ticker, onAck }: RadarSignalPanelProp
             />
           </dl>
 
-          {/* Los niveles E/S/T + R/B + invalidación e indicadores no viajan en el
-              contrato del radar (RadarSignal_t). Puente honesto al detalle. */}
-          <p className="mt-2 font-mono text-[11px] leading-snug text-ink/66">
-            Niveles de entrada/stop/target · <span className="text-ink/45">{ccy}</span> · R/B e
-            indicadores en el histórico completo (▾ ver histórico) o al analizar el activo.
-          </p>
+          {/* Niveles accionables (F4b) — E/S/T con divisa + R/B + invalidación,
+              paridad de formato con /signals. Solo si hay al menos uno; los
+              indicadores NO viajan en el radar → siguen en el histórico. */}
+          <LevelsDetail signal={signal} ccy={ccy} />
 
           <div className="mt-2.5 flex gap-1.5">
             <button
@@ -157,6 +169,49 @@ function MetaRow({
     <div className={className}>
       <dt className="font-mono text-[11px] uppercase tracking-wider text-ink/66">{label}</dt>
       <dd className="mt-0.5 truncate text-ink">{value}</dd>
+    </div>
+  );
+}
+
+/**
+ * LevelsDetail — niveles accionables E/S/T + R/B + invalidación (F4b). Paridad
+ * de formato con la tarjeta de /signals (`SignalCard`): mismo layout `KV` con
+ * divisa, mismos colores semánticos (stop rose · target emerald · R/B amber).
+ * Render condicional: si TODOS los niveles son null (p.ej. señal sin plan) la
+ * sección entera se omite — no imprimimos "—" ni fabricamos datos.
+ */
+function LevelsDetail({ signal, ccy }: { signal: RadarSignal_t; ccy: string }) {
+  const hasLevels =
+    signal.entrada !== null ||
+    signal.stop_loss !== null ||
+    signal.target !== null ||
+    signal.risk_reward !== null ||
+    signal.invalidation !== null;
+  if (!hasLevels) return null;
+
+  const fmtPx = (v: number | null) => (v === null ? '—' : `${v} ${ccy}`);
+  const hasEST = signal.entrada !== null || signal.stop_loss !== null || signal.target !== null;
+
+  return (
+    <div className="mt-2">
+      {hasEST && (
+        <div className="grid grid-cols-3 gap-2">
+          <KV label={<><Glossed term="entrada">ENTRADA</Glossed> · {ccy}</>} value={fmtPx(signal.entrada)} />
+          <KV label={<><Glossed term="stop">▼ STOP</Glossed> · {ccy}</>} value={fmtPx(signal.stop_loss)} cls="text-rose" />
+          <KV label={<><Glossed term="target">▲ TARGET</Glossed> · {ccy}</>} value={fmtPx(signal.target)} cls="text-emerald" />
+        </div>
+      )}
+      {signal.risk_reward !== null && (
+        <div className="mt-2">
+          <KV label={<Glossed term="rb">R/B</Glossed>} value={signal.risk_reward.toFixed(2)} cls="text-amber" />
+        </div>
+      )}
+      {signal.invalidation !== null && (
+        <div className="mt-2 border-t border-white/5 pt-2">
+          <div className="mb-0.5 font-mono text-[11px] uppercase tracking-wider text-rose">Invalida si</div>
+          <div className="font-mono text-[12px] text-ink/90">{signal.invalidation}</div>
+        </div>
+      )}
     </div>
   );
 }

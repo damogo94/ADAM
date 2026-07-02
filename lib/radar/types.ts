@@ -188,6 +188,16 @@ export const RadarSignal = z
     // Resultado de backtest (best-effort, lo rellena el endpoint). null =
     // en seguimiento / no evaluada. Default null en normalize-signal.
     outcome: RadarSignalOutcome.nullable().default(null),
+    // Niveles accionables — vienen en el jsonb `latest_unacked_signal` (un
+    // `to_jsonb` de la fila de `signals_history`), pero son opcionales en el
+    // origen → default null en normalize-signal si faltan o son de otro tipo.
+    // Mapeos desde signals_history: entrada←entry_price, target←target_price,
+    // risk_reward←risk_reward_ratio, invalidation←invalidation_factor.
+    entrada: z.number().nullable().default(null),
+    stop_loss: z.number().nullable().default(null),
+    target: z.number().nullable().default(null),
+    risk_reward: z.number().nullable().default(null),
+    invalidation: z.string().nullable().default(null),
   })
   .strict();
 export type RadarSignal_t = z.infer<typeof RadarSignal>;

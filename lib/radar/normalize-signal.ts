@@ -14,9 +14,25 @@ interface SignalRowRaw {
   setup_detected?: unknown;
   confidence_pct?: unknown;
   emitted_at?: unknown;
+  // Niveles accionables (opcionales en signals_history — pueden faltar).
+  entry_price?: unknown;
+  stop_loss?: unknown;
+  target_price?: unknown;
+  risk_reward_ratio?: unknown;
+  invalidation_factor?: unknown;
 }
 
 const VALID_LEVELS = new Set(['urgente', 'atencion', 'monitorear', 'sin_senal']);
+
+/** Numérico finito o null (defensivo: NaN/Infinity/otros tipos → null). */
+function numOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** String o null (defensivo). */
+function strOrNull(v: unknown): string | null {
+  return typeof v === 'string' ? v : null;
+}
 
 export function normalizeSignal(raw: unknown): RadarSignal_t | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -39,5 +55,12 @@ export function normalizeSignal(raw: unknown): RadarSignal_t | null {
     // El outcome de backtest se rellena en el endpoint (lectura best-effort
     // acotada por RLS). Aquí siempre null.
     outcome: null,
+    // Niveles accionables — opcionales en el origen (signals_history). Si
+    // faltan o no son del tipo esperado → null (NO se descarta la señal).
+    entrada: numOrNull(r.entry_price),
+    stop_loss: numOrNull(r.stop_loss),
+    target: numOrNull(r.target_price),
+    risk_reward: numOrNull(r.risk_reward_ratio),
+    invalidation: strOrNull(r.invalidation_factor),
   };
 }
