@@ -39,9 +39,12 @@ interface AnalysisScalars {
   created_at: string;
 }
 
-/** Fila de la lista del historial: escalares + el trade derivado y su resultado. */
+/** Fila de la lista del historial: escalares + los trades derivados y su resultado. */
 export interface AnalysisSummaryRow extends AnalysisScalars {
+  /** Trade primario de A3 (backtesteado). */
   trade: TradeSummary | null;
+  /** Trade paralelo de Estructura (MTF, aún sin evaluar automáticamente). */
+  estructuraTrade: TradeSummary | null;
   outcome: TradeOutcomeSummary | null;
 }
 

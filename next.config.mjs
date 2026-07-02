@@ -7,6 +7,12 @@ const nextConfig = {
     // Enable streaming responses for Vercel AI SDK with edge timeouts where applicable
     serverComponentsExternalPackages: ['@anthropic-ai/sdk'],
   },
+  async redirects() {
+    return [
+      // /signals absorbida por el radar de /watchlist (Fase F5) — 308 permanente.
+      { source: '/signals', destination: '/watchlist', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

@@ -4,6 +4,7 @@ import { cn, fmtPct, getCurrencyFromTicker } from '@/lib/utils';
 import { AnomalyBadge } from './anomaly-badge';
 import { DictamenSparkline } from './dictamen-sparkline';
 import { PinButton } from './pin-button';
+import { RadarSignalPanel } from './radar-signal-panel';
 import { Glossed } from '@/components/lens/glossed';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { priceMoved } from '@/lib/radar/compute-freshness';
@@ -34,6 +35,8 @@ interface RadarRowProps {
   onDelete: () => void;
   /** Pin/unpin del item. */
   onTogglePin: () => void;
+  /** Marcar leída la señal CMT activa (ack optimista, lo maneja la page). */
+  onAckSignal: () => void;
   /** Highlight visual cuando el digest seleccionó este ticker. */
   highlighted?: boolean;
 }
@@ -44,6 +47,7 @@ export function RadarRow({
   onAnalyze,
   onDelete,
   onTogglePin,
+  onAckSignal,
   highlighted,
 }: RadarRowProps) {
   const { ticker, asset_type, quote, latest, delta, distances, signal, divergence, is_stale, is_pinned, price_drift_pct } = row;
@@ -261,38 +265,8 @@ export function RadarRow({
         </div>
       )}
 
-      {/* ───── 5. Signal CMT activa ───── */}
-      {signal && (
-        <div
-          className={cn(
-            'mx-3 mb-2 flex items-center gap-2 rounded-md border px-2 py-1.5',
-            signal.level === 'urgente'
-              ? 'border-rose/35 bg-rose/[0.06]'
-              : signal.level === 'atencion'
-                ? 'border-amber/30 bg-amber/[0.05]'
-                : 'border-emerald/25 bg-emerald/[0.03]'
-          )}
-        >
-          <Glossed term="cmt">
-            <span
-              className={cn(
-                'font-sans text-[12px] font-bold uppercase tracking-wider',
-                signal.level === 'urgente'
-                  ? 'text-rose'
-                  : signal.level === 'atencion'
-                    ? 'text-amber'
-                    : 'text-emerald'
-              )}
-            >
-              CMT · {signal.level}
-            </span>
-          </Glossed>
-          <span className="flex-1 font-mono text-[12px] text-ink/80 truncate">
-            {signal.setup_detected}
-          </span>
-          <span className="font-mono text-[12px] text-ink/66">{signal.confidence_pct}%</span>
-        </div>
-      )}
+      {/* ───── 5. Signal CMT activa — panel colapsable (F4) ───── */}
+      {signal && <RadarSignalPanel signal={signal} ticker={ticker} onAck={onAckSignal} />}
 
       {/* Botón eliminar (hover) */}
       <button

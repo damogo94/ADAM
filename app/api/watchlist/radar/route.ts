@@ -22,11 +22,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimitByIP } from '@/lib/api-helpers';
 import { fallbackQuote } from '@/lib/market/finnhub';
 import { buildRow } from '@/lib/radar/build-row';
 import { buildDigest } from '@/lib/radar/digest';
-import { RpcRadarRow, type RadarQuote_t, type RadarResponse_t } from '@/lib/radar/types';
+import {
+  RpcRadarRow,
+  type RadarQuote_t,
+  type RadarResponse_t,
+  type RadarSignalOutcome_t,
+} from '@/lib/radar/types';
+import type { SignalTradeOutcome } from '@/types/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -87,6 +94,43 @@ export async function GET(req: NextRequest) {
   // 5) Ensamblar filas + digest
   const now = new Date();
   const rows = rpcRows.map((r, i) => buildRow(r, quotes[i] ?? null, now));
+
+  // 6) Enriquecer cada fila con el outcome de backtest de su señal.
+  //
+  // Los signal.id ya vienen filtrados por RLS vía la RPC `get_watchlist_radar`
+  // (auth.uid()), así que acotar la lectura de outcomes a esos ids garantiza
+  // que NO se traen resultados de señales de otros usuarios — mismo patrón
+  // anti-fuga que /api/signals: admin client bypassa las policies de la tabla
+  // service-role-only, pero el .in() limita a ids que ya son del user.
+  const signalIds = rows
+    .map((r) => r.signal?.id)
+    .filter((id): id is string => typeof id === 'string');
+
+  if (signalIds.length > 0) {
+    const admin = createSupabaseAdmin();
+    const { data: outcomes, error: outErr } = await admin
+      .from('signal_trade_outcomes')
+      .select('*')
+      .in('signal_id', signalIds)
+      .returns<SignalTradeOutcome[]>();
+    // Best-effort: si falla la lectura, las filas quedan con outcome=null
+    // (la UI degrada a "en seguimiento") en vez de romper el radar.
+    if (!outErr) {
+      const outcomeBySignal = new Map<string, RadarSignalOutcome_t>();
+      for (const o of outcomes ?? []) {
+        outcomeBySignal.set(o.signal_id, {
+          outcome: o.outcome,
+          r_multiple: o.r_multiple,
+          return_pct: o.return_pct,
+          resolved_days: o.resolved_days,
+        });
+      }
+      for (const r of rows) {
+        if (r.signal) r.signal.outcome = outcomeBySignal.get(r.signal.id) ?? null;
+      }
+    }
+  }
+
   const digest = buildDigest(rows);
 
   const body: RadarResponse_t = {

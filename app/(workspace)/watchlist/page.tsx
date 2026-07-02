@@ -25,6 +25,7 @@ import { AssetPicker } from '@/components/asset-picker';
 import { RadarRow } from '@/components/watchlist/radar-row';
 import { DigestHeader } from '@/components/watchlist/digest-header';
 import { SkeletonRow } from '@/components/watchlist/skeleton-row';
+import { RadarActionbar } from '@/components/watchlist/radar-actionbar';
 import { useRadar } from '@/components/analysis/radar-provider';
 import { cn } from '@/lib/utils';
 import { SparklinesResponse, type SparklineRange_t } from '@/lib/sparkline/types';
@@ -44,6 +45,8 @@ export default function WatchlistScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Filtro-vista "solo con señal activa" (F4): filtra el radar a filas con señal.
+  const [onlyWithSignal, setOnlyWithSignal] = useState(false);
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Cierre con Escape del modal de confirmación de borrado (consistente con
@@ -194,6 +197,27 @@ export default function WatchlistScreen() {
     }
   }
 
+  async function onAckSignal(itemId: string, signalId: string) {
+    // Ack optimista de la señal CMT activa (mismo patrón que onTogglePin). Al
+    // marcar leída, la señal deja de estar "unacked" → row.signal = null. El
+    // server (POST /api/signals/[id]/ack) persiste `acknowledged_at`; la RPC del
+    // radar ya solo devuelve `latest_unacked_signal`, así que la próxima recarga
+    // coincide con este estado optimista. Rollback si el POST falla.
+    const prevRadar = radar;
+    setRadar((cur) =>
+      cur
+        ? { ...cur, rows: cur.rows.map((r) => (r.item_id === itemId ? { ...r, signal: null } : r)) }
+        : cur
+    );
+    try {
+      const r = await fetch(`/api/signals/${signalId}/ack`, { method: 'POST' });
+      if (!r.ok) throw new Error('ack_failed');
+    } catch {
+      setRadar(prevRadar);
+      setError('No se pudo marcar leída — reintenta');
+    }
+  }
+
   const onDigestSelect = useCallback((ticker: string) => {
     setHighlight(ticker);
     const el = rowRefs.current.get(ticker);
@@ -205,6 +229,10 @@ export default function WatchlistScreen() {
   const digest = radar?.digest ?? [];
   const generatedAt = radar?.generated_at;
   const isInitialLoading = loading && !radar;
+  // Filtro-vista: cuando está activo, solo filas con señal CMT activa (no-null).
+  const visibleRows = onlyWithSignal ? rows.filter((r) => r.signal !== null) : rows;
+  // Tickers únicos para la selección avanzada del scan.
+  const watchlistTickers = [...new Set(rows.map((r) => r.ticker))];
 
   return (
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
@@ -223,6 +251,19 @@ export default function WatchlistScreen() {
       </div>
       <div className="mt-2.5" />
       <DigestHeader entries={digest} onSelect={onDigestSelect} generatedAt={generatedAt} />
+
+      {/* Barra de acción global (F4): contadores por ticker · track-record ·
+          scan · filtro "solo con señal" · histórico. Absorbe /signals. Solo con
+          el radar cargado (sus contadores derivan de radar.rows). */}
+      {radar && (
+        <RadarActionbar
+          rows={rows}
+          tickers={watchlistTickers}
+          onlyWithSignal={onlyWithSignal}
+          onToggleOnlyWithSignal={() => setOnlyWithSignal((v) => !v)}
+          onReloadRadar={reload}
+        />
+      )}
 
       {/* Form alta */}
       <form onSubmit={onAdd} className="px-4 pt-3">
@@ -291,7 +332,8 @@ export default function WatchlistScreen() {
       {/* Toggle de rango del sparkline */}
       <div className="mx-4 mt-3 flex items-center justify-between">
         <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink/66">
-          activos en radar · {rows.length}
+          activos en radar ·{' '}
+          {onlyWithSignal ? `${visibleRows.length} de ${rows.length}` : rows.length}
         </span>
         <div
           role="radiogroup"
@@ -352,9 +394,17 @@ export default function WatchlistScreen() {
             escribiendo un ticker arriba (AAPL · BTC · EUR/USD…)
           </div>
         </div>
+      ) : visibleRows.length === 0 ? (
+        // Filtro "solo con señal activa" activo y ninguna fila lo cumple.
+        <div className="mx-4 rounded-card-sm border border-dashed border-white/10 bg-surface-2 px-3 py-8 text-center">
+          <div className="font-mono text-[11px] text-ink/70">ningún activo tiene señal activa</div>
+          <div className="mt-1 font-mono text-[12px] text-ink/66">
+            quita el filtro o ejecuta un scan para buscar señales
+          </div>
+        </div>
       ) : (
         <div className="px-4 space-y-2">
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <div
               key={row.item_id}
               ref={(el) => {
@@ -369,6 +419,9 @@ export default function WatchlistScreen() {
                 onAnalyze={() => router.push(`/analysis?ticker=${encodeURIComponent(row.ticker)}&from=radar`)}
                 onDelete={() => setConfirmDeleteId(row.item_id)}
                 onTogglePin={() => void onTogglePin(row.item_id, row.is_pinned)}
+                onAckSignal={() => {
+                  if (row.signal) void onAckSignal(row.item_id, row.signal.id);
+                }}
               />
             </div>
           ))}

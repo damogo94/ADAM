@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType } from 'react';
 import { cn } from '@/lib/utils';
-import { AnomalyLoop, SplitA, Observer, Monogram, Origin, Chronicle } from './symbols';
+import { AnomalyLoop, SplitA, Monogram, Origin, Chronicle } from './symbols';
 
 interface NavItem {
   href: string;
@@ -22,7 +22,6 @@ const ITEMS: NavItem[] = [
   { href: '/inicio', label: 'INICIO', Icon: Origin },
   { href: '/analysis', label: 'ANÁLISIS', Icon: AnomalyLoop },
   { href: '/watchlist', label: 'WATCHLIST', Icon: SplitA },
-  { href: '/signals', label: 'SEÑALES', Icon: Observer },
   { href: '/historial', label: 'HISTORIAL', Icon: Chronicle },
   { href: '/system', label: 'SISTEMA', Icon: Monogram },
 ];

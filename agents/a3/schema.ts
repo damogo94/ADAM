@@ -46,6 +46,11 @@ export const A3_OUTPUT_SCHEMA = z.object({
     atr_actual: z.number().nullable(),
     ratio_riesgo_beneficio: z.number().nullable(),
     horizonte: z.enum(['intradia', 'swing', 'posicional']),
+    // Consolidado con agents/shared/types.ts (F8/ADR-003): el compute
+    // (computeOperativa) emite entry_type; sin este campo el schema no-strict
+    // lo descartaba en silencio en la ruta runA3. nullable/optional para no
+    // romper runs antiguos ni el hold (entry_type null).
+    entry_type: z.enum(['market', 'limit']).nullable().optional(),
   }),
   factor_invalidacion: z.string().max(1000),
   /**

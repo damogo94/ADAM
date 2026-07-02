@@ -160,6 +160,22 @@ export const RadarQuote = z
   .strict();
 export type RadarQuote_t = z.infer<typeof RadarQuote>;
 
+/**
+ * Outcome de backtest de una señal CMT (subset mínimo para mostrar en el
+ * panel del radar). Sale de `signal_trade_outcomes` (service-role only),
+ * acotado por `.in('signal_id', <ids del user>)` en el endpoint → sin fuga.
+ * null = señal aún en seguimiento / sin evaluar.
+ */
+export const RadarSignalOutcome = z
+  .object({
+    outcome: z.string(),
+    r_multiple: z.number().nullable(),
+    return_pct: z.number().nullable(),
+    resolved_days: z.number().nullable(),
+  })
+  .strict();
+export type RadarSignalOutcome_t = z.infer<typeof RadarSignalOutcome>;
+
 /** Señal CMT activa (unacked) — opcional. */
 export const RadarSignal = z
   .object({
@@ -169,6 +185,19 @@ export const RadarSignal = z
     setup_detected: z.string(),
     confidence_pct: z.number().int().min(0).max(100),
     emitted_at: z.string(),
+    // Resultado de backtest (best-effort, lo rellena el endpoint). null =
+    // en seguimiento / no evaluada. Default null en normalize-signal.
+    outcome: RadarSignalOutcome.nullable().default(null),
+    // Niveles accionables — vienen en el jsonb `latest_unacked_signal` (un
+    // `to_jsonb` de la fila de `signals_history`), pero son opcionales en el
+    // origen → default null en normalize-signal si faltan o son de otro tipo.
+    // Mapeos desde signals_history: entrada←entry_price, target←target_price,
+    // risk_reward←risk_reward_ratio, invalidation←invalidation_factor.
+    entrada: z.number().nullable().default(null),
+    stop_loss: z.number().nullable().default(null),
+    target: z.number().nullable().default(null),
+    risk_reward: z.number().nullable().default(null),
+    invalidation: z.string().nullable().default(null),
   })
   .strict();
 export type RadarSignal_t = z.infer<typeof RadarSignal>;
