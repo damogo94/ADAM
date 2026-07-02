@@ -11,6 +11,7 @@ import {
   type TradeSummary,
   type TradeOutcomeSummary,
 } from '@/lib/analyses/trade-summary';
+import { horizonteLabel } from '@/lib/analyses/horizon';
 import {
   StoredAnalysisView,
   type AnalysisSummaryRow,
@@ -94,7 +95,7 @@ function TradeBanner({
         </span>
         {trade.horizonte && (
           <span className="font-mono text-[10px] uppercase tracking-wider text-ink/45">
-            {trade.horizonte}
+            {horizonteLabel(trade.horizonte).long}
           </span>
         )}
         {outcome && (
@@ -124,7 +125,7 @@ function TradeBanner({
       {!outcome && (
         <div className="mt-2 font-mono text-[11px] text-ink/55">
           {trade.horizonte === 'intradia'
-            ? 'intradía · sin seguimiento automático (el backtest solo evalúa swing/posicional)'
+            ? `${horizonteLabel(trade.horizonte).short} · sin seguimiento automático (el backtest solo evalúa swing/posicional)`
             : 'en seguimiento · el cron evalúa el resultado al tocar target o stop'}
         </div>
       )}
@@ -376,7 +377,8 @@ export default function HistorialScreen() {
                       </span>
                     ) : (
                       <span className="ml-auto text-[10px] uppercase tracking-wider text-ink/40">
-                        {a.trade.horizonte === 'intradia' ? 'intradía · sin seguim.' : 'en seguimiento'}
+                        {a.trade.horizonte && `${horizonteLabel(a.trade.horizonte).short} · `}
+                        {a.trade.horizonte === 'intradia' ? 'sin seguim.' : 'en seguimiento'}
                       </span>
                     )}
                   </div>
