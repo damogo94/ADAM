@@ -89,9 +89,13 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
   const round = (n: number) =>
     profile ? roundProfile(n, profile) : Math.round(n * 100) / 100;
 
-  const fallbackHorizonte: TradingHorizon_t = horizonteFromCandles(candles);
+  // Cadencia de las velas (≈1 para diario, ≈0.167 para 4H). Sirve para
+  // (a) el fallback de horizonte sin target y (b) traducir estBars → estDays
+  // en horizonteFromTarget. Se computa una vez (ADR-003, F8b).
+  const intervalDays = medianIntervalDays(candles);
 
-  // Regla 4 — datos insuficientes
+  // Regla 4 — datos insuficientes: no hay plan, el horizonte solo puede salir
+  // del intervalo de las velas (nunca 'posicional' a ciegas).
   if (candles.length < MIN_CANDLES_FOR_SIGNAL) {
     return {
       signal: 'hold',
@@ -100,7 +104,7 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
       target: null,
       atr_actual: atr,
       ratio_riesgo_beneficio: null,
-      horizonte: fallbackHorizonte,
+      horizonte: horizonteFallback(intervalDays),
       entry_type: null,
     };
   }
@@ -140,7 +144,7 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
               target,
               atr_actual: atr,
               ratio_riesgo_beneficio: round(ratio),
-              horizonte: fallbackHorizonte,
+              horizonte: horizonteFromTarget(entrada, target, effectiveATR, intervalDays),
               entry_type,
             };
           }
@@ -180,7 +184,7 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
               target,
               atr_actual: atr,
               ratio_riesgo_beneficio: round(ratio),
-              horizonte: fallbackHorizonte,
+              horizonte: horizonteFromTarget(entrada, target, effectiveATR, intervalDays),
               entry_type,
             };
           }
@@ -190,7 +194,8 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
   }
 
   // Default: HOLD con niveles null (lateral, falta un nivel, R/B insuficiente,
-  // o el nivel-disparador no es alcanzable dentro del horizonte).
+  // o el nivel-disparador no es alcanzable dentro del horizonte). Sin target no
+  // hay distancia que medir → horizonte por intervalo de las velas.
   return {
     signal: 'hold',
     entrada: null,
@@ -198,25 +203,81 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
     target: null,
     atr_actual: atr,
     ratio_riesgo_beneficio: null,
-    horizonte: fallbackHorizonte,
+    horizonte: horizonteFallback(intervalDays),
     entry_type: null,
   };
 }
 
 /**
- * Heurística de horizonte basada en el rango temporal cubierto por las
- * velas. Es aproximada — el caller debería preferir pasar el timeframe
- * explícito si lo tiene. Aquí inferimos:
- *   - Si las velas cubren < 7 días reales → intradía
- *   - Si cubren 7-90 días → swing
- *   - Si cubren > 90 días → posicional
+ * Horizonte estimado por la DISTANCIA AL TARGET en unidades de ATR (ADR-003,
+ * F8b). Reemplaza al viejo `horizonteFromCandles`, que medía el SPAN total de
+ * las velas (~1 año en prod) y por eso clavaba TODO en 'posicional'.
+ *
+ * Modelo (random-walk): el precio no avanza 1 ATR NETO por barra — bajo un
+ * paseo aleatorio el desplazamiento neto esperado escala con √barras, así que
+ * el tiempo esperado para recorrer K·ATR de distancia escala como ~K² barras
+ * (NO lineal). Un modelo lineal (estBars = K) subestima el tiempo porque ignora
+ * el vaivén. Por tanto:
+ *   K       = |target − entrada| / ATR   (distancia en ATRs)
+ *   estBars = K²
+ *   estDays = estBars · intervalDays
+ *
+ * Umbrales alineados a las ventanas del backtest (evaluate-trades: swing=30d,
+ * posicional=120d):
+ *   estDays < 7   → 'intradia'
+ *   7 ≤ estDays < 30 → 'swing'
+ *   estDays ≥ 30  → 'posicional'
+ *
+ * Guard: ATR no positivo/no finito o entrada/target no finitos → no hay
+ * distancia fiable que medir; cae al fallback por intervalo.
  */
-function horizonteFromCandles(candles: OHLCVCandle_t[]): TradingHorizon_t {
-  if (candles.length < 2) return 'swing';
-  const first = candles[0]!.t;
-  const last = candles[candles.length - 1]!.t;
-  const spanDays = (last - first) / 86400;
-  if (spanDays < 7) return 'intradia';
-  if (spanDays < 90) return 'swing';
+export function horizonteFromTarget(
+  entrada: number,
+  target: number,
+  atr: number,
+  intervalDays: number
+): TradingHorizon_t {
+  if (
+    !Number.isFinite(atr) ||
+    atr <= 0 ||
+    !Number.isFinite(entrada) ||
+    !Number.isFinite(target)
+  ) {
+    return horizonteFallback(intervalDays);
+  }
+  const k = Math.abs(target - entrada) / atr;
+  const estBars = k ** 2;
+  const estDays = estBars * intervalDays;
+  if (estDays < 7) return 'intradia';
+  if (estDays < 30) return 'swing';
   return 'posicional';
+}
+
+/**
+ * Fallback de horizonte por INTERVALO de las velas, para el branch HOLD / sin
+ * target donde no hay distancia que medir. Default HONESTO: nunca 'posicional'
+ * a ciegas (ese era el bug del span total).
+ *   intervalDays < 1 (velas intradía, p.ej. 4H) → 'intradia'
+ *   resto (gráfico diario o superior)           → 'swing'
+ */
+export function horizonteFallback(intervalDays: number): TradingHorizon_t {
+  return intervalDays < 1 ? 'intradia' : 'swing';
+}
+
+/**
+ * Cadencia de las velas en días: mediana de Δt entre velas consecutivas / 86400
+ * (≈1 para diario, ≈0.167 para 4H). La mediana resiste huecos (fines de semana,
+ * festivos) mejor que el span/N. Con < 2 velas asume 1 (diario).
+ */
+export function medianIntervalDays(candles: OHLCVCandle_t[]): number {
+  if (candles.length < 2) return 1;
+  const deltas: number[] = [];
+  for (let i = 1; i < candles.length; i++) {
+    deltas.push(candles[i]!.t - candles[i - 1]!.t);
+  }
+  deltas.sort((a, b) => a - b);
+  const mid = Math.floor(deltas.length / 2);
+  const medianSecs =
+    deltas.length % 2 === 0 ? (deltas[mid - 1]! + deltas[mid]!) / 2 : deltas[mid]!;
+  return medianSecs / 86400;
 }
