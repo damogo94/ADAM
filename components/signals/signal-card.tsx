@@ -7,10 +7,10 @@ import { OutcomeBadge } from '@/components/signals/outcome';
 import { KV, levelMeta } from '@/components/signals/primitives';
 
 /**
- * SignalCard + GroupSection — extraídos de `app/signals/page.tsx` (F4) para que
- * la vista "histórico" del radar (watchlist) reutilice EXACTAMENTE la misma
- * tarjeta y agrupación que la pantalla de Señales, sin duplicar la lógica de
- * render. `signals/page.tsx` sigue vivo hasta F5 y ahora importa desde aquí.
+ * SignalCard + GroupSection — extraídos de la antigua pantalla de Señales (F4)
+ * para que la vista "histórico" del radar (watchlist) reutilice EXACTAMENTE la
+ * misma tarjeta y agrupación, sin duplicar la lógica de render. La pantalla
+ * /signals fue eliminada en F5; estos componentes los consume ahora el radar.
  *
  * Sin cambios de comportamiento respecto al original: tarjeta colapsable con
  * outcome, niveles E/S/T, R/B, indicadores, invalidación, y acciones

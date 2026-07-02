@@ -41,12 +41,13 @@ function AnalysisInner() {
   // Origen del deep-link (B3): ?ticker solo NO basta (deep-links/onboarding).
   // Cada origen aporta su propia migaja de vuelta a la pantalla de procedencia.
   const from = search.get('from');
+  // `from=signal` es legacy: la pantalla /signals fue absorbida por el radar de
+  // /watchlist (Fase F5). Se mantiene el mapeo por deep-links antiguos, ahora
+  // apuntando al radar igual que `from=radar`.
   const origin =
-    from === 'radar'
+    from === 'radar' || from === 'signal'
       ? { href: '/watchlist', label: '← vienes del radar' }
-      : from === 'signal'
-        ? { href: '/signals', label: '← vienes de señales' }
-        : null;
+      : null;
   const autoRanRef = useRef<string | null>(null);
 
   // Auto-trigger desde /watchlist (?ticker=X). Si el run PERSISTIDO en el shell ya
@@ -97,7 +98,7 @@ function AnalysisInner() {
     <div className="min-h-screen bg-void pb-20 max-w-md mx-auto md:max-w-3xl lg:max-w-6xl xl:max-w-7xl">
       <Header status={headerStatus} />
 
-      {/* Breadcrumb de origen (Fase 1B·B3) — radar (&from=radar) o señales (&from=signal). */}
+      {/* Breadcrumb de origen (Fase 1B·B3) — radar (&from=radar; &from=signal legacy). */}
       {origin && (
         <div className="mx-4 mt-2 font-mono text-fluid-micro">
           <Link
