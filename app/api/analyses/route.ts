@@ -3,6 +3,7 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import {
   extractTradeSummary,
+  extractEstructuraTradeSummary,
   type TradeSummary,
   type TradeOutcomeSummary,
 } from '@/lib/analyses/trade-summary';
@@ -22,9 +23,17 @@ export interface AnalysisSummary {
   confidence: string;
   latency_ms: number | null;
   created_at: string;
-  /** Operación accionable (entrada/SL/TP) o null si fue "solo análisis". */
+  /**
+   * Trade PRIMARIO de A3 (entrada/SL/TP) o null si A3 fue "solo análisis" (hold).
+   * Es el que backtestea el cron (`outcome` aplica solo a este).
+   */
   trade: TradeSummary | null;
-  /** Resultado evaluado del trade (cron), o null si aún sin resolver/no-trade. */
+  /**
+   * Trade PARALELO de Estructura (MTF), o null si no es accionable/opt-in apagado.
+   * Aún NO se evalúa automáticamente → nunca lleva `outcome`.
+   */
+  estructuraTrade: TradeSummary | null;
+  /** Resultado evaluado del trade A3 (cron), o null si aún sin resolver/no-trade. */
   outcome: TradeOutcomeSummary | null;
 }
 
@@ -41,12 +50,13 @@ type SummaryRow = Pick<
   | 'latency_ms'
   | 'created_at'
   | 'a3_output'
+  | 'estructura_output'
 >;
 
-// a3_output se trae para DERIVAR el trade server-side; NO se reenvía al cliente
-// (se descarta en el map → payload pequeño aunque sean 50 filas).
+// a3_output + estructura_output se traen para DERIVAR los trades server-side; NO se
+// reenvían al cliente (se descartan en el map → payload pequeño aunque sean 50 filas).
 const SUMMARY_COLUMNS =
-  'id, ticker, confluence_pct, net_pct, kappa, actionable_pct, direction, confidence, latency_ms, created_at, a3_output';
+  'id, ticker, confluence_pct, net_pct, kappa, actionable_pct, direction, confidence, latency_ms, created_at, a3_output, estructura_output';
 
 /**
  * GET /api/analyses → últimos 50 runs del user (resumen + trade derivado + outcome).
@@ -100,9 +110,10 @@ export async function GET() {
     }
   }
 
-  const analyses: AnalysisSummary[] = rows.map(({ a3_output, ...rest }) => ({
+  const analyses: AnalysisSummary[] = rows.map(({ a3_output, estructura_output, ...rest }) => ({
     ...rest,
     trade: extractTradeSummary(a3_output),
+    estructuraTrade: extractEstructuraTradeSummary(estructura_output),
     outcome: outcomeById.get(rest.id) ?? null,
   }));
 
