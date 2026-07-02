@@ -36,5 +36,8 @@ export function normalizeSignal(raw: unknown): RadarSignal_t | null {
     setup_detected: r.setup_detected,
     confidence_pct: Math.max(0, Math.min(100, Math.round(r.confidence_pct))),
     emitted_at: r.emitted_at,
+    // El outcome de backtest se rellena en el endpoint (lectura best-effort
+    // acotada por RLS). Aquí siempre null.
+    outcome: null,
   };
 }

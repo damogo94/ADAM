@@ -160,6 +160,22 @@ export const RadarQuote = z
   .strict();
 export type RadarQuote_t = z.infer<typeof RadarQuote>;
 
+/**
+ * Outcome de backtest de una señal CMT (subset mínimo para mostrar en el
+ * panel del radar). Sale de `signal_trade_outcomes` (service-role only),
+ * acotado por `.in('signal_id', <ids del user>)` en el endpoint → sin fuga.
+ * null = señal aún en seguimiento / sin evaluar.
+ */
+export const RadarSignalOutcome = z
+  .object({
+    outcome: z.string(),
+    r_multiple: z.number().nullable(),
+    return_pct: z.number().nullable(),
+    resolved_days: z.number().nullable(),
+  })
+  .strict();
+export type RadarSignalOutcome_t = z.infer<typeof RadarSignalOutcome>;
+
 /** Señal CMT activa (unacked) — opcional. */
 export const RadarSignal = z
   .object({
@@ -169,6 +185,9 @@ export const RadarSignal = z
     setup_detected: z.string(),
     confidence_pct: z.number().int().min(0).max(100),
     emitted_at: z.string(),
+    // Resultado de backtest (best-effort, lo rellena el endpoint). null =
+    // en seguimiento / no evaluada. Default null en normalize-signal.
+    outcome: RadarSignalOutcome.nullable().default(null),
   })
   .strict();
 export type RadarSignal_t = z.infer<typeof RadarSignal>;

@@ -65,6 +65,7 @@ function mkSignal(level: RadarSignal_t['level']): RadarSignal_t {
     setup_detected: `setup ${level}`,
     confidence_pct: 80,
     emitted_at: '2026-05-23T11:00:00Z',
+    outcome: null,
   };
 }
 
