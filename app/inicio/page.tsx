@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/inicio/site-header';
 import { Hero } from '@/components/inicio/hero';
+import { ScrollyStory } from '@/components/inicio/scrolly-story';
 import { HowItWorks } from '@/components/inicio/how-it-works';
 import { AgentRoster } from '@/components/inicio/agent-roster';
 import { ReasonFlow } from '@/components/inicio/reason-flow';
@@ -17,8 +18,10 @@ import { SectionDivider } from '@/components/inicio/decor/tick-rule';
  *
  * Server component: solo compone. La pieza central es el HERO manipulable
  * (Instrument): un EJEMPLO ILUSTRATIVO de 3 escenarios que enseña el modelo de
- * confianza tocándolo. El resto es profundidad progresiva. Sin R3F, sin pin de
- * scroll; motion vía Framer Motion respetando prefers-reduced-motion.
+ * confianza tocándolo. El resto es profundidad progresiva. Sin R3F; el
+ * ScrollyStory usa sticky NATIVO (el scroll no se secuestra, es saltable y
+ * solo existe en desktop+motion); el resto de motion vía Framer Motion
+ * respetando prefers-reduced-motion.
  *
  * Ruta pública: NO está en APP_ROUTES de middleware.ts → sin auth gate.
  */
@@ -43,6 +46,9 @@ export default function InicioPage() {
 
       <main id="contenido" className="relative pb-24">
         <Hero />
+        {/* De los datos al veredicto — el enjambre del hero se funde con la
+            escena 01; el cierre (escena 04) ensambla el BrandMark. */}
+        <ScrollyStory />
 
         <div className="space-y-24 pt-6 md:space-y-32 md:pt-10">
           <HowItWorks />

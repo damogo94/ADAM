@@ -152,6 +152,15 @@ const config: Config = {
           '82%': { opacity: '1' },
           '100%': { transform: 'rotate(360deg)', opacity: '0' },
         },
+        // dialSweep: barrido de calibración del dial en reposo (/analysis idle):
+        // una pasada completa (~40% del ciclo) y descanso — radar en standby.
+        dialSweep: {
+          '0%': { transform: 'rotate(0deg)', opacity: '0' },
+          '6%': { opacity: '1' },
+          '36%': { opacity: '1' },
+          '42%': { transform: 'rotate(360deg)', opacity: '0' },
+          '100%': { transform: 'rotate(360deg)', opacity: '0' },
+        },
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
@@ -164,6 +173,7 @@ const config: Config = {
         'core-arrive': 'coreArrive .5s cubic-bezier(.34,1.56,.64,1) both',
         'core-beat': 'coreBeat .45s ease',
         'orbit-once': 'orbitOnce .9s ease-in-out both',
+        'dial-sweep': 'dialSweep 7.5s cubic-bezier(.45,.05,.55,.95) infinite',
       },
     },
   },

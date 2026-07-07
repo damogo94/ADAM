@@ -109,3 +109,9 @@
     );
   }
 }
+
+/* ScrollyStory (/inicio): la caption activa la enciende el rAF con .scrolly-on
+   (DOM imperativo — cero re-renders durante el scroll). */
+.scrolly-cap.scrolly-on {
+  opacity: 1;
+}

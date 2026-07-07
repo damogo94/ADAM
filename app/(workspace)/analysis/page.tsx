@@ -16,7 +16,6 @@ import { EstructuraCard } from '@/components/agents/estructura-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
 import { RelatedRadar } from '@/components/analysis/related-radar';
-import { Constellation } from '@/components/inicio/decor/constellation';
 import { Graticule } from '@/components/inicio/decor/graticule';
 import { useRun } from '@/components/analysis/run-provider';
 import { useRadar } from '@/components/analysis/radar-provider';
@@ -407,9 +406,6 @@ function OnboardingCard() {
   return (
     <section className="relative mx-4 mt-3 overflow-hidden rounded-card border border-ink/10 bg-gradient-to-b from-surface to-void px-5 py-5 shadow-e2 sm:mx-auto sm:max-w-[880px]">
       <Graticule className="opacity-70" />
-      {/* Campo vivo en reposo: el instrumento respira antes del primer análisis
-          (atrae hacia el puntero; decorativo puro, sin estados fingidos). */}
-      <Constellation mode="ambient" className="opacity-80" />
 
       {/* Cabecera-instrumento: identidad + dial en reposo (estilo /inicio). */}
       <div className="relative flex items-start justify-between gap-4">
@@ -422,10 +418,19 @@ function OnboardingCard() {
           </p>
         </div>
 
-        {/* Dial en reposo — aro + umbrales 34/67 apagados + "—". Sin dato aún. */}
+        {/* Dial en reposo — aro + umbrales 34/67 apagados + "—". Sin dato aún.
+            El barrido de calibración recorre el aro cada pocos segundos: el
+            instrumento respira en standby (decorativo puro, motion-safe). */}
         <div className="relative hidden shrink-0 sm:block" aria-hidden="true">
           <svg viewBox="0 0 104 104" width="84" height="84">
             <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(245,245,247,.10)" strokeWidth="6" />
+            <g
+              className="motion-safe:animate-dial-sweep"
+              style={{ transformBox: 'view-box', transformOrigin: 'center' }}
+            >
+              <line x1="52" y1="5.5" x2="52" y2="14.5" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" opacity=".55" />
+              <circle cx="52" cy="10" r="1.4" fill="var(--accent)" opacity=".75" />
+            </g>
             <line x1="85.8" y1="73.4" x2="92.5" y2="77.7" stroke="rgba(245,245,247,.20)" strokeWidth="1.5" strokeLinecap="round" />
             <line x1="17" y1="71.3" x2="9.9" y2="75.1" stroke="rgba(245,245,247,.20)" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
