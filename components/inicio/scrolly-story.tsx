@@ -193,9 +193,11 @@ function ScrollyStage() {
         veredicto.push({ x: g.cx + Math.cos(a) * 4, y: g.cy + Math.sin(a) * 4 });
       }
 
-      // 04 · marca: BrandMark orbital — anillo exterior + interior + núcleo
+      // 04 · marca: BrandMark orbital — anillo exterior + interior + núcleo.
+      // En estrecho sube a 0.38h: la caption va anclada abajo (ver JSX) y a
+      // 0.46h el anillo se la comía en pantallas cortas.
       const marca: Pt[] = [];
-      const m = { cx: w * 0.5, cy: h * 0.46, R: narrow ? w * 0.28 : Math.min(w, h) * 0.17 };
+      const m = { cx: w * 0.5, cy: narrow ? h * 0.38 : h * 0.46, R: narrow ? w * 0.28 : Math.min(w, h) * 0.17 };
       mark = m;
       const outN = Math.floor(M * 0.52);
       for (let i = 0; i < outN; i++) {
@@ -348,10 +350,15 @@ function ScrollyStage() {
                 data-sc={k}
                 className={
                   'scrolly-cap absolute inset-0 grid place-items-center px-6 text-center opacity-0 transition-opacity duration-300' +
-                  (k < 3 ? ' max-md:place-items-start max-md:pt-[15vh]' : '')
+                  (k < 3
+                    ? ' max-md:place-items-start max-md:pt-[15vh]'
+                    : // 04 en móvil: anclada abajo con hueco para el rótulo de
+                      // escena (bottom-24) — el translate desde el centro se
+                      // solapaba con él en pantallas cortas
+                      ' max-md:place-items-end max-md:pb-40')
                 }
               >
-                <div className={k === 3 ? 'translate-y-[30vh]' : undefined}>
+                <div className={k === 3 ? 'md:translate-y-[30vh]' : undefined}>
                   <p className="mx-auto max-w-[24ch] text-balance font-sans text-fluid-h2 font-extrabold tracking-[-0.02em] text-ink">
                     {s.t}
                   </p>
