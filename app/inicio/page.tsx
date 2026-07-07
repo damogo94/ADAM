@@ -19,9 +19,10 @@ import { SectionDivider } from '@/components/inicio/decor/tick-rule';
  * Server component: solo compone. La pieza central es el HERO manipulable
  * (Instrument): un EJEMPLO ILUSTRATIVO de 3 escenarios que enseña el modelo de
  * confianza tocándolo. El resto es profundidad progresiva. Sin R3F; el
- * ScrollyStory usa sticky NATIVO (el scroll no se secuestra, es saltable y
- * solo existe en desktop+motion); el resto de motion vía Framer Motion
- * respetando prefers-reduced-motion.
+ * ScrollyStory usa sticky NATIVO (el scroll no se secuestra, es saltable;
+ * corre también en móvil con composición propia, solo se apaga con
+ * reduced-motion); el resto de motion vía Framer Motion respetando
+ * prefers-reduced-motion.
  *
  * Ruta pública: NO está en APP_ROUTES de middleware.ts → sin auth gate.
  */

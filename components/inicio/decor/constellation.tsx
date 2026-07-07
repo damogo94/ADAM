@@ -171,9 +171,17 @@ export function Constellation({
       on = en[0]!.isIntersecting;
     });
     io.observe(host);
+    // Guarda anti pinch-zoom (iOS dispara resize al hacer zoom sin cambiar el
+    // layout): solo reconstruir si el tamaño real del canvas cambió, y con
+    // debounce — evita descuadres de casas/objetivos a mitad de gesto.
+    let rzTimer: ReturnType<typeof setTimeout> | undefined;
     const onResize = () => {
-      resize();
-      buildHomes();
+      clearTimeout(rzTimer);
+      rzTimer = setTimeout(() => {
+        if (Math.abs(cv.clientWidth - w) < 2 && Math.abs(cv.clientHeight - h) < 2) return;
+        resize();
+        buildHomes();
+      }, 150);
     };
     window.addEventListener('resize', onResize);
 
@@ -323,6 +331,7 @@ export function Constellation({
 
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(rzTimer);
       io.disconnect();
       window.removeEventListener('resize', onResize);
       moveHost.removeEventListener('pointermove', onMove);
