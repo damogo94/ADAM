@@ -16,6 +16,7 @@ import { EstructuraCard } from '@/components/agents/estructura-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
 import { RelatedRadar } from '@/components/analysis/related-radar';
+import { Constellation } from '@/components/inicio/decor/constellation';
 import { Graticule } from '@/components/inicio/decor/graticule';
 import { useRun } from '@/components/analysis/run-provider';
 import { useRadar } from '@/components/analysis/radar-provider';
@@ -406,6 +407,9 @@ function OnboardingCard() {
   return (
     <section className="relative mx-4 mt-3 overflow-hidden rounded-card border border-ink/10 bg-gradient-to-b from-surface to-void px-5 py-5 shadow-e2 sm:mx-auto sm:max-w-[880px]">
       <Graticule className="opacity-70" />
+      {/* Campo vivo en reposo: el instrumento respira antes del primer análisis
+          (atrae hacia el puntero; decorativo puro, sin estados fingidos). */}
+      <Constellation mode="ambient" className="opacity-80" />
 
       {/* Cabecera-instrumento: identidad + dial en reposo (estilo /inicio). */}
       <div className="relative flex items-start justify-between gap-4">

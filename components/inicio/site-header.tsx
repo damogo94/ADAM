@@ -17,12 +17,53 @@ const NAV = [
   { href: '#limites', label: 'Límites', id: 'limites' },
 ];
 
-function BrandMark() {
+/**
+ * BrandMark vivo — el núcleo nace de la Constellation del hero (eventos
+ * `adam:core-birth` → oculto en espera · `adam:core-docked` → aterriza con
+ * rebote), late al cruzar de sección (beatN re-monta el <g> del latido) y dos
+ * satélites dan una órbita al hover del logo. Sin coreografía (no-JS, reduced
+ * motion, otras rutas) el núcleo es estático: `core === 'static'`.
+ */
+function BrandMark({
+  core,
+  beatN,
+  onSettled,
+}: {
+  core: 'static' | 'waiting' | 'docked';
+  beatN: number;
+  onSettled: () => void;
+}) {
+  const fillBox = { transformBox: 'fill-box', transformOrigin: 'center' } as const;
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px] shrink-0" aria-hidden="true">
       <circle cx="12" cy="12" r="10" stroke="rgba(245,245,247,.20)" />
       <circle cx="12" cy="12" r="6" stroke="rgba(245,245,247,.14)" />
-      <circle cx="12" cy="12" r="2.2" fill="var(--accent)" />
+      <g key={beatN} className={beatN > 0 ? 'animate-core-beat' : undefined} style={fillBox}>
+        <circle
+          data-brand-core
+          cx="12"
+          cy="12"
+          r="2.2"
+          fill="var(--accent)"
+          className={
+            core === 'waiting' ? 'opacity-0' : core === 'docked' ? 'animate-core-arrive' : undefined
+          }
+          style={fillBox}
+          onAnimationEnd={(e) => {
+            // asentarse tras aterrizar: si no, el remount del latido (key=beatN)
+            // relanzaría coreArrive en cada cruce de sección
+            if (e.animationName === 'coreArrive') onSettled();
+          }}
+        />
+      </g>
+      {/* Satélites: una órbita al hover del logo (rotación sobre el centro del viewBox) */}
+      <g
+        className="opacity-0 group-hover:animate-orbit-once motion-reduce:hidden"
+        style={{ transformBox: 'view-box', transformOrigin: 'center' }}
+      >
+        <circle cx="12" cy="2" r="1.1" fill="var(--accent)" opacity=".85" />
+        <circle cx="22" cy="12" r="0.9" fill="rgba(245,245,247,.6)" />
+      </g>
       <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="rgba(91,138,240,.32)" />
     </svg>
   );
@@ -31,6 +72,8 @@ function BrandMark() {
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [core, setCore] = useState<'static' | 'waiting' | 'docked'>('static');
+  const [beatN, setBeatN] = useState(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -38,6 +81,28 @@ export function SiteHeader() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Nacimiento del núcleo: la Constellation del hero avisa por eventos (sin
+  // duplicar timings). Si nunca llegan (reduced-motion/no hero), queda estático.
+  useEffect(() => {
+    const onBirth = () => setCore('waiting');
+    const onDocked = () => setCore('docked');
+    window.addEventListener('adam:core-birth', onBirth);
+    window.addEventListener('adam:core-docked', onDocked);
+    return () => {
+      window.removeEventListener('adam:core-birth', onBirth);
+      window.removeEventListener('adam:core-docked', onDocked);
+    };
+  }, []);
+
+  // Latido al cruzar de sección (reusa el scroll-spy). Nunca durante la espera
+  // del nacimiento (el aterrizaje manda); un beat suelto al cargar con ancla
+  // es aceptable.
+  useEffect(() => {
+    if (!activeId || core === 'waiting') return;
+    setBeatN((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
 
   useEffect(() => {
     const sections = NAV.map((n) => document.getElementById(n.id)).filter(
@@ -66,8 +131,12 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5 sm:px-10">
-        <a href="#top" aria-label="A.D.A.M. — inicio" className="flex shrink-0 items-center gap-3">
-          <BrandMark />
+        <a
+          href="#top"
+          aria-label="A.D.A.M. — inicio"
+          className="group flex shrink-0 items-center gap-3"
+        >
+          <BrandMark core={core} beatN={beatN} onSettled={() => setCore('static')} />
           <span className="font-sans text-[0.95rem] font-extrabold tracking-[0.1em]">A.D.A.M.</span>
         </a>
 

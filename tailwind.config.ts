@@ -133,6 +133,25 @@ const config: Config = {
         dashFlow: {
           to: { strokeDashoffset: '-16' },
         },
+        // coreArrive: el núcleo del BrandMark "aterriza" en la cabecera al final
+        // de la coreografía de la Constellation (evento adam:core-docked).
+        coreArrive: {
+          '0%': { transform: 'scale(0)', opacity: '0' },
+          '60%': { transform: 'scale(1.7)', opacity: '1' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        // coreBeat: latido único del núcleo al cruzar de sección (scroll-spy).
+        coreBeat: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '45%': { transform: 'scale(1.6)' },
+        },
+        // orbitOnce: los satélites del BrandMark dan una vuelta al hover del logo.
+        orbitOnce: {
+          '0%': { transform: 'rotate(0deg)', opacity: '0' },
+          '18%': { opacity: '1' },
+          '82%': { opacity: '1' },
+          '100%': { transform: 'rotate(360deg)', opacity: '0' },
+        },
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
@@ -142,6 +161,9 @@ const config: Config = {
         'urg-pulse': 'urgPulse 2.6s ease-in-out infinite',
         'fade-slide-in': 'fadeSlideIn 380ms ease-out',
         'dash-flow': 'dashFlow 1.1s linear infinite',
+        'core-arrive': 'coreArrive .5s cubic-bezier(.34,1.56,.64,1) both',
+        'core-beat': 'coreBeat .45s ease',
+        'orbit-once': 'orbitOnce .9s ease-in-out both',
       },
     },
   },

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Constellation } from './decor/constellation';
 import { Graticule } from './decor/graticule';
 import { SignalTrace } from './decor/signal-trace';
 import { Instrument } from './instrument';
@@ -50,6 +51,9 @@ export function Hero() {
       className="relative mx-auto w-full max-w-6xl px-5 pb-16 pt-10 sm:px-10 md:pb-24 md:pt-16"
     >
       <Graticule parallax />
+      {/* Constellation (nacimiento): ensambla el BrandMark y lo entrega a la
+          cabecera; después queda como campo vivo que atrae hacia el puntero. */}
+      <Constellation mode="birth" className="z-0" />
       <SignalTrace className="pointer-events-none absolute inset-x-0 bottom-[10%] z-0 h-28 w-full opacity-[0.13]" />
       <div className="relative z-10 grid items-center gap-10 md:gap-14 lg:grid-cols-[1.04fr_0.96fr]">
         {/* IZQUIERDA — copy */}
