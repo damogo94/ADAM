@@ -3,6 +3,7 @@ import { AgentCardShell, IdleState, ScanSteps, type AgentStatus } from '@/compon
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { cn, fmtPct, fmtMarketCap } from '@/lib/utils';
 import { Glossed } from '@/components/lens/glossed';
+import { Razonamiento } from '@/components/disclosure';
 
 interface A1CardProps {
   status: AgentStatus;
@@ -83,8 +84,13 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
   const { price, fundamentals, news, anomaly_detected, anomaly_description, confidence, narrative } = data;
   const pos = price.change_pct_24h >= 0;
   const ccy = price.currency || 'USD';
+  // Nivel 3 (razonamiento): noticias + descripción de anomalía + narrativa.
+  // El toggle se oculta si no hay nada que plegar (no desplegable vacío).
+  const hasReasoning =
+    news.length > 0 || (anomaly_detected && !!anomaly_description) || (narrative ?? '').trim().length > 0;
   return (
     <>
+      {/* ── NIVEL 2 · esenciales ─────────────────────────────────────────── */}
       <DataSection label={`Precio · ${ccy}`} source="Yahoo">
         <KV k="Actual" v={`${price.current.toFixed(2)} ${ccy}`} />
         <KV k="24h" v={fmtPct(price.change_pct_24h)} cls={pos ? 'text-emerald' : 'text-rose'} />
@@ -108,48 +114,59 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
         {fundamentals.ev_ebitda !== null && <KV k="EV/EBITDA" v={fundamentals.ev_ebitda.toFixed(2)} />}
       </DataSection>
 
-      {news.length > 0 && (
-        <DataSection label="Noticias" source={isCrypto ? 'newsdata.io' : 'Finnhub'}>
-          {news.slice(0, 3).map((n, i) => (
-            <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
-              <div className="font-mono text-fluid-caption leading-snug text-ink">{n.headline}</div>
-              <div className="font-mono text-fluid-caption text-ink/66">
-                {n.source} ·{' '}
-                <span
-                  className={cn(
-                    n.sentiment === 'bullish' && 'text-emerald',
-                    n.sentiment === 'bearish' && 'text-rose',
-                    n.sentiment === 'neutral' && 'text-ink/66'
-                  )}
-                >
-                  {n.sentiment === 'bullish' ? '↑ alcista' : n.sentiment === 'bearish' ? '↓ bajista' : '→ neutral'}
-                </span>
-              </div>
-            </div>
-          ))}
-        </DataSection>
-      )}
-
+      {/* Titular de anomalía (señal direccional) — se queda visible; su prosa baja
+          a nivel 3. Mantenerlo en nivel 2 preserva la coherencia con
+          defaultOpen=anomaly_detected (el disparador y la señal viven juntos). */}
       {anomaly_detected && (
         <SignalBox tone="bull">
-          <div className="font-mono text-fluid-micro font-medium text-emerald mb-0.5 uppercase tracking-wider">
+          <div className="font-mono text-fluid-micro font-medium text-emerald uppercase tracking-wider">
             ⚡ {data.anomaly_type ?? 'anomalía'} detectada
           </div>
-          <div className="font-mono text-fluid-caption leading-snug text-ink/95">{anomaly_description}</div>
         </SignalBox>
       )}
 
+      {/* Titular-ancla de confianza (chrome accent) — su narrativa baja a nivel 3. */}
       <SignalBox tone={confidence >= 61 ? 'conf' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-fluid-micro font-medium mb-0.5 uppercase tracking-wider',
+            'font-mono text-fluid-micro font-medium uppercase tracking-wider',
             confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
           Activo · confianza {confidence}%
         </div>
-        <div className="font-mono text-fluid-caption leading-snug text-ink/90">{narrative}</div>
       </SignalBox>
+
+      {/* ── NIVEL 3 · razonamiento (plegado por defecto) ─────────────────── */}
+      {hasReasoning && (
+        <Razonamiento label="razonamiento">
+          {news.length > 0 && (
+            <DataSection label="Noticias" source={isCrypto ? 'newsdata.io' : 'Finnhub'}>
+              {news.slice(0, 3).map((n, i) => (
+                <div key={i} className="border-b border-white/5 py-1 last:border-b-0">
+                  <div className="font-mono text-fluid-caption leading-snug text-ink">{n.headline}</div>
+                  <div className="font-mono text-fluid-caption text-ink/66">
+                    {n.source} ·{' '}
+                    <span
+                      className={cn(
+                        n.sentiment === 'bullish' && 'text-emerald',
+                        n.sentiment === 'bearish' && 'text-rose',
+                        n.sentiment === 'neutral' && 'text-ink/66'
+                      )}
+                    >
+                      {n.sentiment === 'bullish' ? '↑ alcista' : n.sentiment === 'bearish' ? '↓ bajista' : '→ neutral'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </DataSection>
+          )}
+          {anomaly_detected && anomaly_description && (
+            <div className="mb-2 font-mono text-fluid-caption leading-snug text-ink/80">{anomaly_description}</div>
+          )}
+          <div className="font-mono text-fluid-caption leading-snug text-ink/80">{narrative}</div>
+        </Razonamiento>
+      )}
     </>
   );
 }

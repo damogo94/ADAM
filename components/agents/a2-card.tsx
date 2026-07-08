@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-primitives';
 import { DataSection, SignalBox } from './a1-card';
 import { Glossed } from '@/components/lens/glossed';
+import { Razonamiento } from '@/components/disclosure';
 
 interface A2CardProps {
   status: AgentStatus;
@@ -55,8 +56,12 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
 
 function A2Body({ data }: { data: A2Output }) {
   const { macro_context, factores_clave, opportunity_detected, opportunity_description, confidence, narrative } = data;
+  // Nivel 3: descripción de la oportunidad + narrativa. Toggle oculto si vacío.
+  const hasReasoning =
+    (opportunity_detected && !!opportunity_description) || (narrative ?? '').trim().length > 0;
   return (
     <>
+      {/* ── NIVEL 2 · esenciales ─────────────────────────────────────────── */}
       <DataSection label="Régimen" source="FRED">
         <div className="font-mono text-fluid-caption leading-snug text-ink/90 py-0.5">
           {macro_context.ciclo_economico} · tipos {macro_context.regimen_tipos} · inflación {macro_context.inflacion_trend}
@@ -75,26 +80,37 @@ function A2Body({ data }: { data: A2Output }) {
         </DataSection>
       )}
 
+      {/* Titular de oportunidad macro (señal direccional) — se queda; su prosa
+          baja a nivel 3. Coherente con defaultOpen=opportunity_detected. */}
       {opportunity_detected && opportunity_description && (
         <SignalBox tone="bull">
-          <div className="font-mono text-fluid-micro font-medium text-emerald mb-0.5 uppercase tracking-wider">
+          <div className="font-mono text-fluid-micro font-medium text-emerald uppercase tracking-wider">
             ⚡ oportunidad macro detectada
           </div>
-          <div className="font-mono text-fluid-caption leading-snug text-ink/95">{opportunity_description}</div>
         </SignalBox>
       )}
 
+      {/* Titular-ancla de confianza (chrome accent) — su narrativa baja a nivel 3. */}
       <SignalBox tone={confidence >= 61 ? 'conf' : 'neut'}>
         <div
           className={cn(
-            'font-mono text-fluid-micro font-medium mb-0.5 uppercase tracking-wider',
+            'font-mono text-fluid-micro font-medium uppercase tracking-wider',
             confidence >= 61 ? 'text-ink' : 'text-ink/66'
           )}
         >
           Economía · confianza {confidence}%
         </div>
-        <div className="font-mono text-fluid-caption leading-snug text-ink/90">{narrative}</div>
       </SignalBox>
+
+      {/* ── NIVEL 3 · razonamiento ───────────────────────────────────────── */}
+      {hasReasoning && (
+        <Razonamiento label="razonamiento">
+          {opportunity_detected && opportunity_description && (
+            <div className="mb-2 font-mono text-fluid-caption leading-snug text-ink/80">{opportunity_description}</div>
+          )}
+          <div className="font-mono text-fluid-caption leading-snug text-ink/80">{narrative}</div>
+        </Razonamiento>
+      )}
     </>
   );
 }

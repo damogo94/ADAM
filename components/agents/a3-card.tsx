@@ -5,6 +5,7 @@ import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-p
 import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
 import { Glossed } from '@/components/lens/glossed';
+import { Razonamiento } from '@/components/disclosure';
 
 interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
 
@@ -108,6 +109,7 @@ function A3Body({
 
   return (
     <>
+      {/* ── NIVEL 2 · esenciales: gráfico + operativa + titular de señal ──── */}
       {dailyCandles && dailyCandles.length >= 5 && (
         <div className="mb-2 rounded-lg border border-white/5 bg-black/30 overflow-hidden">
           <MiniCandleChart
@@ -147,61 +149,66 @@ function A3Body({
         </div>
       )}
 
-      <DataSection label={`Medias · ${currency}`} source={`Yahoo · ${data.timeframes_analizados.join(' · ')}`}>
-        <KVRow k="MA 20" v={fmtNum(medias.sma20)} />
-        <KVRow k="MA 50" v={fmtNum(medias.sma50)} />
-        <KVRow
-          k={`MA 200${medias.golden_cross ? ' · ⟡ Golden' : medias.death_cross ? ' · ⟡ Death' : ''}`}
-          v={fmtNum(medias.sma200)}
-        />
-        {medias.vwap !== null && <KVRow k="VWAP" v={fmtNum(medias.vwap)} />}
-      </DataSection>
-
-      {data.rango_52s && (
-        <DataSection label={`Rango 52s · ${currency}`} source="Yahoo · OHLCV">
-          <KVRow k="Máximo 52s" v={fmtNum(data.rango_52s.high)} />
-          <KVRow k="Mínimo 52s" v={fmtNum(data.rango_52s.low)} />
-          <KVRow k="Posición" v={`${data.rango_52s.posicion_pct.toFixed(0)}%`} />
-        </DataSection>
-      )}
-
-      {data.osciladores && (data.osciladores.rsi14 !== null || data.osciladores.macd) && (
-        <DataSection label="Osciladores" source="momentum · confirmación">
-          {data.osciladores.rsi14 !== null && (
-            <KVRow k={`RSI 14${rsiZone(data.osciladores.rsi14)}`} v={data.osciladores.rsi14.toFixed(1)} />
-          )}
-          {data.osciladores.macd && (
-            <KVRow
-              k={`MACD 12/26/9${data.osciladores.macd.histograma >= 0 ? ' · alza' : ' · baja'}`}
-              v={`${data.osciladores.macd.line.toFixed(2)} / ${data.osciladores.macd.signal.toFixed(2)}`}
-            />
-          )}
-        </DataSection>
-      )}
-
+      {/* Titular-ancla de señal (subido sobre los indicadores, que bajan a nivel 3).
+          FIREWALL: la dirección va en color de mercado; 'confianza NN%' pasa a
+          chrome (ink), nunca emerald/rose. La fuerza es la barra de segmentos. */}
       <SignalBox tone={sigCls}>
-        <div
-          className={cn(
-            'flex items-center gap-1 font-mono text-fluid-micro font-medium mb-0.5 uppercase tracking-wider',
-            sigCls === 'bull' && 'text-emerald',
-            sigCls === 'bear' && 'text-rose',
-            sigCls === 'neut' && 'text-ink/66'
-          )}
-        >
-          <span>
+        <div className="flex items-center gap-1 font-mono text-fluid-micro font-medium uppercase tracking-wider">
+          <span
+            className={cn(
+              sigCls === 'bull' && 'text-emerald',
+              sigCls === 'bear' && 'text-rose',
+              sigCls === 'neut' && 'text-ink/66'
+            )}
+          >
             señal: {sigLabel} · {tendencia.primaria}
           </span>
-          {/* fuerza de tendencia como barra de segmentos (no texto "fuerte/moderada/débil"). */}
           <SegmentBar value={tendencia.fuerza} className="mx-0.5" />
-          <span>· confianza {confidence}%</span>
+          <span className="text-ink/70">· confianza {confidence}%</span>
         </div>
-        <div className="font-mono text-fluid-caption leading-snug text-ink/90">
+      </SignalBox>
+
+      {/* ── NIVEL 3 · razonamiento: indicadores + patrón/volumen + narrativa ─ */}
+      <Razonamiento label="razonamiento">
+        <DataSection label={`Medias · ${currency}`} source={`Yahoo · ${data.timeframes_analizados.join(' · ')}`}>
+          <KVRow k="MA 20" v={fmtNum(medias.sma20)} />
+          <KVRow k="MA 50" v={fmtNum(medias.sma50)} />
+          <KVRow
+            k={`MA 200${medias.golden_cross ? ' · ⟡ Golden' : medias.death_cross ? ' · ⟡ Death' : ''}`}
+            v={fmtNum(medias.sma200)}
+          />
+          {medias.vwap !== null && <KVRow k="VWAP" v={fmtNum(medias.vwap)} />}
+        </DataSection>
+
+        {data.rango_52s && (
+          <DataSection label={`Rango 52s · ${currency}`} source="Yahoo · OHLCV">
+            <KVRow k="Máximo 52s" v={fmtNum(data.rango_52s.high)} />
+            <KVRow k="Mínimo 52s" v={fmtNum(data.rango_52s.low)} />
+            <KVRow k="Posición" v={`${data.rango_52s.posicion_pct.toFixed(0)}%`} />
+          </DataSection>
+        )}
+
+        {data.osciladores && (data.osciladores.rsi14 !== null || data.osciladores.macd) && (
+          <DataSection label="Osciladores" source="momentum · confirmación">
+            {data.osciladores.rsi14 !== null && (
+              <KVRow k={`RSI 14${rsiZone(data.osciladores.rsi14)}`} v={data.osciladores.rsi14.toFixed(1)} />
+            )}
+            {data.osciladores.macd && (
+              <KVRow
+                k={`MACD 12/26/9${data.osciladores.macd.histograma >= 0 ? ' · alza' : ' · baja'}`}
+                v={`${data.osciladores.macd.line.toFixed(2)} / ${data.osciladores.macd.signal.toFixed(2)}`}
+              />
+            )}
+          </DataSection>
+        )}
+
+        <div className="mt-1.5 font-mono text-fluid-caption leading-snug text-ink/80">
           {patron_detectado && <span className="text-amber font-medium">{patron_detectado}</span>}
           {patron_detectado && ' — '}
           {volumen.comentario}
         </div>
-        <div className="font-mono text-fluid-caption leading-snug text-ink/66 mt-1">{narrative}</div>
-      </SignalBox>
+        <div className="mt-1 font-mono text-fluid-caption leading-snug text-ink/66">{narrative}</div>
+      </Razonamiento>
     </>
   );
 }
