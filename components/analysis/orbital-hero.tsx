@@ -345,11 +345,16 @@ export function OrbitalHero({
         </div>
       </div>
 
-      {resolved && a4?.accion_sugerida ? (
-        <p className="text-center font-mono text-fluid-caption leading-snug text-ink/70">{a4.accion_sugerida}</p>
-      ) : (
-        <p className="text-center font-mono text-fluid-caption text-ink/55">estimación · el núcleo no se completa al 100% hasta el resultado real</p>
-      )}
+      {/* Altura reservada (D8): el placeholder (1 línea) y `accion_sugerida` (variable)
+          comparten una caja de min-height fija, así el swap al `resolved` NO cambia la
+          altura del hero ni desplaza el grid de abajo (CLS latente de Fase 0). */}
+      <div className="mt-1 flex min-h-[2.75rem] items-center justify-center">
+        {resolved && a4?.accion_sugerida ? (
+          <p className="text-center font-mono text-fluid-caption leading-snug text-ink/70">{a4.accion_sugerida}</p>
+        ) : (
+          <p className="text-center font-mono text-fluid-caption text-ink/55">estimación · el núcleo no se completa al 100% hasta el resultado real</p>
+        )}
+      </div>
     </div>
   );
 }
