@@ -8,6 +8,13 @@ import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { computeConfluence, type ConfluenceResult } from '@/lib/confluence';
 import { applyRunEvent } from '@/lib/run/apply-event';
 import { INITIAL, type RunState, type StreamEvent } from '@/lib/run/types';
+import {
+  startRunTiming,
+  markStreamEvent,
+  markRun,
+  logRunTiming,
+  type RunTiming,
+} from '@/lib/run/timing';
 import { postEstructura } from '@/lib/estructura/post';
 import type {
   A1Output_t as A1Output,
@@ -67,6 +74,10 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   // AbortController para cancelar la request anterior si el user lanza otra rápida.
   const abortRef = useRef<AbortController | null>(null);
+
+  // Instrumentación de timing por-card (Fase 1 · D1): captura los deltas reales de
+  // aterrizaje para calibrar lib/motion contra datos medidos. Dev-only, no muta estado.
+  const timingRef = useRef<RunTiming | null>(null);
 
   // Agente de Estructura (futuros · MTF) — opt-in del usuario. Preferencia de
   // sesión, por eso vive fuera de RunState. El ref espeja el flag para que una
@@ -130,6 +141,9 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
       a3Status: 'scanning',
       estructuraStatus: estEnabled ? 'scanning' : 'idle',
     });
+
+    // Abre la captura de timing del run (D1): marca t=0 aquí, junto al setState inicial.
+    timingRef.current = startRunTiming();
 
     // ── Fetch paralelo /api/agents/estructura (opt-in) ──────────────────────
     const estPromise = estEnabled ? fetchEstructura(ticker, ctrl.signal) : Promise.resolve(null);
@@ -202,6 +216,8 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
       let fatal = false;
 
       const applyEvent = (ev: StreamEvent) => {
+        // Timing (D1): marca el instante real de aterrizaje ANTES de tocar estado.
+        markStreamEvent(timingRef.current, ev);
         // Acumulador para el cierre (reconsolidación A4) + flag fatal: concerns de
         // handleRun. La TRANSICIÓN de estado va al reductor PURO (lib/run, testeado).
         if (ev.type === 'agent') {
@@ -253,6 +269,8 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
       if (!acc.a2) {
         a2Final = await a2Promise;
         if (ctrl.signal.aborted) return;
+        // Timing (D1): A2 fuera del stream — el straggler de cache fría, tras el resolve.
+        markRun(timingRef.current, a2Final ? 'a2:cold-late' : 'a2:absent');
         if (a2Final) {
           const a2v = a2Final;
           setState((s) => ({
@@ -267,6 +285,14 @@ export function RunProvider({ children }: { children: React.ReactNode }) {
 
       const estFinal = estEnabled && estEnabledRef.current ? await estPromise : null;
       if (ctrl.signal.aborted) return;
+
+      // Timing (D1): vuelca el perfil real de aterrizaje (dev-only). Es la medición
+      // que calibra lib/motion; `cache` clasifica el régimen (caliente / fría-tardía).
+      if (estFinal) markRun(timingRef.current, 'estructura:done');
+      logRunTiming(timingRef.current, {
+        ticker,
+        cache: acc.a2 ? 'hot' : a2Final ? 'cold-late' : 'no-a2',
+      });
 
       const a2WasLate = !acc.a2 && !!a2Final;
       if (a2WasLate || estFinal) {
