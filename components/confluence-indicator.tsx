@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { ConfluenceResult } from '@/lib/confluence';
-import { Gauge } from '@/components/inicio/gauge';
 import { Glossed } from '@/components/lens/glossed';
 
 interface ConfluenceIndicatorProps {
@@ -9,10 +8,13 @@ interface ConfluenceIndicatorProps {
 }
 
 /**
- * Titular del rail: el MISMO dial radial que /inicio (`Gauge`), para amarrar
- * /analysis al lenguaje visual del landing. Cifra = FIABILIDAD
- * (|net|×f(κ)); κ se muestra como eje propio debajo; la desagregación por pares
- * va al pie.
+ * Titular del rail: un dial radial ESTÁTICO de fiabilidad, con el mismo lenguaje
+ * visual que /inicio pero SIN animación (ni spring, ni count-up, ni oscilación).
+ * Es la lectura de DATO autoritativa; el ÚNICO instrumento de fiabilidad que se
+ * MUEVE es el OrbitalHero (D3=A / H7) — así no hay dos diales radiales corriendo el
+ * mismo `actionable_pct` en dos relojes distintos y mostrando cifras diferentes a
+ * mitad de run. Cifra = FIABILIDAD (|net|×f(κ)); κ como eje propio debajo; la
+ * desagregación por pares va al pie.
  *
  * FIREWALL: este arco va en ACCENT (chrome), NO en emerald/rose. Mide
  * confianza/alineación entre agentes, no DIRECCIÓN — la dirección la lleva el
@@ -41,7 +43,7 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           aria-label={level === null ? 'fiabilidad: en espera' : `fiabilidad: ${actionable}%`}
         >
           {data && actionable > 0 ? (
-            <Gauge value={actionable} hex="var(--accent)" restless={level === 'baja'} />
+            <StaticDial value={actionable} />
           ) : (
             <IdleDial />
           )}
@@ -99,6 +101,70 @@ export function ConfluenceIndicator({ data }: ConfluenceIndicatorProps) {
           rightLabel={data ? labelFromPct(data.total_pct) : '—'}
           rightCls={data ? intensityFromPct(data.total_pct) : 'text-ink/66'}
         />
+      </div>
+    </div>
+  );
+}
+
+/** Circunferencia del aro (r = 44) — idéntica a Gauge, para conservar el trazo. */
+const DIAL_C = 276.5;
+function tickPoint(frac: number, r: number) {
+  const a = (-90 + 360 * frac) * (Math.PI / 180);
+  return { x: 52 + r * Math.cos(a), y: 52 + r * Math.sin(a) };
+}
+
+/**
+ * StaticDial — lectura ESTÁTICA de fiabilidad (H7). Mismo trazo que Gauge (aro +
+ * ticks 34/67 + cifra), pero pintado en su valor final: sin spring, sin count-up,
+ * sin oscilación. El arco lleva una transición CSS determinista de 500ms (== el
+ * resto del indicador) para asentarse suave cuando el DATO cambia — no es un loop
+ * indeterminado. El único dial que se mueve de verdad es el OrbitalHero.
+ */
+function StaticDial({ value }: { value: number }) {
+  const v = Math.max(0, Math.min(100, value));
+  const dashoffset = DIAL_C * (1 - v / 100);
+  return (
+    <div className="relative h-[104px] w-[104px] shrink-0">
+      <svg viewBox="0 0 104 104" width="104" height="104" aria-hidden="true">
+        <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(245,245,247,.10)" strokeWidth="6" />
+        <circle
+          cx="52"
+          cy="52"
+          r="44"
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={DIAL_C}
+          strokeDashoffset={dashoffset}
+          transform="rotate(-90 52 52)"
+          className="transition-[stroke-dashoffset] duration-500 ease-precise"
+        />
+        {[34, 67].map((t) => {
+          const p1 = tickPoint(t / 100, 40);
+          const p2 = tickPoint(t / 100, 48);
+          const lit = v >= t;
+          return (
+            <line
+              key={t}
+              x1={p1.x}
+              y1={p1.y}
+              x2={p2.x}
+              y2={p2.y}
+              stroke={lit ? 'var(--accent)' : 'rgba(245,245,247,.20)'}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-2xl font-semibold leading-none text-ink tabular-nums">
+          {Math.round(v)}
+        </span>
+        <span className="mt-[3px] font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink/58">
+          fiabilidad
+        </span>
       </div>
     </div>
   );
