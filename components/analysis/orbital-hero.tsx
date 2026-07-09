@@ -193,7 +193,11 @@ export function OrbitalHero({
         n.g.style.opacity = sf.present ? '1' : '0';
         n.g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)})`);
         const lit = sf.phase === 'energized';
-        const pulse = sf.phase === 'calibrating' ? 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(now / 240)) : 1;
+        // reduced-motion: el dot calibrating queda ESTÁTICO (sin oscilación). El
+        // blanket CSS de globals no cubre estos writes .style JS del rAF → hay que
+        // gatearlo aquí, como el radio (:187), el número (:240) y el pop (:254) (D6).
+        const pulse =
+          sf.phase !== 'calibrating' ? 1 : f.reduced ? 0.6 : 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(now / 240));
         if (n.dot) {
           n.dot.setAttribute('fill', lit ? COL.accent : sf.phase === 'dim' ? 'rgba(245,245,247,.14)' : 'rgba(245,245,247,.32)');
           n.dot.setAttribute('r', lit ? '6' : '5');
@@ -239,7 +243,10 @@ export function OrbitalHero({
       numV += acc * dt; num += numV * dt;
       if (f.reduced) { num = f.targetNum; numV = 0; }
       const shown = Math.max(0, Math.round(num));
-      glow = lerp(glow, f.resolved ? 0.78 : Math.min(0.5, num / 170), 1 - Math.pow(0.002, dt));
+      // reduced-motion: el glow salta a su valor final sin lerp por-frame (D6),
+      // igual que el radio (:187) y el número (:240).
+      const glowTarget = f.resolved ? 0.78 : Math.min(0.5, num / 170);
+      glow = f.reduced ? glowTarget : lerp(glow, glowTarget, 1 - Math.pow(0.002, dt));
       if (coreGlow) (coreGlow as SVGElement).style.opacity = String(glow);
       // Aurora direccional: al resolver, el glow toma el color de la dirección
       // (alcista→emerald, bajista→rose, neutral→accent). Excepción al invariante
