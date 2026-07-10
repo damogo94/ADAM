@@ -1,4 +1,10 @@
 import type { Config } from 'tailwindcss';
+import { VITALITY, EASE_PRECISE } from './lib/motion';
+
+// Curva maestra + tempos compartidos derivados del SSOT de motion (`lib/motion.ts`),
+// para que el easing/duraciones vivan en UN solo sitio (ver "Motion / vitality system"
+// en CLAUDE.md). `lib/motion` es plano (sin deps), importable en el config de build.
+const PRECISE = `cubic-bezier(${EASE_PRECISE.join(', ')})`;
 
 const config: Config = {
   darkMode: 'class',
@@ -94,7 +100,7 @@ const config: Config = {
       // Curva maestra del sistema (mismo cubic-bezier de todo el motion). Se usa
       // como `ease-precise`, evitando un valor arbitrario ambiguo para Tailwind.
       transitionTimingFunction: {
-        precise: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+        precise: PRECISE,
       },
       // Sombras en capas coherentes (sh-1/2/3 del prototipo) → shadow-e1/e2/e3.
       boxShadow: {
@@ -191,8 +197,8 @@ const config: Config = {
         'core-beat': 'coreBeat .45s ease',
         'orbit-once': 'orbitOnce .9s ease-in-out both',
         'dial-sweep': 'dialSweep 7.5s cubic-bezier(.45,.05,.55,.95) infinite',
-        'land-flash': 'landFlash 420ms cubic-bezier(0.22,0.61,0.36,1)',
-        'reasoning-land': 'reasoningLand 420ms cubic-bezier(0.22,0.61,0.36,1)',
+        'land-flash': `landFlash ${VITALITY.agentLandingMs}ms ${PRECISE}`,
+        'reasoning-land': `reasoningLand ${VITALITY.agentLandingMs}ms ${PRECISE}`,
       },
     },
   },

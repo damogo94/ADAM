@@ -6,6 +6,7 @@ import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 import type { ConfluenceResult } from '@/lib/confluence';
 import type { AgentStatus } from '@/components/agent-card-shell';
 import { normalizeDirection } from '@/components/agent-primitives';
+import { VITALITY } from '@/lib/motion';
 
 /**
  * OrbitalHero — instrumento orbital de /analysis (sustituye al cerebro neuronal).
@@ -256,7 +257,7 @@ export function OrbitalHero({
       lastResolved = f.resolved;
       let popEnv = 0;
       if (popStart >= 0 && !f.reduced) {
-        const e = (now - popStart) / 520;
+        const e = (now - popStart) / VITALITY.resolveCrescendoMs;
         if (e < 1) popEnv = Math.sin(e * Math.PI);
         else popStart = -1;
       }
