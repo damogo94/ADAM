@@ -28,10 +28,12 @@ const ACCENT_SCAN: Record<AgentAccent, string> = {
 // y HONESTA de lo que el agente computa (sin tareas rotando en un timer falso;
 // el carrusel teatral se retiró al pasar /run a streaming). El progreso real lo
 // da el stream NDJSON: la card flipea a contenido en cuanto su agente aterriza.
-// Sobre la card se superpone una fina línea `animate-sweep` en `accent` (chrome
-// ambiental) que la ata al lenguaje visual del hero — decoración PURA:
-// no afirma progreso ni completado; el ✓/done viven solo en StatusDot, derivado
-// del AgentStatus real. `motion-reduce:hidden` la oculta.
+// VITALIDAD (D3=A · hero-led): la liveness AMBIENTAL la llevan el OrbitalHero y la
+// RunningBar; la card va CALMADA en scanning — su único cue es el StatusDot (se
+// retiró la línea `animate-sweep` redundante que repetía la misma señal, D2). Al
+// aterrizar en su evento real dispara un light-up MODESTO de una sola vez
+// (`animate-land-flash`, D4): "este llegó", sin implicar pacing global. El ✓/done
+// viven en StatusDot, derivado del AgentStatus real. reduced-motion lo oculta.
 
 interface AgentCardShellProps {
   accent?: AgentAccent;
@@ -67,6 +69,9 @@ export function AgentCardShell({
   children,
 }: AgentCardShellProps) {
   const isScanning = status === 'scanning';
+  // Aterrizaje con resultado (done/anomaly/live) — dispara el light-up modesto (D4).
+  // `error` NO aterriza con celebración; scanning/idle tampoco.
+  const landed = status === 'done' || status === 'anomaly' || status === 'live';
   const collapsible = summary != null;
   const [open, setOpen] = useState(defaultOpen);
 
@@ -93,14 +98,6 @@ export function AgentCardShell({
   if (!collapsible) {
     return (
       <div className={cardCls}>
-        {/* Línea de barrido ambiental — chrome accent atado al hero.
-            Solo en scanning; decoración pura (no afirma nada). reduced-motion la oculta. */}
-        {isScanning && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 z-10 h-px bg-accent/40 animate-sweep motion-reduce:hidden"
-          />
-        )}
         <header
           className={cn('flex items-center gap-1.5 border-b border-ink/8 px-2.5 py-2', ACCENT_BG[accent])}
         >
@@ -120,6 +117,15 @@ export function AgentCardShell({
   // ── Modo colapsable (con summary): la fila-veredicto es el toggle ────────
   return (
     <div className={cardCls}>
+      {/* Light-up MODESTO de aterrizaje (D4): un aro accent que se desvanece UNA vez
+          cuando la card aterriza en su evento real. "Este llegó", sin pacing global.
+          Overlay pointer-events-none (no bloquea el toggle); reduced-motion lo oculta. */}
+      {landed && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 rounded-card-sm animate-land-flash motion-reduce:hidden"
+        />
+      )}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

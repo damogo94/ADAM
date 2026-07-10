@@ -161,6 +161,14 @@ const config: Config = {
           '42%': { transform: 'rotate(360deg)', opacity: '0' },
           '100%': { transform: 'rotate(360deg)', opacity: '0' },
         },
+        // landFlash: light-up MODESTO de aterrizaje por-agente (D4). Un aro accent
+        // inset que se desvanece UNA sola vez cuando la card aterriza en su evento
+        // real — "este llegó", NO pacing global. Más breve que el pop run-completo
+        // (520ms) para respetar la jerarquía de magnitud (por-agente < run-completo).
+        landFlash: {
+          '0%': { boxShadow: 'inset 0 0 0 1.5px rgba(91,138,240,0.55)' },
+          '100%': { boxShadow: 'inset 0 0 0 1.5px rgba(91,138,240,0)' },
+        },
       },
       animation: {
         sweep: 'sweep 2.2s ease-in-out infinite',
@@ -174,6 +182,7 @@ const config: Config = {
         'core-beat': 'coreBeat .45s ease',
         'orbit-once': 'orbitOnce .9s ease-in-out both',
         'dial-sweep': 'dialSweep 7.5s cubic-bezier(.45,.05,.55,.95) infinite',
+        'land-flash': 'landFlash 420ms cubic-bezier(0.22,0.61,0.36,1)',
       },
     },
   },
