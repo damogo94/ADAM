@@ -4,6 +4,7 @@ import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { cn, fmtPct, fmtMarketCap } from '@/lib/utils';
 import { Glossed } from '@/components/lens/glossed';
 import { Razonamiento } from '@/components/disclosure';
+import { useLandingBeat } from '@/hooks/use-landing-beat';
 
 interface A1CardProps {
   status: AgentStatus;
@@ -49,6 +50,7 @@ const CRYPTO_SCAN_TASKS = [
 
 export function A1Card({ status, data, failureMessage, isCrypto = false }: A1CardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly');
+  const landNonce = useLandingBeat(status);
   return (
     <AgentCardShell
       badge="A1"
@@ -75,12 +77,14 @@ export function A1Card({ status, data, failureMessage, isCrypto = false }: A1Car
           )}
         </div>
       )}
-      {(status === 'done' || status === 'anomaly') && data && <A1Body data={data} isCrypto={isCrypto} />}
+      {(status === 'done' || status === 'anomaly') && data && (
+        <A1Body data={data} isCrypto={isCrypto} landNonce={landNonce} />
+      )}
     </AgentCardShell>
   );
 }
 
-function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
+function A1Body({ data, isCrypto, landNonce }: { data: A1Output; isCrypto: boolean; landNonce: number }) {
   const { price, fundamentals, news, anomaly_detected, anomaly_description, confidence, narrative } = data;
   const pos = price.change_pct_24h >= 0;
   const ccy = price.currency || 'USD';
@@ -139,7 +143,7 @@ function A1Body({ data, isCrypto }: { data: A1Output; isCrypto: boolean }) {
 
       {/* ── NIVEL 3 · razonamiento (plegado por defecto) ─────────────────── */}
       {hasReasoning && (
-        <Razonamiento label="razonamiento">
+        <Razonamiento label="razonamiento" landNonce={landNonce}>
           {news.length > 0 && (
             <DataSection label="Noticias" source={isCrypto ? 'newsdata.io' : 'Finnhub'}>
               {news.slice(0, 3).map((n, i) => (

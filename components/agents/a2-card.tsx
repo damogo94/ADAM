@@ -5,6 +5,7 @@ import { DirectionBadge, ConfidenceChip, SegmentBar } from '@/components/agent-p
 import { DataSection, SignalBox } from './a1-card';
 import { Glossed } from '@/components/lens/glossed';
 import { Razonamiento } from '@/components/disclosure';
+import { useLandingBeat } from '@/hooks/use-landing-beat';
 
 interface A2CardProps {
   status: AgentStatus;
@@ -14,6 +15,7 @@ interface A2CardProps {
 
 export function A2Card({ status, data, failureMessage }: A2CardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly');
+  const landNonce = useLandingBeat(status);
   return (
     <AgentCardShell
       badge="A2"
@@ -49,12 +51,12 @@ export function A2Card({ status, data, failureMessage }: A2CardProps) {
           )}
         </div>
       )}
-      {(status === 'done' || status === 'anomaly') && data && <A2Body data={data} />}
+      {(status === 'done' || status === 'anomaly') && data && <A2Body data={data} landNonce={landNonce} />}
     </AgentCardShell>
   );
 }
 
-function A2Body({ data }: { data: A2Output }) {
+function A2Body({ data, landNonce }: { data: A2Output; landNonce: number }) {
   const { macro_context, factores_clave, opportunity_detected, opportunity_description, confidence, narrative } = data;
   // Nivel 3: descripción de la oportunidad + narrativa. Toggle oculto si vacío.
   const hasReasoning =
@@ -104,7 +106,7 @@ function A2Body({ data }: { data: A2Output }) {
 
       {/* ── NIVEL 3 · razonamiento ───────────────────────────────────────── */}
       {hasReasoning && (
-        <Razonamiento label="razonamiento">
+        <Razonamiento label="razonamiento" landNonce={landNonce}>
           {opportunity_detected && opportunity_description && (
             <div className="mb-2 font-mono text-fluid-caption leading-snug text-ink/80">{opportunity_description}</div>
           )}

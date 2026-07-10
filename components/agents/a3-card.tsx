@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { DataSection, SignalBox } from './a1-card';
 import { Glossed } from '@/components/lens/glossed';
 import { Razonamiento } from '@/components/disclosure';
+import { useLandingBeat } from '@/hooks/use-landing-beat';
 
 interface Candle { t: number; o: number; h: number; l: number; c: number; v: number }
 
@@ -25,6 +26,9 @@ interface A3CardProps {
 export function A3Card({ status, data, dailyCandles, currency, failureMessage }: A3CardProps) {
   // A3 is "siempre activo" — once we have data, the dot stays as 'live'
   const dotStatus = data ? 'live' : status;
+  // Beat de aterrizaje sobre el MISMO status que ve el shell (dotStatus) → coincide con
+  // el land-flash de la card (un solo latido para A3, que aterriza en 'live').
+  const landNonce = useLandingBeat(dotStatus);
   const hasData = data != null && (status === 'done' || status === 'anomaly' || status === 'live');
   return (
     <AgentCardShell
@@ -63,7 +67,7 @@ export function A3Card({ status, data, dailyCandles, currency, failureMessage }:
         </div>
       )}
       {(status === 'done' || status === 'anomaly' || (status === 'live' && data)) && data && (
-        <A3Body data={data} dailyCandles={dailyCandles} currency={currency} />
+        <A3Body data={data} dailyCandles={dailyCandles} currency={currency} landNonce={landNonce} />
       )}
     </AgentCardShell>
   );
@@ -88,10 +92,12 @@ function A3Body({
   data,
   dailyCandles,
   currency = 'USD',
+  landNonce,
 }: {
   data: A3Output;
   dailyCandles?: Candle[];
   currency?: string;
+  landNonce: number;
 }) {
   const { tendencia, operativa, medias, volumen, patron_detectado, narrative, confidence } = data;
   const sigCls =
@@ -169,7 +175,7 @@ function A3Body({
       </SignalBox>
 
       {/* ── NIVEL 3 · razonamiento: indicadores + patrón/volumen + narrativa ─ */}
-      <Razonamiento label="razonamiento">
+      <Razonamiento label="razonamiento" landNonce={landNonce}>
         <DataSection label={`Medias · ${currency}`} source={`Yahoo · ${data.timeframes_analizados.join(' · ')}`}>
           <KVRow k="MA 20" v={fmtNum(medias.sma20)} />
           <KVRow k="MA 50" v={fmtNum(medias.sma50)} />

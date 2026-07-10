@@ -2,6 +2,7 @@ import type { DebateOutput } from '@/agents/debate/schema';
 import { AgentCardShell, IdleState, type AgentStatus } from '@/components/agent-card-shell';
 import { DirectionBadge, ConfidenceChip } from '@/components/agent-primitives';
 import { Razonamiento } from '@/components/disclosure';
+import { useLandingBeat } from '@/hooks/use-landing-beat';
 
 interface DebateCardProps {
   status: AgentStatus;
@@ -15,6 +16,7 @@ interface DebateCardProps {
  */
 export function DebateCard({ status, data }: DebateCardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly');
+  const landNonce = useLandingBeat(status);
   return (
     <AgentCardShell
       badge="A1×A2"
@@ -42,7 +44,7 @@ export function DebateCard({ status, data }: DebateCardProps) {
           </div>
 
           {/* ── NIVEL 3 · razonamiento: el ida y vuelta A1 × A2 ─────────────── */}
-          <Razonamiento label="razonamiento">
+          <Razonamiento label="razonamiento" landNonce={landNonce}>
             <div className="flex flex-col gap-1.5">
               {/* A1 bubble — alineado izquierda */}
               <div className="self-start max-w-[90%] rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 font-mono text-fluid-caption leading-snug text-ink/90">

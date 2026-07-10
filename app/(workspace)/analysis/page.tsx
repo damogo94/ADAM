@@ -15,6 +15,7 @@ import { A4Card } from '@/components/agents/a4-card';
 import { EstructuraCard } from '@/components/agents/estructura-card';
 import { ConfluenceIndicator } from '@/components/confluence-indicator';
 import { VerdictBar } from '@/components/verdict-bar';
+import { RunningBar } from '@/components/analysis/running-bar';
 import { RelatedRadar } from '@/components/analysis/related-radar';
 import { Graticule } from '@/components/inicio/decor/graticule';
 import { useRun } from '@/components/analysis/run-provider';
@@ -146,6 +147,20 @@ function AnalysisInner() {
       {state.a4 && state.a4Status === 'done' && (
         <VerdictBar a4={state.a4} confluence={confluence} aligned={confluence?.aligned ?? false} />
       )}
+
+      {/* Instrumento persistente DURANTE el run (H6) — contraparte de VerdictBar:
+          mantiene la señal "sistema vivo" pegada arriba mientras el usuario baja a leer
+          las cards (el OrbitalHero completo se va del viewport). Mutuamente excluyente
+          con VerdictBar (esta corre; aquella resuelve) → nunca comparten el slot sticky. */}
+      {state.ticker !== null &&
+        !state.error &&
+        state.a4Status !== 'done' &&
+        state.a4Status !== 'error' && (
+          <RunningBar
+            ticker={state.ticker}
+            statuses={{ a1: state.a1Status, a2: state.a2Status, a3: state.a3Status }}
+          />
+        )}
 
       {/* CTAs post-resolve (Fase 1C·C1) — acción de producto, NUNCA directiva
           compra/vende. Fijar alerta = sumar al radar (lo vigila el scanner CMT). */}

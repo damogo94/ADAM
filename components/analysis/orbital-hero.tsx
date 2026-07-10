@@ -168,7 +168,10 @@ export function OrbitalHero({
     const R: Record<SatId, number> = { a1: R_INNER, a2: R_INNER, a3: R_ISO, est: R_INNER };
     const vR: Record<SatId, number> = { a1: 0, a2: 0, a3: 0, est: 0 };
     let rot = 0, num = 0, numV = 0, glow = 0;
-    let lastResolved = false, popStart = -1;
+    // Semilla del flanco de resolución desde el frame INICIAL: si el hero se monta ya
+    // resuelto (run persistido — navegar al radar y volver), NO se re-dispara el
+    // crescendo; solo lo hace la transición real scanning→resolved (honestidad D4).
+    let lastResolved = frame.current.resolved, popStart = -1;
     let raf = 0, last = performance.now();
     const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
@@ -193,7 +196,11 @@ export function OrbitalHero({
         n.g.style.opacity = sf.present ? '1' : '0';
         n.g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)})`);
         const lit = sf.phase === 'energized';
-        const pulse = sf.phase === 'calibrating' ? 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(now / 240)) : 1;
+        // reduced-motion: el dot calibrating queda ESTÁTICO (sin oscilación). El
+        // blanket CSS de globals no cubre estos writes .style JS del rAF → hay que
+        // gatearlo aquí, como el radio (:187), el número (:240) y el pop (:254) (D6).
+        const pulse =
+          sf.phase !== 'calibrating' ? 1 : f.reduced ? 0.6 : 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(now / 240));
         if (n.dot) {
           n.dot.setAttribute('fill', lit ? COL.accent : sf.phase === 'dim' ? 'rgba(245,245,247,.14)' : 'rgba(245,245,247,.32)');
           n.dot.setAttribute('r', lit ? '6' : '5');
@@ -239,8 +246,27 @@ export function OrbitalHero({
       numV += acc * dt; num += numV * dt;
       if (f.reduced) { num = f.targetNum; numV = 0; }
       const shown = Math.max(0, Math.round(num));
-      glow = lerp(glow, f.resolved ? 0.78 : Math.min(0.5, num / 170), 1 - Math.pow(0.002, dt));
-      if (coreGlow) (coreGlow as SVGElement).style.opacity = String(glow);
+
+      // Crescendo de resolución (D4 · "el pago real"): un medio-seno sobre 520ms
+      // disparado en el flanco de `resolved`. Su envelope amplifica el pop del núcleo
+      // Y da un bloom transitorio del glow — la magnitud run-completa supera con claridad
+      // el light-up modesto por-agente (jerarquía D4). Honesto: gateado por el evento
+      // real `resolved`; reduced-motion lo anula (sin pop, sin bloom).
+      if (f.resolved && !lastResolved) popStart = now;
+      lastResolved = f.resolved;
+      let popEnv = 0;
+      if (popStart >= 0 && !f.reduced) {
+        const e = (now - popStart) / 520;
+        if (e < 1) popEnv = Math.sin(e * Math.PI);
+        else popStart = -1;
+      }
+
+      // reduced-motion: el glow salta a su valor final sin lerp por-frame (D6),
+      // igual que el radio (:187) y el número (:244). El bloom del crescendo (+0.18)
+      // es transitorio y solo se suma durante el pop.
+      const glowTarget = (f.resolved ? 0.78 : Math.min(0.5, num / 170)) + 0.18 * popEnv;
+      glow = f.reduced ? glowTarget : lerp(glow, glowTarget, 1 - Math.pow(0.002, dt));
+      if (coreGlow) (coreGlow as SVGElement).style.opacity = String(Math.min(1, glow));
       // Aurora direccional: al resolver, el glow toma el color de la dirección
       // (alcista→emerald, bajista→rose, neutral→accent). Excepción al invariante
       // "color de mercado solo en dato", aprobada por el owner SOLO para el glow del hero.
@@ -248,13 +274,7 @@ export function OrbitalHero({
       glowStops.forEach((s) => s.setAttribute('stop-color', glowCol));
       if (coreArc) coreArc.setAttribute('stroke-dasharray', `${(ARC_C * Math.min(num, 100) / 100).toFixed(1)} 999`);
 
-      if (f.resolved && !lastResolved) popStart = now;
-      lastResolved = f.resolved;
-      let scale = 1;
-      if (popStart >= 0 && !f.reduced) {
-        const e = (now - popStart) / 520;
-        if (e < 1) scale = 1 + 0.07 * Math.sin(e * Math.PI); else popStart = -1;
-      }
+      const scale = 1 + 0.1 * popEnv;
       if (coreGroup) coreGroup.setAttribute('transform', `translate(${CX} ${CY}) scale(${scale.toFixed(3)}) translate(${-CX} ${-CY})`);
 
       const idle = !f.resolved && !f.running;
@@ -345,11 +365,19 @@ export function OrbitalHero({
         </div>
       </div>
 
-      {resolved && a4?.accion_sugerida ? (
-        <p className="text-center font-mono text-fluid-caption leading-snug text-ink/70">{a4.accion_sugerida}</p>
-      ) : (
-        <p className="text-center font-mono text-fluid-caption text-ink/55">estimación · el núcleo no se completa al 100% hasta el resultado real</p>
-      )}
+      {/* Altura CONSTANTE (D8): el hero es un GLANCE (el texto completo de la acción
+          vive en la card A4). Ambos estados se acotan a 3 líneas (line-clamp-3) con el
+          MISMO leading, dentro de una caja cuya reserva (min-h-16 = 4rem) cubre esas 3
+          líneas → el swap al `resolved` no cambia la altura del hero ni desplaza el grid.
+          Elimina el CLS (no solo lo reduce); acciones más largas se recortan como en la
+          VerdictBar (truncate), no reflotan. */}
+      <div className="mt-1 flex min-h-[4rem] items-center justify-center">
+        {resolved && a4?.accion_sugerida ? (
+          <p className="line-clamp-3 text-center font-mono text-fluid-caption leading-snug text-ink/70">{a4.accion_sugerida}</p>
+        ) : (
+          <p className="line-clamp-3 text-center font-mono text-fluid-caption leading-snug text-ink/55">estimación · el núcleo no se completa al 100% hasta el resultado real</p>
+        )}
+      </div>
     </div>
   );
 }
