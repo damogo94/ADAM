@@ -44,8 +44,12 @@ export const RUN_TIMING_ESTIMATE = {
  * (D5): settle de card 300ms, pop de resolución 520ms. No se inventan tempos.
  */
 export const VITALITY = {
-  /** Light-up modesto por-agente al aterrizar (D4: "este llegó", sin pacing). */
-  agentLandingMs: 260,
+  /**
+   * Latido de aterrizaje por-agente (D4: "este llegó", sin pacing). Valor ÚNICO del
+   * beat: lo comparten `land-flash` (aro de la card) y `reasoning-land` (subrayado del
+   * affordance) — mismo instante, misma duración → un solo latido coordinado.
+   */
+  agentLandingMs: 420,
   /** Settle del chrome scanning→done (== 300ms de borde ya en agent-card-shell). */
   cardSettleMs: 300,
   /** Crescendo de resolución run-completo (== pop de 520ms ya en orbital-hero). */

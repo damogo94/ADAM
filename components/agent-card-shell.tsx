@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useLandingBeat } from '@/hooks/use-landing-beat';
 
 // Diferenciación de agentes = TIPOGRÁFICA (badge + posición), no cromática. Los
 // tokens a1..a4 ya = ink, así que las 4 variantes cromáticas viejas colapsan a
@@ -69,23 +70,13 @@ export function AgentCardShell({
   children,
 }: AgentCardShellProps) {
   const isScanning = status === 'scanning';
-  // Aterrizaje con resultado (done/anomaly/live) — dispara el light-up modesto (D4).
-  // `error` NO aterriza con celebración; scanning/idle tampoco.
-  const landed = status === 'done' || status === 'anomaly' || status === 'live';
   const collapsible = summary != null;
   const [open, setOpen] = useState(defaultOpen);
 
-  // Light-up de aterrizaje: SOLO en la transición REAL scanning→landed. Una card que se
-  // monta YA aterrizada (run persistido — navegar al radar y volver) NO re-celebra un
-  // aterrizaje que no ocurre ahora — la celebración va atada a su evento, no a la mera
-  // presencia del estado (honestidad). El nonce sube en cada flanco real (incl. tras
-  // re-analizar) y su `key` remonta el overlay para re-disparar el destello.
-  const prevLanded = useRef(landed);
-  const [landFlashKey, setLandFlashKey] = useState(0);
-  useEffect(() => {
-    if (landed && !prevLanded.current) setLandFlashKey((k) => k + 1);
-    prevLanded.current = landed;
-  }, [landed]);
+  // Latido de aterrizaje (fuente única, compartida con el énfasis del affordance de
+  // razonamiento): sube SOLO en la transición REAL scanning→landed. Su `key` remonta el
+  // overlay para re-disparar el destello; no dispara al montar ya-aterrizada (honestidad).
+  const landFlashKey = useLandingBeat(status);
 
   const cardCls = cn(
     'relative overflow-hidden rounded-card-sm border bg-surface-2 shadow-e1 edge-hi transition-[border-color,box-shadow] duration-300 ease-precise',
