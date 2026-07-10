@@ -243,11 +243,27 @@ export function OrbitalHero({
       numV += acc * dt; num += numV * dt;
       if (f.reduced) { num = f.targetNum; numV = 0; }
       const shown = Math.max(0, Math.round(num));
+
+      // Crescendo de resolución (D4 · "el pago real"): un medio-seno sobre 520ms
+      // disparado en el flanco de `resolved`. Su envelope amplifica el pop del núcleo
+      // Y da un bloom transitorio del glow — la magnitud run-completa supera con claridad
+      // el light-up modesto por-agente (jerarquía D4). Honesto: gateado por el evento
+      // real `resolved`; reduced-motion lo anula (sin pop, sin bloom).
+      if (f.resolved && !lastResolved) popStart = now;
+      lastResolved = f.resolved;
+      let popEnv = 0;
+      if (popStart >= 0 && !f.reduced) {
+        const e = (now - popStart) / 520;
+        if (e < 1) popEnv = Math.sin(e * Math.PI);
+        else popStart = -1;
+      }
+
       // reduced-motion: el glow salta a su valor final sin lerp por-frame (D6),
-      // igual que el radio (:187) y el número (:240).
-      const glowTarget = f.resolved ? 0.78 : Math.min(0.5, num / 170);
+      // igual que el radio (:187) y el número (:244). El bloom del crescendo (+0.18)
+      // es transitorio y solo se suma durante el pop.
+      const glowTarget = (f.resolved ? 0.78 : Math.min(0.5, num / 170)) + 0.18 * popEnv;
       glow = f.reduced ? glowTarget : lerp(glow, glowTarget, 1 - Math.pow(0.002, dt));
-      if (coreGlow) (coreGlow as SVGElement).style.opacity = String(glow);
+      if (coreGlow) (coreGlow as SVGElement).style.opacity = String(Math.min(1, glow));
       // Aurora direccional: al resolver, el glow toma el color de la dirección
       // (alcista→emerald, bajista→rose, neutral→accent). Excepción al invariante
       // "color de mercado solo en dato", aprobada por el owner SOLO para el glow del hero.
@@ -255,13 +271,7 @@ export function OrbitalHero({
       glowStops.forEach((s) => s.setAttribute('stop-color', glowCol));
       if (coreArc) coreArc.setAttribute('stroke-dasharray', `${(ARC_C * Math.min(num, 100) / 100).toFixed(1)} 999`);
 
-      if (f.resolved && !lastResolved) popStart = now;
-      lastResolved = f.resolved;
-      let scale = 1;
-      if (popStart >= 0 && !f.reduced) {
-        const e = (now - popStart) / 520;
-        if (e < 1) scale = 1 + 0.07 * Math.sin(e * Math.PI); else popStart = -1;
-      }
+      const scale = 1 + 0.1 * popEnv;
       if (coreGroup) coreGroup.setAttribute('transform', `translate(${CX} ${CY}) scale(${scale.toFixed(3)}) translate(${-CX} ${-CY})`);
 
       const idle = !f.resolved && !f.running;
