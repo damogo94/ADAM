@@ -49,7 +49,10 @@ Crea `supabase/migrations/00NN_nombre_descriptivo.sql`:
   escribe el cron usan `enable row level security` **sin policies** (el
   `service_role` bypasea RLS; el cliente no accede). Las tablas de usuario llevan
   policies `using (user_id = auth.uid())`. Mira `0001_init.sql` y
-  `0011_trade_outcomes.sql` como ejemplos de cada patrón.
+  `0011_trade_outcomes.sql` como ejemplos de cada patrón. Para cambios de PK o
+  columnas con backfill, el ejemplo es `0018_trade_outcomes_source.sql` (add
+  column con `not null default` que backfilea las filas existentes + repivote a
+  PK compuesta, RLS heredada sin policies).
 
 ### 2. Aplicar a producción — CON confirmación
 
@@ -66,7 +69,7 @@ del pooler):
 node --env-file=.env.local scripts/apply-migration.mjs supabase/migrations/00NN_nombre.sql
 ```
 
-Lee `POSTGRES_URL_NON_POOLING` de `.env.local` y, al terminar, imprime las tablas
+Lee `POSTGRES_URL_NON_POOLING` de `.env.local` (con fallback a `POSTGRES_URL`) y, al terminar, imprime las tablas
 de `public` y el nº de policies RLS → úsalo para verificar de un vistazo que el
 cambio cuajó. Su ventaja: aplica **exactamente** el fichero versionado, sin copiar
 el DDL a mano a ningún sitio.
@@ -110,13 +113,15 @@ Si usaste el CLI con `>`, la cabecera se pierde igual → vuelve a añadirla. No
 toques nada más del cuerpo generado a mano (la regla es: este fichero no se edita
 a mano, jamás).
 
-**Finales de línea (CRLF) — gotcha #2.** El repo usa `core.autocrlf=true` y el
-fichero committed está en **CRLF**; el generador (MCP o CLI) emite **LF**. Si
-escribes `supabase.ts` en LF, `git diff` marcará TODAS las líneas como cambiadas
-— un diff de fin de línea espurio que entierra el cambio real de esquema y ensucia
-la revisión. Escríbelo en CRLF (o deja que `core.autocrlf` lo normalice al
-`git add`) y confirma con `git diff --stat` que solo cambian las líneas del
-esquema, no el fichero entero.
+**Finales de línea — gotcha #2 (corregido 2026-07).** El repo usa
+`core.autocrlf=true` pero el blob COMMITTED de `supabase.ts` está en **LF**
+(`git ls-files --eol -- types/db/supabase.ts` → `i/lf w/crlf`): el CRLF solo
+existe en el working tree por el smudge del checkout. Con esa combinación da
+igual escribir el fichero en LF (output del generador) o en CRLF — el clean
+filter normaliza al `git add`/`git diff`. **No fuerces CRLF.** Lo que sigue
+vigente es la verificación: confirma con `git diff --stat` que solo cambian las
+líneas del esquema, no el fichero entero (si aparece un diff total, algo tocó
+los atributos de EOL — párate y mira `git ls-files --eol`).
 
 ### 5. Añadir el alias de dominio en `types/db/index.ts`
 
@@ -131,6 +136,14 @@ export type TradeOutcome = Database['public']['Tables']['trade_outcomes']['Row']
 Para enums nuevos, añádelos en la sección "Enums" con el mismo patrón
 (`Database['public']['Enums']['nombre']`). El resto del código importa **desde
 `@/types/db`**, nunca desde `./supabase` directamente.
+
+**Ojo — CHECK ≠ enum.** Una columna restringida por `check (col in (...))` (p.ej.
+`trade_outcomes.source`, migración 0018) NO es un enum de Postgres: al regenerar
+no aparece en `Database['public']['Enums']` (el generador la tipa como `string`)
+y no lleva alias aquí. Su union TS vive en código de aplicación (p.ej.
+`TradeSource` en `lib/analyses/trade-summary.ts`) — no lo busques en los tipos
+generados ni dupliques el union; el narrowing lo hace el código que lee la
+columna.
 
 ### 6. Verificar
 
@@ -162,7 +175,8 @@ al paso 3.
 `trade_outcomes` para registrar las comisiones asumidas en el backtest."
 
 **Lo que haces:**
-1. Creas `supabase/migrations/0012_trade_outcomes_fees.sql` con
+1. Creas `supabase/migrations/00NN_trade_outcomes_fees.sql` (NN = el siguiente
+   al último del directorio) con
    `alter table public.trade_outcomes add column fees_pct double precision;` +
    comentario explicando por qué.
 2. Le dices al usuario "voy a aplicar esto a prod: `<DDL>`" y esperas su OK.
