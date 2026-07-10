@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Diferenciación de agentes = TIPOGRÁFICA (badge + posición), no cromática. Los
@@ -75,6 +75,18 @@ export function AgentCardShell({
   const collapsible = summary != null;
   const [open, setOpen] = useState(defaultOpen);
 
+  // Light-up de aterrizaje: SOLO en la transición REAL scanning→landed. Una card que se
+  // monta YA aterrizada (run persistido — navegar al radar y volver) NO re-celebra un
+  // aterrizaje que no ocurre ahora — la celebración va atada a su evento, no a la mera
+  // presencia del estado (honestidad). El nonce sube en cada flanco real (incl. tras
+  // re-analizar) y su `key` remonta el overlay para re-disparar el destello.
+  const prevLanded = useRef(landed);
+  const [landFlashKey, setLandFlashKey] = useState(0);
+  useEffect(() => {
+    if (landed && !prevLanded.current) setLandFlashKey((k) => k + 1);
+    prevLanded.current = landed;
+  }, [landed]);
+
   const cardCls = cn(
     'relative overflow-hidden rounded-card-sm border bg-surface-2 shadow-e1 edge-hi transition-[border-color,box-shadow] duration-300 ease-precise',
     dashed ? 'border-dashed' : 'border-solid',
@@ -118,10 +130,12 @@ export function AgentCardShell({
   return (
     <div className={cardCls}>
       {/* Light-up MODESTO de aterrizaje (D4): un aro accent que se desvanece UNA vez
-          cuando la card aterriza en su evento real. "Este llegó", sin pacing global.
-          Overlay pointer-events-none (no bloquea el toggle); reduced-motion lo oculta. */}
-      {landed && (
+          en la transición REAL scanning→landed (no al montar ya-aterrizada). "Este
+          llegó", sin pacing global. `key` remonta el overlay en cada aterrizaje nuevo.
+          pointer-events-none (no bloquea el toggle); reduced-motion lo oculta. */}
+      {landFlashKey > 0 && (
         <span
+          key={landFlashKey}
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-10 rounded-card-sm animate-land-flash motion-reduce:hidden"
         />

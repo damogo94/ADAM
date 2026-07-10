@@ -168,7 +168,10 @@ export function OrbitalHero({
     const R: Record<SatId, number> = { a1: R_INNER, a2: R_INNER, a3: R_ISO, est: R_INNER };
     const vR: Record<SatId, number> = { a1: 0, a2: 0, a3: 0, est: 0 };
     let rot = 0, num = 0, numV = 0, glow = 0;
-    let lastResolved = false, popStart = -1;
+    // Semilla del flanco de resolución desde el frame INICIAL: si el hero se monta ya
+    // resuelto (run persistido — navegar al radar y volver), NO se re-dispara el
+    // crescendo; solo lo hace la transición real scanning→resolved (honestidad D4).
+    let lastResolved = frame.current.resolved, popStart = -1;
     let raf = 0, last = performance.now();
     const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
@@ -362,14 +365,17 @@ export function OrbitalHero({
         </div>
       </div>
 
-      {/* Altura reservada (D8): el placeholder (1 línea) y `accion_sugerida` (variable)
-          comparten una caja de min-height fija, así el swap al `resolved` NO cambia la
-          altura del hero ni desplaza el grid de abajo (CLS latente de Fase 0). */}
-      <div className="mt-1 flex min-h-[2.75rem] items-center justify-center">
+      {/* Altura CONSTANTE (D8): el hero es un GLANCE (el texto completo de la acción
+          vive en la card A4). Ambos estados se acotan a 3 líneas (line-clamp-3) con el
+          MISMO leading, dentro de una caja cuya reserva (min-h-16 = 4rem) cubre esas 3
+          líneas → el swap al `resolved` no cambia la altura del hero ni desplaza el grid.
+          Elimina el CLS (no solo lo reduce); acciones más largas se recortan como en la
+          VerdictBar (truncate), no reflotan. */}
+      <div className="mt-1 flex min-h-[4rem] items-center justify-center">
         {resolved && a4?.accion_sugerida ? (
-          <p className="text-center font-mono text-fluid-caption leading-snug text-ink/70">{a4.accion_sugerida}</p>
+          <p className="line-clamp-3 text-center font-mono text-fluid-caption leading-snug text-ink/70">{a4.accion_sugerida}</p>
         ) : (
-          <p className="text-center font-mono text-fluid-caption text-ink/55">estimación · el núcleo no se completa al 100% hasta el resultado real</p>
+          <p className="line-clamp-3 text-center font-mono text-fluid-caption leading-snug text-ink/55">estimación · el núcleo no se completa al 100% hasta el resultado real</p>
         )}
       </div>
     </div>
