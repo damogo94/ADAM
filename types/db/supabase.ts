@@ -254,6 +254,7 @@ export type Database = {
           confidence_pct: number
           emitted_at: string
           entry_price: number | null
+          entry_type: string | null
           id: string
           indicators: Json
           invalidation_factor: string
@@ -271,6 +272,7 @@ export type Database = {
           confidence_pct: number
           emitted_at?: string
           entry_price?: number | null
+          entry_type?: string | null
           id?: string
           indicators?: Json
           invalidation_factor: string
@@ -288,6 +290,7 @@ export type Database = {
           confidence_pct?: number
           emitted_at?: string
           entry_price?: number | null
+          entry_type?: string | null
           id?: string
           indicators?: Json
           invalidation_factor?: string

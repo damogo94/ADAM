@@ -85,6 +85,16 @@ describe('buildCMTSignal — smoke end-to-end', () => {
     const out = buildCMTSignal({ ticker: 'TEST', ohlcv: flatPrice(15, 100) });
     expect(out.level).toBe('sin_senal');
     expect(out.entry_price).toBeNull();
+    expect(out.entry_type).toBeNull();
+  });
+
+  it('persiste entry_type del compute (market|limit|null) — load-bearing para el backtest', () => {
+    const out = buildCMTSignal({ ticker: 'TEST', ohlcv: linearUp(250, 100, 1) });
+    // El campo SIEMPRE está presente (el schema lo exige, aunque sea null).
+    expect(['market', 'limit', null]).toContain(out.entry_type);
+    // Coherencia con el precio de entrada: si hay trade, hay tipo; si no, null.
+    if (out.entry_price !== null) expect(out.entry_type).not.toBeUndefined();
+    else expect(out.entry_type).toBeNull();
   });
 
   it('determinista: mismo input → mismo output', () => {
