@@ -46,6 +46,16 @@ function kappaBucket(k: number): 'baja' | 'media' | 'alta' {
   return 'baja';
 }
 
+// analyses_log.direction usa el enum DB direction_t (positivo/negativo/neutral);
+// los buckets exponen el vocabulario de scoring (alcista/bajista/neutral) — el
+// mismo mapeo explícito que el cron evaluate-signals. Sin él, positivo/negativo
+// no matchean ningún bucket y alcista/bajista quedan n=0 para siempre.
+const DB_TO_BUCKET_DIRECTION: Record<string, string> = {
+  positivo: 'alcista',
+  negativo: 'bajista',
+  neutral: 'neutral',
+};
+
 export async function GET() {
   // Barrera real en servidor: auth + allowlist (default-deny). Estas métricas
   // son cross-user (service-role bypassa RLS) → SOLO usuarios de la allowlist.
@@ -93,11 +103,12 @@ export async function GET() {
     bajista: emptyBucket(),
     neutral: emptyBucket(),
   };
+  // Solo los valores reales del enum DB confidence_t (baja/media/alta) —
+  // 'muy_alta' no existe en ningún output y era un bucket muerto perpetuo.
   const by_confidence: ByKey = {
     baja: emptyBucket(),
     media: emptyBucket(),
     alta: emptyBucket(),
-    muy_alta: emptyBucket(),
   };
   const by_confluence: ByKey = {
     '0-30': emptyBucket(),
@@ -136,7 +147,7 @@ export async function GET() {
       bh.n++;
       if (r.hit) bh.hits++;
     }
-    const bd = by_direction[a.direction];
+    const bd = by_direction[DB_TO_BUCKET_DIRECTION[a.direction] ?? a.direction];
     if (bd) {
       bd.n++;
       if (r.hit) bd.hits++;

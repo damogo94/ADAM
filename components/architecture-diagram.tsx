@@ -15,8 +15,10 @@
  *     noticias/macro. Es el rasgo más importante del diagrama → divisor explícito.
  *   - Debate: SOLO A1×A2, condicional. A3 NO participa.
  *   - A4 = Haiku (narrate) sobre computeConfluence; cita A3 verbatim.
- *   - CMT scanner: subsistema AUTÓNOMO (cron watchlist-scan → signals_history),
- *     desconectado del flujo usuario→salida.
+ *   - CMT scanner: subsistema AUTÓNOMO (cron cmt/scan → signals_history),
+ *     desconectado del flujo usuario→salida. OJO: cron/watchlist-scan es OTRO
+ *     cron (pre-ejecuta el pipeline runADAM completo → analyses_log; NO emite
+ *     signals_history), y los crons evaluate-* puntúan outcomes madurados.
  *
  * Modelos (ADR-001): A1 Haiku · A2 Sonnet · A3 Haiku · A4 Haiku · Debate Sonnet.
  */
@@ -135,7 +137,7 @@ export function ArchitectureDiagram() {
             <IsolationDivider />
             {/* A3: SOLO OHLCV → compute → narrate. Sin aristas de news/macro. */}
             <div className="flex flex-col gap-1.5">
-              <Node kind="compute" title="computeTechnical" sub="SMA·EMA·ATR·RSI·MACD·niveles" tag="sin LLM" />
+              <Node kind="compute" title="computeTechnical" sub="SMA·VWAP·ATR·RSI·MACD·niveles" tag="sin LLM" />
               <Node
                 kind="agentIsolated"
                 accent="a3"
@@ -183,17 +185,34 @@ export function ArchitectureDiagram() {
         </Zone>
       </div>
 
-      {/* Subsistema AUTÓNOMO — desconectado del flujo usuario→salida */}
+      {/* Subsistemas AUTÓNOMOS — desconectados del flujo usuario→salida.
+          Tres crons distintos: cmt/scan (scanner CMT → signals_history),
+          watchlist-scan (pre-ejecuta runADAM completo → analyses_log) y los
+          evaluate-* (puntúan outcomes madurados → base de la calibración). */}
       <div className="mt-3 border-t border-dashed border-white/10 pt-2.5">
         <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-ink/35">
-          subsistema autónomo · independiente del análisis
+          subsistemas autónomos · independientes del análisis
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <Node kind="data" title="cron · watchlist-scan" sub="programado" className="flex-1 min-w-[7rem]" />
+          <Node kind="data" title="cron · cmt/scan" sub="21:00 UTC · diario" className="flex-1 min-w-[7rem]" />
           <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="compute" title="CMT scanner" sub="computeTechnical · sin LLM" className="flex-1 min-w-[6rem]" />
           <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="persist" title="signals_history" className="flex-1 min-w-[6rem]" />
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Node kind="data" title="cron · watchlist-scan" sub="21:30 UTC · diario" className="flex-1 min-w-[7rem]" />
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
+          <Node kind="compute" title="runADAM completo" sub="pipeline íntegro por ticker" className="flex-1 min-w-[6rem]" />
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
+          <Node kind="persist" title="analyses_log" className="flex-1 min-w-[6rem]" />
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Node kind="data" title="crons · evaluate-*" sub="22:00-23:00 UTC · diarios" className="flex-1 min-w-[7rem]" />
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
+          <Node kind="compute" title="scoring determinista" sub="threshold max(2%, 1·ATR%) · sin look-ahead" className="flex-1 min-w-[8rem]" />
+          <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
+          <Node kind="persist" title="signal/trade_outcomes" sub="→ calibración /system" className="flex-1 min-w-[6rem]" />
         </div>
       </div>
 
@@ -211,7 +230,7 @@ export function ArchitectureDiagram() {
           <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
           <Node kind="agentIsolated" accent="a3" title="narrate · Estructura" sub="Haiku · guard propio" tag="aislado" className="flex-1 min-w-[6rem]" />
           <span className="font-mono text-[11px] text-ink/30" aria-hidden="true">→</span>
-          <Node kind="io" title="/estructura" sub="render UI" className="flex-1 min-w-[5rem]" />
+          <Node kind="io" title="/estructura" sub="render UI · 4ª pata → A4 (consolidator)" className="flex-1 min-w-[5rem]" />
         </div>
       </div>
 

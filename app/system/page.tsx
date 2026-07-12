@@ -128,11 +128,11 @@ export default function SystemScreen() {
         <div className="mt-2 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-blink-slow" />
           <span className="font-mono text-[12px] text-ink">sistema operativo</span>
-          <span className="ml-auto font-mono text-[12px] text-ink/66">v0.5.0 · ejes síntesis + Estructura 4ª pata</span>
+          <span className="ml-auto font-mono text-[12px] text-ink/66">v0.6.0 · pivote a señales reales (ADR-005)</span>
         </div>
         <div className="mt-1 font-mono text-[12px] text-ink/66 leading-snug">
           Pipeline determinístico: math en código (computeTechnical · computeConfluence) ·
-          LLM solo para narrativa · retry 2× en parse/schema errors
+          LLM solo para narrativa · 2 intentos máx en parse/schema errors
         </div>
       </section>
 
@@ -208,7 +208,8 @@ export default function SystemScreen() {
         {!hasCal ? (
           <div className="font-mono text-[12px] text-ink/66 leading-snug">
             Sin outcomes evaluados aún. El cron diario (22:00 UTC) evalúa
-            análisis con horizonte 7d/30d madurado. Threshold v1: ±2%.
+            análisis con horizonte 7d/30d madurado. Threshold ajustado por
+            volatilidad: max(±2%, 1·ATR%).
           </div>
         ) : (
           <>
@@ -231,8 +232,9 @@ export default function SystemScreen() {
               <CalRow label="bajista" bucket={calibration!.by_direction.bajista} />
               <CalRow label="neutral" bucket={calibration!.by_direction.neutral} />
             </CalGroup>
+            {/* Solo los valores reales del enum confidence_t (baja/media/alta) —
+                'muy alta' era un bucket muerto que no existe en ningún output. */}
             <CalGroup title="confianza">
-              <CalRow label="muy alta" bucket={calibration!.by_confidence.muy_alta} />
               <CalRow label="alta" bucket={calibration!.by_confidence.alta} />
               <CalRow label="media" bucket={calibration!.by_confidence.media} />
               <CalRow label="baja" bucket={calibration!.by_confidence.baja} />
@@ -296,18 +298,22 @@ export default function SystemScreen() {
           <div className="font-mono text-[12px] text-accent uppercase tracking-wider font-medium">
             refactor F1 — math fuera del LLM
           </div>
-          <KV k="computeTechnical()" v="SMA · EMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · operativa" cls="text-ink/85" />
+          <KV k="computeTechnical()" v="SMA · VWAP · ATR · RSI · MACD · trend · niveles · patrones · MTF · rango 52s · operativa" cls="text-ink/85" />
+          <KV k="horizonte (F8b)" v="distancia-a-target en ATRs · estBars = K² random-walk → intradia/swing/posicional" cls="text-ink/85" />
           <KV k="computeConfluence()" v="30/40/30 (3 patas) · 30/25/20/25 con Estructura · capping por agentes vivos" cls="text-ink/85" />
           <KV k="ejes separados (Fase 1)" v="veredicto firmado net ±100 · κ coincidencia · fiabilidad = |net|·f(κ)" cls="text-ink/85" />
           <KV k="Estructura · 4ª pata" v="opt-in · re-narra Síntesis a 4 patas + persiste estructura_output (mig 0017)" cls="text-ink/85" />
           <KV k="cron a2-reconcile" v="11:00 UTC · pre-warm caché Economía + backfill Síntesis server-side" cls="text-ink/85" />
           <KV k="track-record · por agente" v="acierto direccional Activo/Economía/Gráfico/Estructura — medición, aún no repondera" cls="text-ink/85" />
+          <KV k="evaluación de trades" v="dual-source A3 + Estructura · una fila por (analysis_id, source) (mig 0018)" cls="text-ink/85" />
+          <KV k="entry_type (F8a)" v="market|limit propagado a CMT + backtest — límite sin fill no es trade (mig 0019)" cls="text-ink/85" />
+          <KV k="validación (ADR-004/005)" v="backtest multi-régimen + costes + survivorship — hoy ninguna señal supera el gate" cls="text-ink/85" />
           <KV k="retry policy (F2.2)" v="2 intentos en parse/schema mismatch — JSON malformado se recupera" cls="text-ink/85" />
           <KV k="Economía edge case (F2.1)" v="snapshot vacío → confidence ≤ 20, NO inventa Fed funds" cls="text-ink/85" />
           <KV k="trace ID" v="UUID propagado a los agentes para correlación de logs" cls="text-ink/85" />
           <KV k="endpoint" v="/api/agents/run (pipeline integrado · streaming NDJSON)" cls="text-ink/85" />
           <KV k="osciladores Gráfico" v="RSI 14 + MACD 12/26/9 — confirmación, no driver" cls="text-ink/85" />
-          <KV k="tests · CI" v="700 unitarios · GitHub Actions typecheck+lint+test" cls="text-accent" />
+          <KV k="tests · CI" v="775 unitarios · GitHub Actions typecheck+lint+test" cls="text-accent" />
         </div>
       </FoldSection>
 
@@ -319,8 +325,8 @@ export default function SystemScreen() {
         <KV k="último análisis" v={lastAnalysis} />
         <KV k="modelos" v="Haiku 4.5 (narrate) · Sonnet 4.6 (Economía · Debate) · código (compute)" />
         <KV k="data provider" v="Yahoo /v8/chart · Finnhub 60/min · cripto: CMC ∥ CoinGecko → CoinStats + newsdata.io" />
-        <KV k="cache" v="Upstash L1+L2 + prompt caching ephemeral 5min" />
-        <KV k="timeout" v="25s/agente · maxDuration 60s · ~50s worst case" />
+        <KV k="cache" v="A2 + macro: Supabase · sparklines: Upstash 15min · prompt caching ephemeral 5min" />
+        <KV k="timeout" v="25s/agente · maxDuration 60s · ~54s worst case" />
       </FoldSection>
 
       <FoldSection title="seguridad">
@@ -350,10 +356,12 @@ export default function SystemScreen() {
 const SECURITY: { k: string; v: string }[] = [
   { k: 'A3 aislado', v: '3 capas + compute sin LLM' },
   { k: 'Estructura aislado', v: 'guard propio · solo OHLCV (+vanilla)' },
+  { k: '/system allowlist', v: 'system_access + RPC · default-deny · sin cache' },
   { k: 'RLS Supabase', v: '13 policies activas' },
   { k: 'rate-limit', v: '5/min · 30/día IP · 30/día user' },
-  { k: 'CSRF', v: 'checkSameOrigin en POST' },
-  { k: 'schemas Zod strict', v: 'A1·A2·A3·A4·Debate·CMT·Estructura' },
+  { k: 'CSRF', v: 'checkSameOrigin en POST/PATCH/DELETE' },
+  // Debate y CMT validan en runtime contra su schema propio (no-strict) — no inflar el chip.
+  { k: 'schemas Zod strict', v: 'A1·A2·A3·A4·Estructura (Debate·CMT no-strict)' },
   { k: 'type-safety', v: 'tipos Supabase generados · 0 casts as-any' },
   { k: 'disclaimer literal', v: 'A4Output + footer' },
 ];

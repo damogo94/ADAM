@@ -118,6 +118,23 @@ describe('GET /api/metrics/calibration · allowlist', () => {
     expect(body.by_agent.estructura.n).toBe(0);
   });
 
+  it('by_direction mapea el enum DB (positivo → alcista) — sin mapeo el bucket queda n=0', async () => {
+    vi.mocked(createSupabaseServer).mockResolvedValue(
+      serverClient({ user: { id: 'u1' }, authorized: true }) as never
+    );
+    const builder = makeBuilder({ then: { data: [outcomeRow()], error: null } });
+    vi.mocked(createSupabaseAdmin).mockReturnValue({ from: vi.fn(() => builder) } as never);
+
+    const res = await GET();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    // La fila trae direction 'positivo' (vocabulario DB) → bucket alcista.
+    expect(body.by_direction.alcista).toMatchObject({ n: 1, hits: 1 });
+    expect(body.by_direction.neutral.n).toBe(0);
+    // El enum DB confidence_t no tiene 'muy_alta' — el bucket muerto no se emite.
+    expect(body.by_confidence).not.toHaveProperty('muy_alta');
+  });
+
   it('autenticado pero NO en allowlist → 403 y NO toca los datos (llamada directa bloqueada)', async () => {
     vi.mocked(createSupabaseServer).mockResolvedValue(
       serverClient({ user: { id: 'u1' }, authorized: false }) as never
