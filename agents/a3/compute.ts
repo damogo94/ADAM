@@ -70,6 +70,16 @@ export interface ComputeTechnicalInput {
 /** Salida de computeTechnical = A3Output sin `narrative` (lo añade el LLM). */
 export type ComputeTechnicalOutput = Omit<A3Output_t, 'narrative'>;
 
+/**
+ * Flag EXPERIMENTAL del branch LONG a favor de tendencia (operative.ts). Off por
+ * defecto. Activar con `A3_LONG_TREND_FOLLOW=true` en el entorno (requiere
+ * reinicio: `.env.local` se lee al arrancar el proceso). Es un mecanismo VALIDADO
+ * para desbloquear compras en alcistas/máximos nuevos, pero su RENTABILIDAD NO está
+ * validada (el backtest carece de horizonte y benchmark) — no operar en real sin
+ * cerrar esa validación. Ver investigación 2026-07.
+ */
+const A3_LONG_TREND_FOLLOW = process.env.A3_LONG_TREND_FOLLOW === 'true';
+
 export function computeTechnical(
   input: ComputeTechnicalInput
 ): ComputeTechnicalOutput {
@@ -128,6 +138,14 @@ export function computeTechnical(
     levels,
     atr,
     profile,
+    // Branch LONG experimental (flag off por defecto). Los indicadores que pasa
+    // (fuerza/sma/rsi) son PROPIOS del compute de A3 (derivados del OHLCV), no
+    // contexto cross-agent → no rompe el aislamiento de A3.
+    enableLongTrendFollow: A3_LONG_TREND_FOLLOW,
+    fuerza: trend.fuerza,
+    sma20,
+    sma50,
+    rsi: rsi14,
   });
 
   // ── Multi-timeframe (opcional, solo si hay intraday suficiente) ──

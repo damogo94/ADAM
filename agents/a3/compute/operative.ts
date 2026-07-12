@@ -61,6 +61,21 @@ export interface OperativaInput {
    * coinciden con el `equity` profile (proximity 3%, atr 1%, rb 1.5).
    */
   profile?: AssetProfile;
+  /**
+   * Flag EXPERIMENTAL (off por defecto): activa el branch LONG a favor de
+   * tendencia (ver constantes MIN_FUERZA_LONG…). Se resuelve en compute.ts desde
+   * `A3_LONG_TREND_FOLLOW`. Con el flag ausente/false, el compute es idéntico al
+   * histórico (cero cambio de comportamiento). Mecanismo validado; rentabilidad NO.
+   */
+  enableLongTrendFollow?: boolean;
+  /** Fuerza de tendencia (1-5). Solo la usa el branch long experimental. */
+  fuerza?: number;
+  /** SMA20 (de compute). Gate de "tendencia viva" del branch long (respaldo de sma50). */
+  sma20?: number | null;
+  /** SMA50 (de compute). Gate principal de "tendencia viva" del branch long. */
+  sma50?: number | null;
+  /** RSI14 (de compute). Techo anti blow-off del branch long. */
+  rsi?: number | null;
 }
 
 /** R/B mínimo aceptable (default histórico — equity profile lo coincide). */
@@ -77,6 +92,19 @@ const DEFAULT_ATR_FALLBACK_PCT = 1;
  * fantasía dentro del horizonte → hold. Escala con la volatilidad vía ATR.
  */
 export const REACH_ATR_MULT = 5;
+
+// ── Branch LONG a favor de tendencia (EXPERIMENTAL, flag off por defecto) ──
+// Diseñado para desbloquear compras en tendencia alcista incl. MÁXIMOS NUEVOS:
+// entrada a mercado (distancia 0 → sin gate de alcanzabilidad) + target proyectado
+// por ATR cuando no hay resistencia previa. Mecanismo VALIDADO (genera 43 longs/74
+// vs 1 del branch de retroceso); su RENTABILIDAD NO está validada — el backtest no
+// tiene horizonte ni benchmark para juzgarla (investigación 2026-07). Constantes v1.
+export const MIN_FUERZA_LONG = 3; // fuerza mínima de tendencia (1-5): exige impulso real
+const K_STOP = 1.5; // riesgo nominal en múltiplos de ATR
+const TARGET_MIN_ATR = 2.7; // piso de distancia al target (ATR) → garantiza horizonte swing
+const STRUCT_STOP_BUFFER = 0.25; // colchón (ATR) bajo el soporte usado como stop estructural
+const RSI_MAX_LONG = 78; // techo anti blow-off (no entrar en clímax de compra)
+const RB_EPS = 0.01; // tolerancia anti-redondeo del gate de R/B
 
 export function computeOperativa(input: OperativaInput): OperativaResult {
   const { candles, tendencia, levels, atr, profile } = input;
@@ -111,6 +139,21 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
 
   const currentPrice = candles[candles.length - 1]!.c;
   const effectiveATR = atr ?? currentPrice * (atrFallbackPct / 100);
+
+  // Branch LONG a favor de tendencia (EXPERIMENTAL, flag off por defecto). Corre
+  // ANTES del BUY por retroceso: en alcista intenta el largo a mercado (opera
+  // máximos nuevos); si sus gates fallan → null → cae al resto de la lógica
+  // histórica intacta. Con el flag off no se ejecuta → comportamiento idéntico.
+  if (input.enableLongTrendFollow && tendencia === 'alcista') {
+    const long = computeLongTrendFollow(input, {
+      currentPrice,
+      effectiveATR,
+      minRbRatio,
+      round,
+      intervalDays,
+    });
+    if (long) return long;
+  }
 
   // Caso BUY (alcista): plan largo en el soporte de abajo, target en la
   // resistencia. Entrada a MERCADO si el precio ya está pegado al soporte;
@@ -205,6 +248,87 @@ export function computeOperativa(input: OperativaInput): OperativaResult {
     ratio_riesgo_beneficio: null,
     horizonte: horizonteFallback(intervalDays),
     entry_type: null,
+  };
+}
+
+/**
+ * Branch LONG a favor de tendencia (EXPERIMENTAL — Diseño A "híbrido").
+ *
+ * Ataca las dos asimetrías que hoy hacen que A3 casi nunca compre en tendencia
+ * alcista (investigación 2026-07):
+ *   1. Entrada a MERCADO (distancia 0) → sin gate de alcanzabilidad REACH_ATR_MULT
+ *      y sin exigir un pullback lejano a contra-tendencia.
+ *   2. Target HÍBRIDO: la resistencia más cercana si da R/B≥min; si NO hay
+ *      resistencia arriba (máximos nuevos) → proyección por ATR (target = entrada +
+ *      max(min_rb·K_STOP, TARGET_MIN_ATR)·ATR) → se puede comprar en máximos.
+ * Stop = K_STOP·ATR, recortado a un soporte REAL si cae dentro de la banda
+ * (preserva la "regla-2" del compute: stop al otro lado de un nivel técnico).
+ *
+ * Devuelve un plan 'buy' o null (gates no cumplidos → el caller cae a la lógica
+ * histórica). Gates nullable-safe: si falta un indicador, NO bloquea por ese gate.
+ */
+function computeLongTrendFollow(
+  input: OperativaInput,
+  ctx: {
+    currentPrice: number;
+    effectiveATR: number;
+    minRbRatio: number;
+    round: (n: number) => number;
+    intervalDays: number;
+  }
+): OperativaResult | null {
+  const { currentPrice, effectiveATR, minRbRatio, round, intervalDays } = ctx;
+  const { fuerza, sma20, sma50, rsi, levels, atr } = input;
+
+  // ── Gates de calidad ──
+  if ((fuerza ?? 0) < MIN_FUERZA_LONG) return null;
+  if (!Number.isFinite(effectiveATR) || effectiveATR <= 0) return null;
+  // Tendencia viva: precio por encima de la media media (sma20 de respaldo).
+  if (sma50 != null) {
+    if (currentPrice <= sma50) return null;
+  } else if (sma20 != null) {
+    if (currentPrice <= sma20) return null;
+  }
+  // No sobre-extendido (evita comprar el clímax).
+  if (rsi != null && rsi >= RSI_MAX_LONG) return null;
+
+  // ── Geometría: entrada a mercado, stop k·ATR (recorte estructural), target híbrido ──
+  const entrada = round(currentPrice);
+  const atrStop = currentPrice - K_STOP * effectiveATR;
+  // Soporte más alto que quede DENTRO de la banda (atrStop, precio): stop técnico más ajustado.
+  const sIn = levels.soportes.filter((s) => s > atrStop && s < currentPrice);
+  const stopRaw = sIn.length > 0 ? Math.max(...sIn) - STRUCT_STOP_BUFFER * effectiveATR : atrStop;
+  const stop_loss = round(stopRaw);
+  const risk = entrada - stop_loss;
+  if (risk <= 0) return null;
+
+  const resAbove = levels.resistencias.filter((r) => r > currentPrice);
+  let target: number;
+  if (resAbove.length > 0) {
+    // Hay techo real → respétalo (no proyectar a través de un nivel de rechazo).
+    const nearest = Math.min(...resAbove);
+    if ((nearest - entrada) / risk >= minRbRatio) target = round(nearest);
+    else return null; // techo demasiado cerca → no forzar el largo
+  } else {
+    // Máximos nuevos (sin resistencia) → proyección por ATR con piso swing.
+    const distATR = Math.max(minRbRatio * K_STOP, TARGET_MIN_ATR);
+    target = round(entrada + distATR * effectiveATR);
+  }
+
+  const beneficio = target - entrada;
+  if (beneficio <= 0) return null;
+  const rb = beneficio / risk;
+  if (rb < minRbRatio - RB_EPS) return null; // guard anti-redondeo
+
+  return {
+    signal: 'buy',
+    entrada,
+    stop_loss,
+    target,
+    atr_actual: atr,
+    ratio_riesgo_beneficio: round(rb),
+    horizonte: horizonteFromTarget(entrada, target, effectiveATR, intervalDays),
+    entry_type: 'market',
   };
 }
 

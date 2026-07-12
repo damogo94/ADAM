@@ -386,3 +386,74 @@ describe('determinismo', () => {
     expect(computeOperativa(input)).toEqual(computeOperativa(input));
   });
 });
+
+describe('branch LONG a favor de tendencia (EXPERIMENTAL, flag)', () => {
+  // Base: alcista en máximos nuevos (sin resistencia arriba), fuerza fuerte,
+  // precio por encima de sma50, RSI no sobre-extendido. Precio actual = 100, atr = 1.
+  const baseLong = {
+    candles: flatPrice(30, 100),
+    tendencia: 'alcista' as const,
+    levels: { soportes: [] as number[], resistencias: [] as number[] },
+    atr: 1,
+    fuerza: 4,
+    sma50: 95,
+    rsi: 60,
+  };
+
+  it('flag OFF (default) → NO compra en máximos nuevos: hold (comportamiento histórico intacto)', () => {
+    const r = computeOperativa(baseLong); // enableLongTrendFollow ausente
+    expect(r.signal).toBe('hold');
+  });
+
+  it('flag ON + máximos nuevos → buy a MERCADO con target proyectado por ATR', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true });
+    expect(r.signal).toBe('buy');
+    expect(r.entry_type).toBe('market');
+    expect(r.entrada).toBe(100);
+    // stop = 100 - 1.5·ATR = 98.5 ; risk = 1.5
+    expect(r.stop_loss).toBe(98.5);
+    // sin resistencia → distATR = max(1.5·1.5, 2.7) = 2.7 → target = 100 + 2.7 = 102.7
+    expect(r.target).toBe(102.7);
+    expect(r.ratio_riesgo_beneficio).toBeGreaterThanOrEqual(MIN_RB_RATIO);
+  });
+
+  it('flag ON + hay resistencia arriba que da R/B → target sobre la resistencia', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, levels: { soportes: [], resistencias: [110] } });
+    expect(r.signal).toBe('buy');
+    expect(r.entry_type).toBe('market');
+    expect(r.target).toBe(110);
+  });
+
+  it('flag ON pero resistencia demasiado cerca (R/B<min) → no fuerza el largo → hold', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, levels: { soportes: [], resistencias: [100.5] } });
+    expect(r.signal).toBe('hold');
+  });
+
+  it('flag ON + soporte real en banda → stop estructural (bajo el soporte), no ATR puro', () => {
+    // soporte 99 dentro de (98.5, 100) → stop = 99 - 0.25·ATR = 98.75
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, levels: { soportes: [99], resistencias: [] } });
+    expect(r.signal).toBe('buy');
+    expect(r.stop_loss).toBe(98.75);
+  });
+
+  it('gate fuerza: flag ON pero fuerza<3 → no dispara el branch long → hold', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, fuerza: 2 });
+    expect(r.signal).toBe('hold');
+  });
+
+  it('gate RSI: flag ON pero RSI≥78 (sobre-extendido) → hold', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, rsi: 80 });
+    expect(r.signal).toBe('hold');
+  });
+
+  it('gate tendencia viva: flag ON pero precio ≤ sma50 → hold', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, sma50: 105 });
+    expect(r.signal).toBe('hold');
+  });
+
+  it('flag ON pero tendencia bajista → el branch long NO aplica (solo alcista)', () => {
+    const r = computeOperativa({ ...baseLong, enableLongTrendFollow: true, tendencia: 'bajista', levels: { soportes: [90], resistencias: [105] } });
+    // no debe salir un 'buy' del branch long; la lógica bajista decide (sell/hold)
+    expect(r.signal).not.toBe('buy');
+  });
+});
