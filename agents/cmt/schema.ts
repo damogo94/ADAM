@@ -9,6 +9,9 @@ export const CMT_OUTPUT_SCHEMA = z.object({
   timeframe: z.string().min(1).max(10),
   setup_detected: z.string().min(3).max(300),
   confidence_pct: z.number().int().min(0).max(100),
+  // market | limit | null. Load-bearing para el backtest: una orden límite no
+  // rellenada NO es un trade (evaluate-signal-trades → buildSignalTradePlan).
+  entry_type: z.enum(['market', 'limit']).nullable(),
   entry_price: z.number().nullable(),
   stop_loss: z.number().nullable(),
   target_price: z.number().nullable(),

@@ -10,9 +10,12 @@
  *   - target < entry && stop > entry → sell (short: objetivo abajo, stop arriba)
  *   - cualquier otra cosa             → null (degenerado / no evaluable)
  *
- * entry_type es siempre 'market': CMT no distingue limit vs stop-entry, así que
- * asumimos entrada al `entry` en la emisión (mide la pregunta honesta: si tomaste
- * la señal tal cual, ¿tocó antes target o stop?). Documentado en el cron.
+ * entry_type: la señal SÍ lo distingue (el compute genera short en la resistencia
+ * / long en el soporte → 'limit'), pero hasta la migración 0019 no se persistía y
+ * se asumía 'market' — inflando el backtest (una orden límite no rellenada se
+ * contaba como fill a mercado). Ahora se pasa explícito; se mantiene 'market' como
+ * fallback SOLO para filas viejas sin dato recuperable. `evaluateTrade` ya maneja
+ * el fill de la orden límite (findIndex del toque + no_fill si nunca dispara).
  */
 
 import type { TradePlan } from './trade-eval';
@@ -35,16 +38,25 @@ export function inferSignalDirection(
 }
 
 /**
- * Construye el TradePlan ('market') a partir de los niveles de la señal.
- * Devuelve null si la dirección no es inferible → el caller persiste
- * outcome 'not_evaluable' (resuelto, no se reintenta).
+ * Construye el TradePlan a partir de los niveles de la señal + su `entry_type`.
+ * `entryType` null/ausente → fallback 'market' (filas viejas sin dato: migración
+ * 0019 backfilea desde `setup_detected`, pero algunas pueden quedar sin recuperar).
+ * Devuelve null si la dirección no es inferible → el caller persiste outcome
+ * 'not_evaluable' (resuelto, no se reintenta).
  */
 export function buildSignalTradePlan(
   entry: number,
   stop: number,
-  target: number
+  target: number,
+  entryType?: string | null
 ): TradePlan | null {
   const direction = inferSignalDirection(entry, stop, target);
   if (!direction) return null;
-  return { direction, entry_type: 'market', entrada: entry, stop_loss: stop, target };
+  return {
+    direction,
+    entry_type: entryType === 'limit' ? 'limit' : 'market',
+    entrada: entry,
+    stop_loss: stop,
+    target,
+  };
 }

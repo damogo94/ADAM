@@ -71,6 +71,7 @@ export function buildCMTSignal(input: CMTBuildInput): CMTOutput {
     timeframe: '1D',
     setup_detected: buildSetupDetected(compute, level),
     confidence_pct: compute.confidence,
+    entry_type: op.entry_type ?? null,
     entry_price: op.entrada,
     stop_loss: op.stop_loss,
     target_price: op.target,

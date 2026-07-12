@@ -83,6 +83,7 @@ async function persistSignals(userId: string, results: ScanResult[]): Promise<nu
         timeframe: s.timeframe,
         setup_detected: s.setup_detected,
         confidence_pct: s.confidence_pct,
+        entry_type: s.entry_type,
         entry_price: s.entry_price,
         stop_loss: s.stop_loss,
         target_price: s.target_price,

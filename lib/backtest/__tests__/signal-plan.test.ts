@@ -60,6 +60,43 @@ describe('buildSignalTradePlan', () => {
   it('geometría degenerada → null (el caller persiste not_evaluable)', () => {
     expect(buildSignalTradePlan(100, 105, 110)).toBeNull();
   });
+
+  it('entry_type explícito "limit" se preserva', () => {
+    expect(buildSignalTradePlan(100, 105, 90, 'limit')?.entry_type).toBe('limit');
+  });
+
+  it('entry_type explícito "market" se preserva', () => {
+    expect(buildSignalTradePlan(100, 105, 90, 'market')?.entry_type).toBe('market');
+  });
+
+  it('entry_type ausente o null → fallback market (filas viejas sin dato)', () => {
+    expect(buildSignalTradePlan(100, 105, 90)?.entry_type).toBe('market');
+    expect(buildSignalTradePlan(100, 105, 90, null)?.entry_type).toBe('market');
+  });
+});
+
+// Guard de regresión del bug 2026-07 (migración 0019): una orden LÍMITE cuyo
+// nivel de entrada nunca se toca NO es un trade — no puede contar como win. Antes
+// del fix se asumía 'market' y se rellenaba al precio del nivel el día 0,
+// fabricando "wins" fantasma (p.ej. cortos límite de BTC a 69280 con precio ~63k).
+describe('regresión: orden límite no rellenada ≠ win', () => {
+  it('short LÍMITE arriba; el precio ya está por debajo y nunca sube al nivel → no_fill (no win)', () => {
+    // entry 100 (resistencia), stop 105, target 90. Precio siempre <100 → el
+    // límite de venta jamás dispara. Como market, esto sería 'win' (toca 90).
+    const plan = buildSignalTradePlan(100, 105, 90, 'limit')!;
+    const candles = [k(98, 92), k(95, 89, 90)]; // nunca alcanza 100; toca 90
+    const asMarket = evaluateTrade({ ...plan, entry_type: 'market' }, candles, { windowElapsed: true });
+    const asLimit = evaluateTrade(plan, candles, { windowElapsed: true });
+    expect(asMarket.outcome).toBe('win'); // el bug antiguo
+    expect(asLimit.outcome).toBe('no_fill'); // el comportamiento correcto
+  });
+
+  it('short LÍMITE que SÍ rebota al nivel y luego cae al target → win legítimo', () => {
+    const plan = buildSignalTradePlan(100, 105, 90, 'limit')!;
+    // sube y toca 100 (fill), después cae a 90 (target)
+    const r = evaluateTrade(plan, [k(101, 99, 100), k(92, 88, 90)], { windowElapsed: false });
+    expect(r.outcome).toBe('win');
+  });
 });
 
 describe('integración señal → plan → evaluateTrade', () => {

@@ -46,6 +46,7 @@ interface CandidateRow {
   id: string;
   ticker: string;
   emitted_at: string;
+  entry_type: string | null;
   entry_price: number | null;
   stop_loss: number | null;
   target_price: number | null;
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
   // Las ya resueltas se descartan abajo cruzando con signal_trade_outcomes.
   const { data: candidates, error: candErr } = await admin
     .from('signals_history')
-    .select('id, ticker, emitted_at, entry_price, stop_loss, target_price')
+    .select('id, ticker, emitted_at, entry_type, entry_price, stop_loss, target_price')
     .eq('timeframe', '1D')
     .not('entry_price', 'is', null)
     .not('stop_loss', 'is', null)
@@ -116,7 +117,8 @@ export async function GET(req: NextRequest) {
     const windowElapsed = now >= windowEndMs;
 
     // Dirección inferida de la geometría. Degenerada → not_evaluable terminal.
-    const plan = buildSignalTradePlan(c.entry_price, c.stop_loss, c.target_price);
+    // entry_type real (limit/market): una orden límite no rellenada NO es un trade.
+    const plan = buildSignalTradePlan(c.entry_price, c.stop_loss, c.target_price, c.entry_type);
     if (!plan) {
       await persist(admin, c, {
         direction: null,
