@@ -25,7 +25,7 @@ Feature branches follow the `feat/*` / `redesign/*` pattern; merging one into `m
 
 ## Architecture (big picture)
 
-A.D.A.M. is a multi-agent analysis copilot. **It is not a broker** — it never executes trades. The output is educational JSON consumed by the Next.js UI under `/analysis`.
+A.D.A.M. is a multi-agent analysis copilot. **Today** it produces **educational** JSON (it is **not a broker** and executes no trades) consumed by the Next.js UI under `/analysis`. **Direction (ADR-005):** ADAM is evolving to *also* become a real trading-signal system — but under a hard discipline: **no signal is presented as tradeable until it clears the multi-regime / cost-aware / survivorship-corrected / pre-registered validation bar of ADR-004, and nothing currently clears it.** Rigorous backtesting (ADR-004) showed A3's price signals have **no robustly deployable edge — long or short — under honest scrutiny** (multi-régimen + costes + survivorship). The educational framing + disclaimers stay until the posture change is deliberate; the reusable validation gate is `scripts/multiregime-backtest.test.ts` (run with `RUN_BACKTEST=1`). Don't re-label the current signals as tradeable, and don't p-hack to "fill" the signal mode.
 
 ### The four agents + debate
 
@@ -157,7 +157,7 @@ Consolidated Zod schemas (`A1Output`, `A2Output`, `A3Output`, `A4Output`, `Debat
 
 ## Design system invariants
 
-The UI design system is real and load-bearing — verified facts, not aspirations (audited 2026-06-22). Extended docs: `docs/handoff/` (descriptive, per screen) + `docs/adr/` (prescriptive ADRs; currently `0002-a3-operativa-trade-plans.md` and `0003-radar-unificado-y-temporalidad.md` — the latter's "Invariantes (no romper)" section is binding for radar/horizonte work; ADR-001 inline in code comments).
+The UI design system is real and load-bearing — verified facts, not aspirations (audited 2026-06-22). Extended docs: `docs/handoff/` (descriptive, per screen) + `docs/adr/` (prescriptive ADRs; `0002-a3-operativa-trade-plans.md`, `0003-radar-unificado-y-temporalidad.md` — the latter's "Invariantes (no romper)" is binding for radar/horizonte work; **`0004-a3-edge-corto-lado-largo-no-validado.md`** — the multi-régimen/costes/survivorship finding + binding invariants (**keep `A3_LONG_TREND_FOLLOW` OFF**; don't wire `agents/a3/compute/exhaustion.ts` as a live signal; don't p-hack on the same sample; don't call the long "refuted"); **`0005-adam-hacia-senales-reales.md`** — the strategic pivot to a real signal system and its admission bar; ADR-001 inline in code comments).
 
 - **Token SSOT = `tailwind.config.ts`** (`theme.extend.colors`), mirrored EXACTLY in `app/globals.css :root` (void/surfaces/borders/accent). Keep them in sync — a divergence is what produced the old "azulado vs neutro" drift. There are **zero `bg-[#…]` hardcodes** in `app`/`components`; don't introduce any.
 - **Semantic market color is intocable:** `emerald` (alza/bullish), `rose` (baja/bearish), `amber` (atención/pendiente) — **only** on data, levels, direction and signal-state. **Never** on chrome, nav, identity badges or decoration.

@@ -82,3 +82,41 @@ gastar más grados de libertad sobre la muestra actual.
   evita quemar esfuerzo (y grados de libertad) contra un muro de datos.
 - Se preserva la opcionalidad (spec congelado + test de fixture) sin reclamar protección inexistente.
 - El foco de valor de A3 queda en su capacidad probada: señal de **corto/absoluto**.
+
+---
+
+## Actualización (2026-07-12) — Tests de reactivación EJECUTADOS (multi-régimen + costes + survivorship)
+
+El criterio de reactivación #1 (datos out-of-sample multi-régimen) **ya no está pendiente**: se construyó el
+generador `scripts/multiregime-backtest.test.ts` (determinista, sin look-ahead, `fallbackDaily('10y')` sobre 38
+tickers diversos incluyendo nombres que se desplomaron 60-90% → rompe survivorship) y se corrieron los tests que
+gobiernan la decisión. Resultados:
+
+- **Doble-null (etiqueta 'alcista' vs buy&hold del propio nombre, @63d):** timing ~0 (mediana −0.3pp, 49% >0).
+  La etiqueta NO timea — coherente con la ceguera al benchmark.
+- **Expectativa PATH-DEPENDENT del plan largo** (`computeLongTrendFollow` → `evaluateTrade`, la vara correcta que
+  faltaba):
+
+  | Universo | N | Gross | Neto @10/40bps | Neto @20/80bps |
+  |---|---|---|---|---|
+  | WINNERS (17, sesgado) | 344 | +0.149R | +0.094R | +0.038R |
+  | **DES-SESGADO (+crashed)** | 719 | **+0.077R** | **+0.031R** | **−0.014R** |
+  | solo CRASHED | 375 | +0.010R | −0.026R | −0.062R |
+
+  Por régimen (des-sesgado, gross): **bull +0.115R · bear −0.100R · lateral −0.199R** (solo bull positivo).
+
+**Conclusión (actualiza el foco):** el gross +0.149R era **~la mitad survivorship**; en universo justo con costes
+realistas queda **+0.031R (dentro del ruido de cero, N efectivo ≪719)** y se vuelve **negativo bajo estrés, en bear,
+en lateral y sobre los nombres que realmente cayeron**. **El plan largo NO tiene edge desplegable robusto.** El flag
+`A3_LONG_TREND_FOLLOW` sigue **OFF, ahora por EVIDENCIA, no por carga de la prueba.**
+
+**Matiz sobre el edge corto:** el "−7.6% @30d" de 2026 era en gran parte **régimen** (todo caía en absoluto); el
+test multi-régimen del corto/fade está a su vez lisiado por survivorship (excluye los techos que colapsaron), así
+que el corto **tampoco queda re-validado** multi-régimen. **Corrección honesta del cierre anterior:** A3 no tiene
+hoy un edge de trading **desplegable y robusto en ningún sentido** (largo ni corto) bajo escrutinio multi-régimen +
+costes + survivorship. Su valor probado es **analítico/pedagógico** — coherente con lo que el producto declara ser.
+
+**El detector de agotamiento** mostró en multi-régimen una señal **débil a favor** (agotados −1.34pp bajo su propio
+drift, 60% underperforman, N=45 ≈ 10-15 episodios independientes): **no-validado/infrapotente, NO refutado.** Sigue
+congelado (`exhaustion.ts`), ahora con un prior débilmente positivo → merece un test dirigido sobre un universo que
+INCLUYA techos colapsados (los deslistados-a-cero requieren una base tipo CRSP, no disponible con Yahoo).
