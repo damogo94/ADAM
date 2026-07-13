@@ -6,7 +6,8 @@ import { horizonteFromEstructuraTimeframe } from '@/lib/analyses/horizon';
  *   - 'a3'        → operativa del motor técnico aislado (Gráfico). Trade PRIMARIO
  *                   para métricas: es el que el cron `evaluate-trades` backtestea.
  *   - 'estructura'→ plan del agente de Estructura (MTF, futuros). Trade PARALELO,
- *                   opt-in; aún NO se evalúa automáticamente (fase posterior).
+ *                   opt-in; el cron `evaluate-trades` lo backtestea aparte
+ *                   (fila propia con source='estructura' en trade_outcomes).
  */
 export type TradeSource = 'a3' | 'estructura';
 
@@ -22,6 +23,8 @@ export interface TradeSummary {
   /** R/B prometido (≥1.5 forzado en A3). null si un output viejo no lo trae. */
   rb: number | null;
   horizonte: 'intradia' | 'swing' | 'posicional' | null;
+  /** Tipo de entrada — 'market' (a mercado) o 'limit' (orden límite); 'market' por defecto. */
+  entry_type: 'market' | 'limit';
   /** De qué agente sale el trade (A3 primario · Estructura paralelo). */
   source: TradeSource;
 }
@@ -54,7 +57,7 @@ export function extractTradeSummary(a3Output: unknown): TradeSummary | null {
   const signal = op.signal;
   if (signal !== 'buy' && signal !== 'sell') return null;
 
-  const { entrada, stop_loss, target, ratio_riesgo_beneficio, horizonte } = op;
+  const { entrada, stop_loss, target, ratio_riesgo_beneficio, horizonte, entry_type } = op;
   if (typeof entrada !== 'number' || typeof stop_loss !== 'number' || typeof target !== 'number') {
     return null;
   }
@@ -75,6 +78,7 @@ export function extractTradeSummary(a3Output: unknown): TradeSummary | null {
       horizonte === 'intradia' || horizonte === 'swing' || horizonte === 'posicional'
         ? horizonte
         : null,
+    entry_type: entry_type === 'limit' ? 'limit' : 'market',
     source: 'a3',
   };
 }
@@ -122,7 +126,7 @@ export function extractEstructuraTradeSummary(estructuraOutput: unknown): TradeS
   const signal = estructuraSignal(setup.direccion);
   if (!signal) return null;
 
-  const { entrada, stop_loss, take_profit, ratio_riesgo_beneficio } = gestion;
+  const { entrada, stop_loss, take_profit, ratio_riesgo_beneficio, entry_type } = gestion;
   if (
     typeof entrada !== 'number' ||
     typeof stop_loss !== 'number' ||
@@ -145,6 +149,7 @@ export function extractEstructuraTradeSummary(estructuraOutput: unknown): TradeS
     target: take_profit,
     rb: typeof ratio_riesgo_beneficio === 'number' ? ratio_riesgo_beneficio : null,
     horizonte: horizonteFromEstructuraTimeframe(timeframeEntrada),
+    entry_type: entry_type === 'limit' ? 'limit' : 'market',
     source: 'estructura',
   };
 }

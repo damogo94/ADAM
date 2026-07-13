@@ -34,6 +34,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { requireCronSecret } from '@/lib/api-helpers';
 import { narrateA2 } from '@/agents/a2/narrate';
 import { getMacroSnapshot } from '@/lib/market/macro';
 import { consolidateAndPersistA4 } from '@/agents/a4/consolidate';
@@ -79,14 +80,8 @@ function macroStub(ticker: string, macro: MarketSnapshot['macro_snapshot']): Mar
 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 });
-  }
-  const auth = req.headers.get('authorization');
-  if (auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  const auth = requireCronSecret(req);
+  if (auth) return auth;
 
   const t0 = Date.now();
   const admin = createSupabaseAdmin();

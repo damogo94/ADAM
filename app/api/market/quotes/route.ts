@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
 import { rateLimitByIP } from '@/lib/api-helpers';
+import { TICKER_REGEX } from '@/lib/api-schemas';
 
 // Node runtime: rateLimitByIP usa @upstash/redis (no Edge-compatible). Antes
 // 'edge' sin throttle ni auth → superficie de DoS/coste (auditoría Fase 0 · #2).
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const SYMBOL_REGEX = /^[A-Z0-9.\-/=^]+$/i;
 
 const RequestSchema = z.object({
   symbols: z.string().min(1).max(500),
@@ -49,7 +48,7 @@ export async function GET(req: NextRequest) {
   const list = parsed.data.symbols
     .split(',')
     .map((s) => s.trim().toUpperCase())
-    .filter((s) => s && s.length <= 20 && SYMBOL_REGEX.test(s)) // regex anti-abuse + cap len
+    .filter((s) => s && s.length <= 20 && TICKER_REGEX.test(s)) // regex anti-abuse + cap len
     .slice(0, 20); // cap defensivo — sin esto un attacker podría pedir 1000 tickers
 
   if (list.length === 0) {

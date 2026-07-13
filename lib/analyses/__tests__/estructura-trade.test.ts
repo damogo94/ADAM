@@ -108,6 +108,7 @@ describe('extractEstructuraTradeSummary — accionable buy (compra)', () => {
       target: 115,
       rb: 3,
       horizonte: 'swing',
+      entry_type: 'limit', // makeEstructura fija gestion.entry_type = 'limit'
       source: 'estructura',
     });
   });
@@ -147,8 +148,17 @@ describe('extractEstructuraTradeSummary — accionable sell (venta)', () => {
       target: 85,
       rb: 3,
       horizonte: 'posicional',
+      entry_type: 'limit', // makeEstructura fija gestion.entry_type = 'limit'
       source: 'estructura',
     });
+  });
+
+  it('entry_type ausente en gestion → fallback "market"', () => {
+    const out = {
+      setup: { direccion: 'compra', timeframe_entrada: '1D', estado: 'listo' },
+      gestion: { entrada: 100, stop_loss: 95, take_profit: 115, ratio_riesgo_beneficio: 2 },
+    };
+    expect(extractEstructuraTradeSummary(out)?.entry_type).toBe('market');
   });
 
   it('timeframe_entrada desconocido/null → horizonte null (trade sigue válido)', () => {

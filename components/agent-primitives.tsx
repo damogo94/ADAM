@@ -19,11 +19,13 @@ import { cn } from '@/lib/utils';
 //   A3/Debate: alcista | bajista | lateral | neutral
 //   A2:    risk_on | risk_off | neutral
 //   A1:    oportunidad | vulnerabilidad | anomalia
+//   Estructura: compra | venta | ninguno
 export type RawDirection =
   | 'positivo' | 'negativo' | 'neutral'
   | 'alcista' | 'bajista' | 'lateral'
   | 'risk_on' | 'risk_off'
   | 'oportunidad' | 'vulnerabilidad' | 'anomalia'
+  | 'compra' | 'venta'
   | (string & {}) | null | undefined;
 
 type Dir = 'up' | 'down' | 'flat';
@@ -34,15 +36,35 @@ export function normalizeDirection(dir: RawDirection): Dir {
     case 'alcista':
     case 'risk_on':
     case 'oportunidad':
+    case 'compra':
       return 'up';
     case 'negativo':
     case 'bajista':
     case 'risk_off':
     case 'vulnerabilidad':
+    case 'venta':
       return 'down';
     default:
-      // neutral, lateral, anomalia, null, desconocido → sin sesgo direccional
+      // neutral, lateral, anomalia, ninguno, null, desconocido → sin sesgo direccional
       return 'flat';
+  }
+}
+
+/**
+ * directionMeta — label + color SEMÁNTICO de mercado del TITULAR de dirección
+ * consolidada: up→ALCISTA/emerald · down→BAJISTA/rose · flat→NEUTRAL/ink. SSOT del
+ * mapeo dirección→titular (VerdictBar + historial). El símbolo ▲/▼/■ lo pinta
+ * DirectionBadge; esto es el texto grande que va al lado. Respeta el firewall:
+ * el color de mercado va SOLO en la dirección (dato), nunca en chrome/confianza.
+ */
+export function directionMeta(dir: RawDirection): { label: string; cls: string } {
+  switch (normalizeDirection(dir)) {
+    case 'up':
+      return { label: 'ALCISTA', cls: 'text-emerald' };
+    case 'down':
+      return { label: 'BAJISTA', cls: 'text-rose' };
+    default:
+      return { label: 'NEUTRAL', cls: 'text-ink/70' };
   }
 }
 

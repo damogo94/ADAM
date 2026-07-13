@@ -3,7 +3,7 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { buildCMTSignal } from '@/agents/cmt/build-signal';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
-import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { checkSameOrigin, rateLimitByIP, isCronRequest } from '@/lib/api-helpers';
 import type { CMTOutput } from '@/agents/cmt/schema';
 
 export const runtime = 'nodejs';
@@ -104,13 +104,9 @@ async function persistSignals(userId: string, results: ScanResult[]): Promise<nu
 }
 
 export async function POST(req: NextRequest) {
-  const cronAuth = req.headers.get('authorization');
-  const isCron =
-    !!cronAuth &&
-    !!process.env.CRON_SECRET &&
-    cronAuth === `Bearer ${process.env.CRON_SECRET}`;
-
-  if (isCron) {
+  // Dual cron+manual: si trae el Bearer de cron válido, va al path de cron; si no,
+  // NO 401ea (caería al path manual cookie-auth). Ver isCronRequest (no fail-closed).
+  if (isCronRequest(req)) {
     return handleCron();
   }
 
@@ -153,12 +149,8 @@ export async function POST(req: NextRequest) {
  * GET también soportado para cron — Vercel cron por defecto usa GET.
  */
 export async function GET(req: NextRequest) {
-  const cronAuth = req.headers.get('authorization');
-  const isCron =
-    !!cronAuth &&
-    !!process.env.CRON_SECRET &&
-    cronAuth === `Bearer ${process.env.CRON_SECRET}`;
-  if (!isCron) {
+  // GET solo para cron (Vercel cron usa GET por defecto); manual usa POST.
+  if (!isCronRequest(req)) {
     return NextResponse.json({ error: 'method_not_allowed', detail: 'GET solo para cron autenticado' }, { status: 405 });
   }
   return handleCron();

@@ -26,9 +26,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { requireCronSecret } from '@/lib/api-helpers';
 import { fallbackDaily } from '@/lib/market/finnhub';
 import { evaluateTrade, type TradePlan, type EvalCandle } from '@/lib/backtest/trade-eval';
-import { extractEstructuraTradeSummary, type TradeSource } from '@/lib/analyses/trade-summary';
+import {
+  extractTradeSummary,
+  extractEstructuraTradeSummary,
+  type TradeSource,
+} from '@/lib/analyses/trade-summary';
 import * as Sentry from '@sentry/nextjs';
 
 export const runtime = 'nodejs';
@@ -58,50 +63,16 @@ interface ActionablePlan {
 }
 
 /**
- * Extrae el plan operativo de un a3_output (Json). Devuelve null si el análisis
- * NO es un trade evaluable en esta fase: hold, niveles nulos, o horizonte
- * intradía (→ fase 4 con velas 4H). Defensivo ante runs antiguos sin entry_type.
+ * Convierte un `TradeSummary` (SSOT) al `ActionablePlan` del cron, filtrando a los
+ * horizontes evaluables con velas diarias (swing|posicional; intradía → fase 4 con
+ * velas 4H). null si no hay trade o el horizonte no es evaluable en esta fase.
  */
-function extractPlan(a3: unknown): ActionablePlan | null {
-  if (!a3 || typeof a3 !== 'object') return null;
-  const op = (a3 as { operativa?: unknown }).operativa;
-  if (!op || typeof op !== 'object') return null;
-  const o = op as Record<string, unknown>;
-
-  if (o.signal !== 'buy' && o.signal !== 'sell') return null;
-  if (o.horizonte !== 'swing' && o.horizonte !== 'posicional') return null;
-  if (typeof o.entrada !== 'number' || typeof o.stop_loss !== 'number' || typeof o.target !== 'number') {
-    return null;
-  }
-
-  return {
-    direction: o.signal,
-    entry_type: o.entry_type === 'limit' ? 'limit' : 'market',
-    entrada: o.entrada,
-    stop_loss: o.stop_loss,
-    target: o.target,
-    rb_ratio: typeof o.ratio_riesgo_beneficio === 'number' ? o.ratio_riesgo_beneficio : null,
-    horizonte: o.horizonte,
-  };
-}
-
-/**
- * Extrae el plan accionable del agente de Estructura desde `estructura_output`.
- * Reusa `extractEstructuraTradeSummary` (SSOT de la lógica de accionabilidad de
- * Estructura: estado listo|esperando_confirmacion + geometría coherente). Devuelve
- * null si no es accionable o si el horizonte es intradía/desconocido (velas 4H →
- * fase 4, igual que A3). El `entry_type` sale de `gestion.entry_type` si el schema
- * lo trae, con fallback 'market'.
- */
-function extractEstructuraPlan(estructuraOutput: unknown): ActionablePlan | null {
-  const summary = extractEstructuraTradeSummary(estructuraOutput);
+function toActionablePlan(summary: ReturnType<typeof extractTradeSummary>): ActionablePlan | null {
   if (!summary) return null;
-  // Solo swing|posicional evaluables con velas diarias (intradía → fase 4).
   if (summary.horizonte !== 'swing' && summary.horizonte !== 'posicional') return null;
-
   return {
     direction: summary.signal,
-    entry_type: estructuraEntryType(estructuraOutput),
+    entry_type: summary.entry_type,
     entrada: summary.entrada,
     stop_loss: summary.stop_loss,
     target: summary.target,
@@ -110,12 +81,26 @@ function extractEstructuraPlan(estructuraOutput: unknown): ActionablePlan | null
   };
 }
 
-/** Lee `gestion.entry_type` de un estructura_output; 'market' salvo 'limit' explícito. */
-function estructuraEntryType(estructuraOutput: unknown): 'market' | 'limit' {
-  if (!estructuraOutput || typeof estructuraOutput !== 'object') return 'market';
-  const gestion = (estructuraOutput as { gestion?: unknown }).gestion;
-  if (!gestion || typeof gestion !== 'object') return 'market';
-  return (gestion as { entry_type?: unknown }).entry_type === 'limit' ? 'limit' : 'market';
+/**
+ * Extrae el plan accionable de A3 desde `a3_output`. Reusa `extractTradeSummary`
+ * (SSOT de accionabilidad A3: signal buy/sell + geometría COHERENTE vía
+ * `buildSignalTradePlan` — rechaza niveles degenerados/invertidos) y filtra a
+ * swing|posicional. Devuelve null para hold, niveles nulos, geometría incoherente
+ * o intradía. Espejo exacto de `extractEstructuraPlan` (misma SSOT, distinto agente).
+ */
+function extractPlan(a3Output: unknown): ActionablePlan | null {
+  return toActionablePlan(extractTradeSummary(a3Output));
+}
+
+/**
+ * Extrae el plan accionable del agente de Estructura desde `estructura_output`.
+ * Reusa `extractEstructuraTradeSummary` (SSOT de accionabilidad de Estructura:
+ * estado listo|esperando_confirmacion + geometría coherente) y filtra a
+ * swing|posicional (intradía → fase 4, igual que A3). `entry_type` viaja ya en el
+ * summary (leído de `gestion.entry_type`, fallback 'market').
+ */
+function extractEstructuraPlan(estructuraOutput: unknown): ActionablePlan | null {
+  return toActionablePlan(extractEstructuraTradeSummary(estructuraOutput));
 }
 
 interface CandidateRow {
@@ -134,13 +119,8 @@ function doneKey(analysisId: string, source: TradeSource): string {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 });
-  }
-  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  const auth = requireCronSecret(req);
+  if (auth) return auth;
 
   const admin = createSupabaseAdmin();
   const now = Date.now();

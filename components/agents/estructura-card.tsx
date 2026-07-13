@@ -26,11 +26,6 @@ const ESTADO_LABEL: Record<EstructuraOutput_t['setup']['estado'], string> = {
   sin_estructura: 'Sin estructura clara',
 };
 
-/** compra → alcista (▲), venta → bajista (▼), ninguno → neutral (■). */
-function dirToRaw(d: EstructuraOutput_t['setup']['direccion']): string {
-  return d === 'compra' ? 'alcista' : d === 'venta' ? 'bajista' : 'neutral';
-}
-
 export function EstructuraCard({ status, data, ticker, failureMessage }: EstructuraCardProps) {
   const hasData = data != null && (status === 'done' || status === 'anomaly' || status === 'live');
   const currency = getCurrencyFromTicker(data?.ticker ?? ticker ?? '');
@@ -78,7 +73,7 @@ export function EstructuraCard({ status, data, ticker, failureMessage }: Estruct
 function Summary({ data }: { data: EstructuraOutput_t }) {
   return (
     <>
-      <DirectionBadge dir={dirToRaw(data.setup.direccion)} />
+      <DirectionBadge dir={data.setup.direccion} />
       <span className="min-w-0 flex-1 truncate font-mono text-fluid-caption font-medium text-ink">
         {ESTADO_LABEL[data.setup.estado]}
         {data.setup.direccion !== 'ninguno' && ` · ${data.setup.direccion}`}

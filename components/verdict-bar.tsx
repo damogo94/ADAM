@@ -1,6 +1,6 @@
 import type { A4Output_t as A4Output } from '@/agents/shared/types';
 import type { ConfluenceResult } from '@/lib/confluence';
-import { DirectionBadge } from '@/components/agent-primitives';
+import { DirectionBadge, directionMeta } from '@/components/agent-primitives';
 import { Glossed } from '@/components/lens/glossed';
 import { cn } from '@/lib/utils';
 
@@ -21,14 +21,7 @@ export function VerdictBar({
   confluence: ConfluenceResult | null;
   aligned: boolean;
 }) {
-  const dirLabel =
-    a4.direccion === 'positivo' ? 'ALCISTA' : a4.direccion === 'negativo' ? 'BAJISTA' : 'NEUTRAL';
-  const dirCls =
-    a4.direccion === 'positivo'
-      ? 'text-emerald'
-      : a4.direccion === 'negativo'
-        ? 'text-rose'
-        : 'text-ink/70';
+  const { label: dirLabel, cls: dirCls } = directionMeta(a4.direccion);
   // Titular (Fase 1 · ejes separados): la cifra de cabecera es la FIABILIDAD
   // (|net|×f(κ), ya descontada por la discrepancia). κ se muestra
   // como eje propio al lado. score_total_pct se retira al detalle (indicador).

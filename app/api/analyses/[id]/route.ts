@@ -16,9 +16,10 @@ const DETAIL_COLUMNS =
  * del trade si ya se evaluó.
  *
  * RLS (`analyses_select_own`) garantiza que `data` es del usuario autenticado (un
- * id ajeno cae a not_found). El outcome vive en `trade_outcomes` (service-role,
- * sin RLS): se lee con admin acotado a este analysis_id, que YA está validado
- * como del usuario por la query anterior → sin fuga.
+ * id ajeno cae a not_found). Los outcomes viven en `trade_outcomes` (service-role,
+ * sin RLS): se leen con admin acotado a este analysis_id, que YA está validado
+ * como del usuario por la query anterior → sin fuga. Puede haber DOS filas (PK
+ * compuesta (analysis_id, source)): se separan en `outcome` (A3) + `estructuraOutcome`.
  */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const parsed = Uuid.safeParse(params.id);
@@ -46,17 +47,29 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 
   let outcome: TradeOutcomeSummary | null = null;
+  let estructuraOutcome: TradeOutcomeSummary | null = null;
   try {
     const admin = createSupabaseAdmin();
-    const { data: o } = await admin
+    // Ambas fuentes (a3 + estructura). NO `.maybeSingle()`: con dos filas PostgREST
+    // devolvería error y perderíamos TODO outcome (incluido el de A3) en silencio.
+    const { data: rows } = await admin
       .from('trade_outcomes')
-      .select('outcome, r_multiple, return_pct, resolved_days')
+      .select('source, outcome, r_multiple, return_pct, resolved_days')
       .eq('analysis_id', parsed.data)
-      .maybeSingle();
-    outcome = o ?? null;
+      .in('source', ['a3', 'estructura']);
+    for (const o of rows ?? []) {
+      const summary: TradeOutcomeSummary = {
+        outcome: o.outcome,
+        r_multiple: o.r_multiple,
+        return_pct: o.return_pct,
+        resolved_days: o.resolved_days,
+      };
+      if (o.source === 'estructura') estructuraOutcome = summary;
+      else outcome = summary;
+    }
   } catch {
     /* best-effort: el outcome es opcional para el render */
   }
 
-  return NextResponse.json({ analysis: data, outcome });
+  return NextResponse.json({ analysis: data, outcome, estructuraOutcome });
 }

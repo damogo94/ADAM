@@ -29,6 +29,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { requireCronSecret } from '@/lib/api-helpers';
 import { runForUser, hasRecentAnalysis } from '@/lib/pipeline-runner';
 
 export const runtime = 'nodejs';
@@ -61,14 +62,8 @@ interface ScanResult {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 });
-  }
-  const auth = req.headers.get('authorization');
-  if (auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  const auth = requireCronSecret(req);
+  if (auth) return auth;
 
   const admin = createSupabaseAdmin();
   const results: ScanResult[] = [];

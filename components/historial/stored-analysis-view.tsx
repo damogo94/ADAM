@@ -43,9 +43,12 @@ interface AnalysisScalars {
 export interface AnalysisSummaryRow extends AnalysisScalars {
   /** Trade primario de A3 (backtesteado). */
   trade: TradeSummary | null;
-  /** Trade paralelo de Estructura (MTF, aún sin evaluar automáticamente). */
+  /** Trade paralelo de Estructura (MTF), backtesteado aparte (source='estructura'). */
   estructuraTrade: TradeSummary | null;
+  /** Resultado del trade A3 (source='a3'). */
   outcome: TradeOutcomeSummary | null;
+  /** Resultado del trade de Estructura (source='estructura'). */
+  estructuraOutcome: TradeOutcomeSummary | null;
 }
 
 /** Run pasado COMPLETO — incluye los outputs de cada agente para el render read-only. */

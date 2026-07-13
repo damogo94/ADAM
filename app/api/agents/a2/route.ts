@@ -21,16 +21,13 @@ import { narrateA2 } from '@/agents/a2/narrate';
 import { getMacroSnapshot } from '@/lib/market/macro';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { TickerField } from '@/lib/api-schemas';
 import type { MarketSnapshot } from '@/agents/shared/types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const RequestSchema = z
-  .object({
-    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido').toUpperCase(),
-  })
-  .strict();
+const RequestSchema = z.object({ ticker: TickerField }).strict();
 
 export async function POST(req: NextRequest) {
   try {

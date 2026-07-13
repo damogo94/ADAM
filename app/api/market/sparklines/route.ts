@@ -21,6 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { rateLimitByIP } from '@/lib/api-helpers';
+import { TICKER_REGEX } from '@/lib/api-schemas';
 import { fallbackDaily } from '@/lib/market/finnhub';
 import { readCache, writeCache } from '@/lib/sparkline/cache';
 import { buildSeriesCloses } from '@/lib/sparkline/build-series';
@@ -29,7 +30,6 @@ import { SparklineRange, type SparklineSeries_t, type SparklinesResponse_t } fro
 export const runtime = 'nodejs';
 
 const MAX_SYMBOLS = 20;
-const SYMBOL_REGEX = /^[A-Z0-9.\-/=^]+$/i;
 
 const RequestSchema = z.object({
   symbols: z.string().min(1).max(500),
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
   const list = parsed.data.symbols
     .split(',')
     .map((s) => s.trim().toUpperCase())
-    .filter((s) => s.length > 0 && s.length <= 20 && SYMBOL_REGEX.test(s))
+    .filter((s) => s.length > 0 && s.length <= 20 && TICKER_REGEX.test(s))
     .slice(0, MAX_SYMBOLS);
 
   if (list.length === 0) {

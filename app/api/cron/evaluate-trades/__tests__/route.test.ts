@@ -347,6 +347,29 @@ describe('evaluate-trades · descartes', () => {
     expect(fallbackDaily).not.toHaveBeenCalled();
   });
 
+  it('salta A3 con geometría invertida (buy con target<entrada) — sin insert', async () => {
+    // extractPlan delega en extractTradeSummary (SSOT), que rechaza geometría
+    // incoherente vía buildSignalTradePlan. Antes, la copia local la aceptaba e
+    // insertaba un outcome espurio (win instantáneo con r_multiple negativo).
+    const { trades } = mountAdmin({
+      a3Candidates: [
+        {
+          id: 'inv-1',
+          ticker: 'AAPL',
+          initial_price_at: START_ISO,
+          a3_output: buyPlan({ target: 90 }), // buy con target 90 < entrada 100 → incoherente
+          estructura_output: null,
+        },
+      ],
+    });
+    vi.mocked(fallbackDaily).mockResolvedValue([candle(1, 101, 99), candle(2, 112, 108, 110)]);
+
+    const res = await GET(req());
+    const body = await res.json();
+    expect(body.resolved_count).toBe(0);
+    expect(trades.insert).not.toHaveBeenCalled();
+  });
+
   it('salta intradía A3 (se evalúa con 4H en fase 4)', async () => {
     const { trades } = mountAdmin({
       a3Candidates: [
