@@ -1,5 +1,6 @@
 import { Reveal } from './decor/reveal';
 import { Eyebrow } from './section-heading';
+import { DISCLAIMER_LITERAL as DISCLAIMER } from '@/lib/disclaimer';
 
 /**
  * Limits — "Qué NO ofrece": los límites por diseño + disclaimer. Honestidad:
@@ -11,9 +12,6 @@ const NO_OFRECE = [
   'No garantiza resultados ni predice el futuro.',
   'No sustituye a un asesor profesional certificado.',
 ];
-
-// Separador U+00B7 — coincide con DISCLAIMER_LITERAL (agents/shared/types.ts).
-const DISCLAIMER = 'Análisis educativo · no constituye asesoramiento financiero regulado';
 
 export function Limits() {
   return (

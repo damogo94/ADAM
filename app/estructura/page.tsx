@@ -10,6 +10,7 @@ import { EstructuraCard } from '@/components/agents/estructura-card';
 import { resolveError, networkError, type UserError } from '@/lib/errors';
 import { postEstructura } from '@/lib/estructura/post';
 import { cn } from '@/lib/utils';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 import type { AgentStatus } from '@/components/agent-card-shell';
 import type { EstructuraOutput_t } from '@/agents/estructura/schema';
 
@@ -124,7 +125,7 @@ function EstructuraInner() {
       </div>
 
       <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
-        Análisis educativo · no constituye asesoramiento financiero regulado
+        {DISCLAIMER_LITERAL}
       </footer>
     </div>
   );
