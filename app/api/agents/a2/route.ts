@@ -19,8 +19,7 @@ import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
 import { narrateA2 } from '@/agents/a2/narrate';
 import { getMacroSnapshot } from '@/lib/market/macro';
-import { createSupabaseServer } from '@/lib/supabase/server';
-import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { requireApiUser } from '@/lib/auth/api-user';
 import { TickerField } from '@/lib/api-schemas';
 import type { MarketSnapshot } from '@/agents/shared/types';
 
@@ -31,14 +30,9 @@ const RequestSchema = z.object({ ticker: TickerField }).strict();
 
 export async function POST(req: NextRequest) {
   try {
-    const csrf = checkSameOrigin(req);
-    if (csrf) return csrf;
-    const ipLimit = await rateLimitByIP(req, 'analysis');
-    if (ipLimit) return ipLimit;
-
-    const supabase = await createSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    const gate = await requireApiUser(req);
+    if (gate instanceof NextResponse) return gate;
+    const { user } = gate;
 
     const body = await req.json().catch(() => null);
     const parsed = RequestSchema.safeParse(body);
