@@ -24,6 +24,7 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 import { TickerField } from '@/lib/api-schemas';
+import { buildAnalysesLogRow } from '@/lib/pipeline-runner';
 import { runADAM, AllAgentsFailedError } from '@/agents/pipeline';
 import type { AgentUsage } from '@/lib/anthropic';
 
@@ -150,27 +151,9 @@ export async function POST(req: NextRequest) {
               const admin = createSupabaseAdmin();
               const { data: inserted } = await admin
                 .from('analyses_log')
-                .insert({
-                  user_id: user.id,
-                  ticker,
-                  confluence_pct: result.output.confluence.score_total_pct,
-                  // Fase 1 · ejes separados (nullable; computeConfluence siempre los emite).
-                  net_pct: result.output.confluence.net_pct ?? null,
-                  kappa: result.output.confluence.kappa ?? null,
-                  actionable_pct: result.output.confluence.actionable_pct ?? null,
-                  direction: result.output.direccion,
-                  confidence: result.output.confianza,
-                  a1_output: result.intermediates.a1,
-                  a2_output: result.intermediates.a2,
-                  a3_output: result.intermediates.a3,
-                  debate_output: result.intermediates.debate,
-                  a4_output: result.output,
-                  latency_ms: result.meta.durationMs,
-                  tokens_used: tokensUsed,
-                  usage_breakdown: usages,
-                  initial_price: currentPrice,
-                  initial_price_at: new Date().toISOString(),
-                })
+                .insert(
+                  buildAnalysesLogRow({ userId: user.id, ticker, result, usages, tokensUsed, currentPrice })
+                )
                 .select('id')
                 .single();
               analysisId = inserted?.id ?? null;

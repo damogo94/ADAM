@@ -34,6 +34,46 @@ export interface RunForUserFailure {
 export type RunForUserOutcome = RunForUserResult | RunForUserFailure;
 
 /**
+ * Construye la fila de `analyses_log` a partir del resultado de runADAM. SSOT del
+ * shape del insert: lo comparten `/api/agents/run` (endpoint) y `runForUser` (cron
+ * watchlist-scan) para que NO diverjan — ya pasó: el cron dejó de persistir los
+ * ejes Fase 1 (net_pct/kappa/actionable_pct) y sus filas caían fuera de los buckets
+ * by_actionable/by_kappa de /api/metrics/calibration. `computeConfluence` siempre
+ * emite los ejes (nullable por defensa ante filas viejas). El caller hace el insert.
+ */
+export function buildAnalysesLogRow(params: {
+  userId: string;
+  ticker: string;
+  result: RunADAMResult;
+  usages: AgentUsage[];
+  tokensUsed: number;
+  currentPrice: number | null;
+}) {
+  const { userId, ticker, result, usages, tokensUsed, currentPrice } = params;
+  return {
+    user_id: userId,
+    ticker,
+    confluence_pct: result.output.confluence.score_total_pct,
+    // Fase 1 · ejes separados (nullable; computeConfluence siempre los emite).
+    net_pct: result.output.confluence.net_pct ?? null,
+    kappa: result.output.confluence.kappa ?? null,
+    actionable_pct: result.output.confluence.actionable_pct ?? null,
+    direction: result.output.direccion,
+    confidence: result.output.confianza,
+    a1_output: result.intermediates.a1,
+    a2_output: result.intermediates.a2,
+    a3_output: result.intermediates.a3,
+    debate_output: result.intermediates.debate,
+    a4_output: result.output,
+    latency_ms: result.meta.durationMs,
+    tokens_used: tokensUsed,
+    usage_breakdown: usages,
+    initial_price: currentPrice,
+    initial_price_at: new Date().toISOString(),
+  };
+}
+
+/**
  * Ejecuta el pipeline ADAM completo para un usuario+ticker y persiste el
  * resultado en analyses_log. Best-effort en el insert (no tira si falla).
  *
@@ -72,23 +112,7 @@ export async function runForUser(
       const admin = createSupabaseAdmin();
       const { data: inserted } = await admin
         .from('analyses_log')
-        .insert({
-          user_id: userId,
-          ticker,
-          confluence_pct: result.output.confluence.score_total_pct,
-          direction: result.output.direccion,
-          confidence: result.output.confianza,
-          a1_output: result.intermediates.a1,
-          a2_output: result.intermediates.a2,
-          a3_output: result.intermediates.a3,
-          debate_output: result.intermediates.debate,
-          a4_output: result.output,
-          latency_ms: result.meta.durationMs,
-          tokens_used: tokensUsed,
-          usage_breakdown: usages,
-          initial_price: currentPrice,
-          initial_price_at: new Date().toISOString(),
-        })
+        .insert(buildAnalysesLogRow({ userId, ticker, result, usages, tokensUsed, currentPrice }))
         .select('id')
         .single();
       analysisId = inserted?.id ?? null;
