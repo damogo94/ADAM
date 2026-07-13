@@ -15,7 +15,7 @@ import {
   directionOfA3,
   directionOfEstructura,
 } from '@/agents/a4/compute';
-import { scoreSignal, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K } from '@/lib/scoring';
+import { scoreSignal, dbToScoringDirection, extractAtrPct, volatilityThresholdPct } from '@/lib/scoring';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
 import { EstructuraOutput } from '@/agents/estructura/schema';
 
@@ -45,16 +45,6 @@ function kappaBucket(k: number): 'baja' | 'media' | 'alta' {
   if (k >= 0.34) return 'media';
   return 'baja';
 }
-
-// analyses_log.direction usa el enum DB direction_t (positivo/negativo/neutral);
-// los buckets exponen el vocabulario de scoring (alcista/bajista/neutral) — el
-// mismo mapeo explícito que el cron evaluate-signals. Sin él, positivo/negativo
-// no matchean ningún bucket y alcista/bajista quedan n=0 para siempre.
-const DB_TO_BUCKET_DIRECTION: Record<string, string> = {
-  positivo: 'alcista',
-  negativo: 'bajista',
-  neutral: 'neutral',
-};
 
 export async function GET() {
   // Barrera real en servidor: auth + allowlist (default-deny). Estas métricas
@@ -147,7 +137,7 @@ export async function GET() {
       bh.n++;
       if (r.hit) bh.hits++;
     }
-    const bd = by_direction[DB_TO_BUCKET_DIRECTION[a.direction] ?? a.direction];
+    const bd = by_direction[dbToScoringDirection(a.direction)];
     if (bd) {
       bd.n++;
       if (r.hit) bd.hits++;
@@ -187,11 +177,10 @@ export async function GET() {
     if (initial != null && initial > 0) {
       const evalPrice = initial * (1 + r.return_pct / 100);
       const a3p = A3Output.safeParse(a.a3_output);
-      const atr = a3p.success ? a3p.data.operativa.atr_actual : null;
-      const threshold =
-        atr != null
-          ? Math.max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K * (atr / initial) * 100)
-          : SIGNAL_THRESHOLD_PCT;
+      // Umbral con el MISMO extractor tolerante que usó el cron al puntuar (no el
+      // safeParse estricto): una fila legacy que no pasa el parse ya NO cae al 2%
+      // fijo aquí mientras el cron la midió con umbral ATR (evita incomparabilidad).
+      const threshold = volatilityThresholdPct(extractAtrPct(a.a3_output, initial));
       const a1p = A1Output.safeParse(a.a1_output);
       const a2p = A2Output.safeParse(a.a2_output);
       const estp = EstructuraOutput.safeParse(a.estructura_output);
