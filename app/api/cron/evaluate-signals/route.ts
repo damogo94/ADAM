@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { requireCronSecret } from '@/lib/api-helpers';
 import { fallbackQuote } from '@/lib/market/finnhub';
-import { scoreSignal, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K, type Direction } from '@/lib/scoring';
+import { scoreSignal, dbToScoringDirection, extractAtrPct, volatilityThresholdPct } from '@/lib/scoring';
 import type { Direction as DbDirection } from '@/types/db';
 import * as Sentry from '@sentry/nextjs';
 
@@ -22,16 +22,6 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const HORIZONS_DAYS = [7, 30] as const;
-
-// La columna `direction` de analyses_log usa el vocabulario del enum
-// direction_t (positivo/negativo/neutral); scoreSignal usa alcista/bajista/
-// neutral. Mapeo explícito — sin él, las señales direccionales nunca
-// matcheaban una rama y siempre puntuaban hit=false.
-const DB_TO_SCORING_DIRECTION: Record<DbDirection, Direction> = {
-  positivo: 'alcista',
-  negativo: 'bajista',
-  neutral: 'neutral',
-};
 
 // initial_price / initial_price_at son nullable en la fila; la query filtra
 // initial_price IS NOT NULL en runtime, pero el tipo refleja el schema real.
@@ -42,21 +32,6 @@ interface PendingAnalysis {
   initial_price: number | null;
   initial_price_at: string | null;
   a3_output: unknown;
-}
-
-/**
- * ATR% del activo al momento del análisis, desde a3_output.operativa.atr_actual.
- * Usado para hacer el umbral de hit volatility-adjusted. null si no hay ATR
- * (runs antiguos, velas insuficientes, precio inválido) → el caller cae al 2% fijo.
- */
-function extractAtrPct(a3: unknown, initialPrice: number): number | null {
-  if (!a3 || typeof a3 !== 'object' || !Number.isFinite(initialPrice) || initialPrice <= 0) {
-    return null;
-  }
-  const op = (a3 as { operativa?: { atr_actual?: unknown } }).operativa;
-  const atr = op?.atr_actual;
-  if (typeof atr !== 'number' || !Number.isFinite(atr) || atr <= 0) return null;
-  return (atr / initialPrice) * 100;
 }
 
 export async function GET(req: NextRequest) {
@@ -121,13 +96,11 @@ export async function GET(req: NextRequest) {
         // Umbral de hit volatility-adjusted: max(2%, k·ATR%). Para BTC (ATR ~3-4%)
         // sube el listón; para una equity (ATR ~1%) se queda en el piso del 2%.
         const atrPct = extractAtrPct(a.a3_output, Number(a.initial_price));
-        const thresholdPct =
-          atrPct != null ? Math.max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K * atrPct) : SIGNAL_THRESHOLD_PCT;
         const scored = scoreSignal({
-          direccion: DB_TO_SCORING_DIRECTION[a.direction],
+          direccion: dbToScoringDirection(a.direction),
           initial_price: Number(a.initial_price),
           eval_price: q.current,
-          threshold_pct: thresholdPct,
+          threshold_pct: volatilityThresholdPct(atrPct),
         });
         const { error: insErr } = await admin.from('signal_outcomes').insert({
           analysis_id: a.id,

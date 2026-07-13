@@ -19,10 +19,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
 import { buildMarketSnapshot } from '@/lib/market/snapshot';
-import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
-import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { requireApiUser } from '@/lib/auth/api-user';
 import { TickerField } from '@/lib/api-schemas';
 import { buildAnalysesLogRow } from '@/lib/pipeline-runner';
 import { runADAM, AllAgentsFailedError } from '@/agents/pipeline';
@@ -37,20 +36,10 @@ export async function POST(req: NextRequest) {
   // Top-level try: garantiza JSON siempre, nunca el "An error occurred…"
   // de Vercel cuando una lambda crashea fuera de un try interno.
   try {
-    // CSRF
-    const csrf = checkSameOrigin(req);
-    if (csrf) return csrf;
-
-    // IP rate-limit (5/min + 30/día)
-    const ipLimit = await rateLimitByIP(req, 'analysis');
-    if (ipLimit) return ipLimit;
-
-    // Auth
-    const supabase = await createSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
+    // Prelude compartido: CSRF → IP rate-limit (5/min + 30/día) → auth.
+    const gate = await requireApiUser(req);
+    if (gate instanceof NextResponse) return gate;
+    const { user } = gate;
 
     // Per-user daily quota
     const userLimit = await limiters.userRuns

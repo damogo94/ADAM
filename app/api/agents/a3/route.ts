@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runA3 } from '@/agents/a3/client';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
-import { createSupabaseServer } from '@/lib/supabase/server';
-import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { requireApiUser } from '@/lib/auth/api-user';
 import { TickerField } from '@/lib/api-schemas';
 
 export const runtime = 'nodejs';
@@ -18,14 +17,8 @@ export const maxDuration = 60;
 const RequestSchema = z.object({ ticker: TickerField }).strict(); // .strict() rechaza extras — capa 3 del aislamiento A3
 
 export async function POST(req: NextRequest) {
-  const csrf = checkSameOrigin(req);
-  if (csrf) return csrf;
-  const ipLimit = await rateLimitByIP(req, 'analysis');
-  if (ipLimit) return ipLimit;
-
-  const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const gate = await requireApiUser(req);
+  if (gate instanceof NextResponse) return gate;
 
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);

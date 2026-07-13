@@ -19,8 +19,7 @@ import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
 import { type DebateForConfluence } from '@/agents/a4/compute';
 import { consolidateAndPersistA4 } from '@/agents/a4/consolidate';
-import { createSupabaseServer } from '@/lib/supabase/server';
-import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { requireApiUser } from '@/lib/auth/api-user';
 import { TickerField } from '@/lib/api-schemas';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
 import { EstructuraOutput } from '@/agents/estructura/schema';
@@ -54,16 +53,9 @@ const RequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const csrf = checkSameOrigin(req);
-    if (csrf) return csrf;
-    const ipLimit = await rateLimitByIP(req, 'analysis');
-    if (ipLimit) return ipLimit;
-
-    const supabase = await createSupabaseServer();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    const gate = await requireApiUser(req);
+    if (gate instanceof NextResponse) return gate;
+    const { user } = gate;
 
     const body = await req.json().catch(() => null);
     const parsed = RequestSchema.safeParse(body);

@@ -46,3 +46,43 @@ export function scoreSignal(input: ScoreSignalInput): ScoredSignal {
   else if (input.direccion === 'neutral') hit = Math.abs(r) < threshold;
   return { return_pct: r, hit };
 }
+
+/**
+ * Mapea el enum DB `direction_t` (positivo/negativo/neutral, columna
+ * `analyses_log.direction`) al vocabulario de scoring (alcista/bajista/neutral).
+ * SSOT del mapeo — antes duplicado en el cron `evaluate-signals` (puntúa) y en
+ * `/api/metrics/calibration` (agrega): si divergían, la calibración medía con un
+ * vocabulario distinto del que se puntuó y los buckets quedaban a n=0.
+ */
+export function dbToScoringDirection(direction: string): Direction {
+  if (direction === 'positivo') return 'alcista';
+  if (direction === 'negativo') return 'bajista';
+  return 'neutral';
+}
+
+/**
+ * ATR% del activo desde `a3_output.operativa.atr_actual`, normalizado por el
+ * precio inicial. Extracción TOLERANTE (walker, no `A3Output.safeParse`) para que
+ * el cron y la calibración lean el ATR con el MISMO criterio — un a3_output legacy
+ * que no pasa el parse estricto no debe caer al 2% fijo en un lado y al umbral ATR
+ * en el otro. null si no hay ATR usable (runs antiguos, velas insuficientes,
+ * precio inválido) → el caller cae a {@link SIGNAL_THRESHOLD_PCT}.
+ */
+export function extractAtrPct(a3Output: unknown, initialPrice: number): number | null {
+  if (!a3Output || typeof a3Output !== 'object' || !Number.isFinite(initialPrice) || initialPrice <= 0) {
+    return null;
+  }
+  const op = (a3Output as { operativa?: { atr_actual?: unknown } }).operativa;
+  const atr = op?.atr_actual;
+  if (typeof atr !== 'number' || !Number.isFinite(atr) || atr <= 0) return null;
+  return (atr / initialPrice) * 100;
+}
+
+/**
+ * Umbral de hit volatility-adjusted: `max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K·ATR%)`.
+ * SSOT de la fórmula (antes inline en el cron y en la calibración). `atrPct` null
+ * → piso fijo. Así un 2% en BTC (ruido) NO cuenta igual que un 2% en una equity.
+ */
+export function volatilityThresholdPct(atrPct: number | null): number {
+  return atrPct != null ? Math.max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K * atrPct) : SIGNAL_THRESHOLD_PCT;
+}

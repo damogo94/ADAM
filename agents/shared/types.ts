@@ -23,6 +23,7 @@
  */
 
 import { z } from 'zod';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 
 // ───────────────────────────────────────────────────────────────────────────
 // 1. Enums compartidos
@@ -554,14 +555,10 @@ export type ConfluenceResult_t = z.infer<typeof ConfluenceResult>;
 // 7. A4 Output final
 // ───────────────────────────────────────────────────────────────────────────
 
-/**
- * String literal exacto del disclaimer regulatorio. Cualquier variación lo
- * hace fallar contra el schema — es deliberado para evitar que el LLM se
- * invente disclaimers light. El separador del medio es U+00B7 (·), NO un
- * punto normal.
- */
-export const DISCLAIMER_LITERAL =
-  'Análisis educativo · no constituye asesoramiento financiero regulado';
+// DISCLAIMER_LITERAL vive en el módulo hoja `lib/disclaimer.ts` (sin zod, para que
+// las páginas cliente lo importen sin arrastrar este módulo). Se re-exporta aquí
+// para no romper a los importadores existentes ni el `z.literal(...)` de abajo.
+export { DISCLAIMER_LITERAL };
 
 export const A4Output = z
   .object({

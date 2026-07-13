@@ -23,6 +23,7 @@ import { useRadar } from '@/components/analysis/radar-provider';
 import { resolveTicker } from '@/lib/catalog/assets';
 import { isCryptoTicker } from '@/lib/market/crypto-registry';
 import { cn, getCurrencyFromTicker } from '@/lib/utils';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 
 export default function AnalysisScreen() {
   return (
@@ -392,7 +393,7 @@ function AnalysisInner() {
 
       {/* Disclaimer */}
       <footer className="px-5 pt-6 text-center font-mono text-fluid-caption text-ink/66 leading-relaxed">
-        Análisis educativo · no constituye asesoramiento financiero regulado
+        {DISCLAIMER_LITERAL}
       </footer>
     </div>
   );

@@ -17,6 +17,7 @@ import { horizonteLabel } from '@/lib/analyses/horizon';
 import { directionMeta } from '@/components/agent-primitives';
 import { outcomeMeta } from '@/components/signals/outcome';
 import { RESOLVED_OUTCOMES } from '@/components/signals/helpers';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 import {
   StoredAnalysisView,
   type AnalysisSummaryRow,
@@ -349,7 +350,7 @@ export default function HistorialScreen() {
         ) : null}
 
         <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
-          Análisis educativo · no constituye asesoramiento financiero regulado
+          {DISCLAIMER_LITERAL}
         </footer>
       </div>
     );
@@ -447,7 +448,7 @@ export default function HistorialScreen() {
       )}
 
       <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
-        Análisis educativo · no constituye asesoramiento financiero regulado
+        {DISCLAIMER_LITERAL}
       </footer>
     </div>
   );

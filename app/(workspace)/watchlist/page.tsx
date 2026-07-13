@@ -30,6 +30,7 @@ import { useRadar } from '@/components/analysis/radar-provider';
 import { cn } from '@/lib/utils';
 import { SparklinesResponse, type SparklineRange_t } from '@/lib/sparkline/types';
 import type { AssetType } from '@/types/db';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 
 export default function WatchlistScreen() {
   const router = useRouter();
@@ -467,7 +468,7 @@ export default function WatchlistScreen() {
       )}
 
       <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
-        Análisis educativo · no constituye asesoramiento financiero regulado
+        {DISCLAIMER_LITERAL}
       </footer>
     </div>
   );

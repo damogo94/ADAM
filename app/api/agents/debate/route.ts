@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { runDebate } from '@/agents/debate/client';
 import { A1Output as A1_OUTPUT_SCHEMA, A2Output as A2_OUTPUT_SCHEMA } from '@/agents/shared/types';
-import { createSupabaseServer } from '@/lib/supabase/server';
-import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { requireApiUser } from '@/lib/auth/api-user';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -17,14 +16,8 @@ const RequestSchema = z
   .strict();
 
 export async function POST(req: NextRequest) {
-  const csrf = checkSameOrigin(req);
-  if (csrf) return csrf;
-  const ipLimit = await rateLimitByIP(req, 'analysis');
-  if (ipLimit) return ipLimit;
-
-  const supabase = await createSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const gate = await requireApiUser(req);
+  if (gate instanceof NextResponse) return gate;
 
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);

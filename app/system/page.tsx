@@ -7,6 +7,7 @@ import { SectionLabel } from '@/components/section-label';
 import { ArchitectureDiagram } from '@/components/architecture-diagram';
 import { UsersConsole } from '@/components/system/users-console';
 import { cn } from '@/lib/utils';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 
 interface AgentAggregate {
   agent: string;
@@ -347,7 +348,7 @@ export default function SystemScreen() {
       </FoldSection>
 
       <footer className="px-5 pt-6 text-center font-mono text-[12px] text-ink/66 leading-relaxed">
-        Análisis educativo · no constituye asesoramiento financiero regulado
+        {DISCLAIMER_LITERAL}
       </footer>
     </div>
   );

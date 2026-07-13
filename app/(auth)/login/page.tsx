@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowser } from '@/lib/supabase/browser';
 import { Monogram } from '@/components/symbols';
+import { DISCLAIMER_LITERAL } from '@/lib/disclaimer';
 
 /**
  * Valida un raw `next` query param contra open-redirect.
@@ -137,7 +138,7 @@ function LoginInner() {
       </div>
 
       <p className="mt-4 text-center font-mono text-[12px] text-ink/45 leading-relaxed">
-        Análisis educativo · no constituye asesoramiento financiero regulado
+        {DISCLAIMER_LITERAL}
       </p>
     </div>
   );
