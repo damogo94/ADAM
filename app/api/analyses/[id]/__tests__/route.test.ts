@@ -13,10 +13,12 @@ import { makeBuilder, type QueryBuilderMock } from '@/test/helpers/route';
 
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServer: vi.fn() }));
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdmin: vi.fn() }));
+vi.mock('@/lib/api-helpers', () => ({ rateLimitByIP: vi.fn() }));
 
 import { GET } from '../route';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimitByIP } from '@/lib/api-helpers';
 
 const ID = '11111111-1111-1111-1111-111111111111';
 
@@ -59,6 +61,7 @@ function ctx(id = ID) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(rateLimitByIP).mockResolvedValue(null);
 });
 
 describe('GET /api/analyses/[id] — validación y auth', () => {

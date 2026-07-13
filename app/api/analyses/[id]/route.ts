@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimitByIP } from '@/lib/api-helpers';
 import type { TradeOutcomeSummary } from '@/lib/analyses/trade-summary';
 
 export const runtime = 'nodejs';
@@ -21,7 +22,10 @@ const DETAIL_COLUMNS =
  * como del usuario por la query anterior → sin fuga. Puede haber DOS filas (PK
  * compuesta (analysis_id, source)): se separan en `outcome` (A3) + `estructuraOutcome`.
  */
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const parsed = Uuid.safeParse(params.id);
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_id' }, { status: 400 });
