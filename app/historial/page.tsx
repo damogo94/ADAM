@@ -103,9 +103,6 @@ function TradeBanner({
 }) {
   const ccy = getCurrencyFromTicker(ticker);
   const long = trade.signal === 'buy';
-  const isEstructura = trade.source === 'estructura';
-  // El outcome del cron solo aplica al trade A3; Estructura aún no se evalúa.
-  const evaluatedOutcome = isEstructura ? null : outcome;
   return (
     <div
       className={cn(
@@ -129,9 +126,9 @@ function TradeBanner({
             {horizonteLabel(trade.horizonte).long}
           </span>
         )}
-        {evaluatedOutcome && (
+        {outcome && (
           <span className="ml-auto">
-            <OutcomeBadge outcome={evaluatedOutcome} />
+            <OutcomeBadge outcome={outcome} />
           </span>
         )}
       </div>
@@ -141,38 +138,24 @@ function TradeBanner({
         <Lvl label="TARGET" value={fmtPrice(trade.target)} cls="text-emerald" />
         <Lvl label="R/B" value={trade.rb != null ? trade.rb.toFixed(2) : '—'} cls="text-amber" />
       </div>
-      {evaluatedOutcome &&
-        (evaluatedOutcome.return_pct != null || evaluatedOutcome.resolved_days != null) && (
-          <div className="mt-2 font-mono text-[11px] text-ink/66">
-            resultado:{' '}
-            {evaluatedOutcome.return_pct != null && (
-              <span
-                className={cn(
-                  'font-medium',
-                  evaluatedOutcome.return_pct >= 0 ? 'text-emerald' : 'text-rose'
-                )}
-              >
-                {evaluatedOutcome.return_pct >= 0 ? '+' : ''}
-                {evaluatedOutcome.return_pct.toFixed(1)}%
-              </span>
-            )}
-            {evaluatedOutcome.resolved_days != null && (
-              <span> · {evaluatedOutcome.resolved_days}d hasta resolución</span>
-            )}
-          </div>
-        )}
-      {isEstructura ? (
-        <div className="mt-2 font-mono text-[11px] text-ink/55">
-          Estructura · no evaluado automáticamente (backtest en fase posterior)
+      {outcome && (outcome.return_pct != null || outcome.resolved_days != null) && (
+        <div className="mt-2 font-mono text-[11px] text-ink/66">
+          resultado:{' '}
+          {outcome.return_pct != null && (
+            <span className={cn('font-medium', outcome.return_pct >= 0 ? 'text-emerald' : 'text-rose')}>
+              {outcome.return_pct >= 0 ? '+' : ''}
+              {outcome.return_pct.toFixed(1)}%
+            </span>
+          )}
+          {outcome.resolved_days != null && <span> · {outcome.resolved_days}d hasta resolución</span>}
         </div>
-      ) : (
-        !evaluatedOutcome && (
-          <div className="mt-2 font-mono text-[11px] text-ink/55">
-            {trade.horizonte === 'intradia'
-              ? `${horizonteLabel(trade.horizonte).short} · sin seguimiento automático (el backtest solo evalúa swing/posicional)`
-              : 'en seguimiento · el cron evalúa el resultado al tocar target o stop'}
-          </div>
-        )
+      )}
+      {!outcome && (
+        <div className="mt-2 font-mono text-[11px] text-ink/55">
+          {trade.horizonte === 'intradia'
+            ? `${horizonteLabel(trade.horizonte).short} · sin seguimiento automático (el backtest solo evalúa swing/posicional)`
+            : 'en seguimiento · el cron evalúa el resultado al tocar target o stop'}
+        </div>
       )}
       {!secondary && (
         <div className="mt-1 font-mono text-[10px] text-ink/40">
@@ -188,8 +171,6 @@ function TradeBanner({
  * A3 lleva outcome del cron; Estructura se rotula "no evaluado automáticamente".
  */
 function TradeRow({ trade, outcome }: { trade: TradeSummary; outcome: TradeOutcomeSummary | null }) {
-  const isEstructura = trade.source === 'estructura';
-  const evaluatedOutcome = isEstructura ? null : outcome;
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/5 pt-1.5 font-mono text-[11px]">
       <span className={cn('font-bold tracking-wider', trade.signal === 'buy' ? 'text-emerald' : 'text-rose')}>
@@ -202,18 +183,14 @@ function TradeRow({ trade, outcome }: { trade: TradeSummary; outcome: TradeOutco
       <span className="text-rose/90">SL {fmtPrice(trade.stop_loss)}</span>
       <span className="text-emerald/90">TP {fmtPrice(trade.target)}</span>
       {trade.rb != null && <span className="text-amber">R/B {trade.rb.toFixed(1)}</span>}
-      {evaluatedOutcome ? (
+      {outcome ? (
         <span className="ml-auto">
-          <OutcomeBadge outcome={evaluatedOutcome} />
+          <OutcomeBadge outcome={outcome} />
         </span>
       ) : (
         <span className="ml-auto text-[10px] uppercase tracking-wider text-ink/40">
           {trade.horizonte && `${horizonteLabel(trade.horizonte).short} · `}
-          {isEstructura
-            ? 'no evaluado'
-            : trade.horizonte === 'intradia'
-              ? 'sin seguim.'
-              : 'en seguimiento'}
+          {trade.horizonte === 'intradia' ? 'sin seguim.' : 'en seguimiento'}
         </span>
       )}
     </div>
@@ -240,6 +217,7 @@ export default function HistorialScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<StoredAnalysis | null>(null);
   const [detailOutcome, setDetailOutcome] = useState<TradeOutcomeSummary | null>(null);
+  const [detailEstructuraOutcome, setDetailEstructuraOutcome] = useState<TradeOutcomeSummary | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -281,6 +259,7 @@ export default function HistorialScreen() {
     setSelectedId(id);
     setDetail(null);
     setDetailOutcome(null);
+    setDetailEstructuraOutcome(null);
     setDetailError(null);
     setDetailLoading(true);
     try {
@@ -297,9 +276,11 @@ export default function HistorialScreen() {
       const data = (await r.json()) as {
         analysis: StoredAnalysis;
         outcome: TradeOutcomeSummary | null;
+        estructuraOutcome: TradeOutcomeSummary | null;
       };
       setDetail(data.analysis);
       setDetailOutcome(data.outcome ?? null);
+      setDetailEstructuraOutcome(data.estructuraOutcome ?? null);
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : 'No se pudo abrir el análisis.');
     } finally {
@@ -311,6 +292,7 @@ export default function HistorialScreen() {
     setSelectedId(null);
     setDetail(null);
     setDetailOutcome(null);
+    setDetailEstructuraOutcome(null);
     setDetailError(null);
   }
 
@@ -363,11 +345,11 @@ export default function HistorialScreen() {
               <>
                 {/* A3 es el trade PRIMARIO cuando es accionable. */}
                 <TradeBanner trade={detailTrade} outcome={detailOutcome} ticker={detail.ticker} />
-                {/* Ambos → Estructura como mini-banner secundario. */}
+                {/* Ambos → Estructura como mini-banner secundario (con su propio outcome). */}
                 {detailEstructuraTrade && (
                   <TradeBanner
                     trade={detailEstructuraTrade}
-                    outcome={null}
+                    outcome={detailEstructuraOutcome}
                     ticker={detail.ticker}
                     secondary
                   />
@@ -377,7 +359,7 @@ export default function HistorialScreen() {
               // A3 = hold pero Estructura es accionable → banner de Estructura.
               <TradeBanner
                 trade={detailEstructuraTrade}
-                outcome={null}
+                outcome={detailEstructuraOutcome}
                 ticker={detail.ticker}
               />
             ) : (
@@ -471,10 +453,10 @@ export default function HistorialScreen() {
 
                 {a.trade || a.estructuraTrade ? (
                   <>
-                    {/* A3 primario (con outcome del cron). */}
+                    {/* A3 primario (con outcome del cron, source='a3'). */}
                     {a.trade && <TradeRow trade={a.trade} outcome={a.outcome} />}
-                    {/* Estructura: paralelo si hay A3, o el único trade si A3 = hold. */}
-                    {a.estructuraTrade && <TradeRow trade={a.estructuraTrade} outcome={null} />}
+                    {/* Estructura: paralelo si hay A3, o el único trade si A3 = hold (source='estructura'). */}
+                    {a.estructuraTrade && <TradeRow trade={a.estructuraTrade} outcome={a.estructuraOutcome} />}
                   </>
                 ) : (
                   <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink/30">

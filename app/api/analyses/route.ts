@@ -30,11 +30,14 @@ export interface AnalysisSummary {
   trade: TradeSummary | null;
   /**
    * Trade PARALELO de Estructura (MTF), o null si no es accionable/opt-in apagado.
-   * Aún NO se evalúa automáticamente → nunca lleva `outcome`.
+   * Se evalúa aparte (cron `evaluate-trades`, source='estructura') → su resultado
+   * viaja en `estructuraOutcome`, NO en `outcome`.
    */
   estructuraTrade: TradeSummary | null;
-  /** Resultado evaluado del trade A3 (cron), o null si aún sin resolver/no-trade. */
+  /** Resultado evaluado del trade A3 (source='a3'), o null si sin resolver/no-trade. */
   outcome: TradeOutcomeSummary | null;
+  /** Resultado evaluado del trade de Estructura (source='estructura'), o null. */
+  estructuraOutcome: TradeOutcomeSummary | null;
 }
 
 type SummaryRow = Pick<
@@ -86,12 +89,17 @@ export async function GET() {
 
   const rows = data ?? [];
 
-  const outcomeById = new Map<string, TradeOutcomeSummary>();
+  // trade_outcomes tiene PK compuesta (analysis_id, source): hasta DOS filas por
+  // análisis (source 'a3' + 'estructura'). Se keyean por (analysis_id, source) en
+  // mapas separados — nunca por analysis_id pelado (eso cruzaría el outcome de una
+  // fuente sobre la otra de forma no determinista).
+  const a3OutcomeById = new Map<string, TradeOutcomeSummary>();
+  const estructuraOutcomeById = new Map<string, TradeOutcomeSummary>();
   if (rows.length > 0) {
     const admin = createSupabaseAdmin();
     const { data: outcomes, error: oErr } = await admin
       .from('trade_outcomes')
-      .select('analysis_id, outcome, r_multiple, return_pct, resolved_days')
+      .select('analysis_id, source, outcome, r_multiple, return_pct, resolved_days')
       .in(
         'analysis_id',
         rows.map((r) => r.id)
@@ -100,12 +108,14 @@ export async function GET() {
     // resultado (la UI los muestra como "en seguimiento") en vez de romper.
     if (!oErr) {
       for (const o of outcomes ?? []) {
-        outcomeById.set(o.analysis_id, {
+        const summary: TradeOutcomeSummary = {
           outcome: o.outcome,
           r_multiple: o.r_multiple,
           return_pct: o.return_pct,
           resolved_days: o.resolved_days,
-        });
+        };
+        if (o.source === 'estructura') estructuraOutcomeById.set(o.analysis_id, summary);
+        else a3OutcomeById.set(o.analysis_id, summary);
       }
     }
   }
@@ -114,7 +124,8 @@ export async function GET() {
     ...rest,
     trade: extractTradeSummary(a3_output),
     estructuraTrade: extractEstructuraTradeSummary(estructura_output),
-    outcome: outcomeById.get(rest.id) ?? null,
+    outcome: a3OutcomeById.get(rest.id) ?? null,
+    estructuraOutcome: estructuraOutcomeById.get(rest.id) ?? null,
   }));
 
   return NextResponse.json({ analyses });
