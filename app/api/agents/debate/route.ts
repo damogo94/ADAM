@@ -8,10 +8,13 @@ import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const RequestSchema = z.object({
-  a1: A1_OUTPUT_SCHEMA,
-  a2: A2_OUTPUT_SCHEMA,
-});
+// .strict() en paridad con el resto de endpoints de agentes (rechaza extras).
+const RequestSchema = z
+  .object({
+    a1: A1_OUTPUT_SCHEMA,
+    a2: A2_OUTPUT_SCHEMA,
+  })
+  .strict();
 
 export async function POST(req: NextRequest) {
   const csrf = checkSameOrigin(req);

@@ -5,6 +5,7 @@ import { resolveEstructuraSymbol } from '@/agents/estructura/symbols';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { TickerField } from '@/lib/api-schemas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -17,16 +18,7 @@ export const maxDuration = 60;
  * nomenclatura (XAUUSD, NAS100); el resolver la traduce al símbolo de datos de
  * Yahoo (GC=F, NQ=F) conservando la etiqueta en la salida.
  */
-const RequestSchema = z
-  .object({
-    ticker: z
-      .string()
-      .min(1)
-      .max(20)
-      .regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido')
-      .toUpperCase(),
-  })
-  .strict();
+const RequestSchema = z.object({ ticker: TickerField }).strict();
 
 export async function POST(req: NextRequest) {
   const csrf = checkSameOrigin(req);

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { requireCronSecret } from '@/lib/api-helpers';
 import { fallbackQuote } from '@/lib/market/finnhub';
 import { scoreSignal, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K, type Direction } from '@/lib/scoring';
 import type { Direction as DbDirection } from '@/types/db';
@@ -59,15 +60,8 @@ function extractAtrPct(a3: unknown, initialPrice: number): number | null {
 }
 
 export async function GET(req: NextRequest) {
-  // Auth: Vercel Cron pasa CRON_SECRET como Bearer
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 });
-  }
-  const auth = req.headers.get('authorization');
-  if (auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  const auth = requireCronSecret(req);
+  if (auth) return auth;
 
   const admin = createSupabaseAdmin();
   const now = Date.now();

@@ -23,17 +23,14 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { limiters } from '@/lib/ratelimit';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { TickerField } from '@/lib/api-schemas';
 import { runADAM, AllAgentsFailedError } from '@/agents/pipeline';
 import type { AgentUsage } from '@/lib/anthropic';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const RequestSchema = z
-  .object({
-    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido').toUpperCase(),
-  })
-  .strict();
+const RequestSchema = z.object({ ticker: TickerField }).strict();
 
 export async function POST(req: NextRequest) {
   // Top-level try: garantiza JSON siempre, nunca el "An error occurred…"

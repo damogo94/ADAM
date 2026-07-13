@@ -4,6 +4,7 @@ import { runA3 } from '@/agents/a3/client';
 import { fallbackDaily, fallbackIntraday } from '@/lib/market/finnhub';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { TickerField } from '@/lib/api-schemas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -12,13 +13,9 @@ export const maxDuration = 60;
  * ⚠️ Endpoint de A3.
  * Sólo acepta { ticker }. NO acepta context, news, macro, sentiment.
  * Si en el futuro se añade un campo, debe ser strict OHLCV.
+ * `TickerField` lleva la regex anti prompt-injection (chars válidos en tickers reales).
  */
-const RequestSchema = z
-  .object({
-    // regex anti prompt-injection — sólo chars válidos en tickers reales
-    ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido').toUpperCase(),
-  })
-  .strict(); // .strict() rechaza campos adicionales — extra defense
+const RequestSchema = z.object({ ticker: TickerField }).strict(); // .strict() rechaza extras — capa 3 del aislamiento A3
 
 export async function POST(req: NextRequest) {
   const csrf = checkSameOrigin(req);

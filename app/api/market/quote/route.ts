@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fallbackQuote, fallbackDaily } from '@/lib/market/finnhub';
 import { rateLimitByIP } from '@/lib/api-helpers';
+import { TICKER_REGEX } from '@/lib/api-schemas';
 
 // Node runtime: rateLimitByIP usa @upstash/redis (no Edge). Auditoría Fase 0 · #2.
 export const runtime = 'nodejs';
 
-const SYMBOL_REGEX = /^[A-Z0-9.\-/=^]+$/i;
 const RequestSchema = z.object({
-  symbol: z.string().min(1).max(20).regex(SYMBOL_REGEX, 'invalid symbol'),
+  symbol: z.string().min(1).max(20).regex(TICKER_REGEX, 'invalid symbol'),
 });
 
 /**

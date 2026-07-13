@@ -139,6 +139,40 @@ export function checkSameOrigin(req: NextRequest): NextResponse | null {
 }
 
 /**
+ * Guard de autenticación de cron: Vercel inyecta `Authorization: Bearer $CRON_SECRET`
+ * en cada cron cuando `CRON_SECRET` está configurado. Fail-closed por diseño:
+ *   - 500 si `CRON_SECRET` no está configurado (nunca fail-open).
+ *   - 401 si el header no coincide.
+ * Devuelve NextResponse si rechaza, null si pasa:
+ *
+ *   const auth = requireCronSecret(req);
+ *   if (auth) return auth;
+ *
+ * Para endpoints dual cron+manual (p.ej. /api/cmt/scan), que NO deben 500/401 en
+ * mismatch (caen al path manual), usa {@link isCronRequest} en su lugar.
+ */
+export function requireCronSecret(req: NextRequest): NextResponse | null {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 });
+  }
+  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+  return null;
+}
+
+/**
+ * True si el request trae el Bearer de cron válido. Para endpoints dual cron+manual
+ * que deben DISTINGUIR el path de cron del manual sin fallar en mismatch (el manual
+ * sigue su propio flujo cookie-auth). No es fail-closed a propósito.
+ */
+export function isCronRequest(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  return !!secret && req.headers.get('authorization') === `Bearer ${secret}`;
+}
+
+/**
  * Sanitiza un error de Supabase/DB antes de devolverlo al cliente.
  * - En dev: detail explícito para debug.
  * - En prod: mensaje genérico, log server-side.

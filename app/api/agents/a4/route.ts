@@ -21,6 +21,7 @@ import { type DebateForConfluence } from '@/agents/a4/compute';
 import { consolidateAndPersistA4 } from '@/agents/a4/consolidate';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { checkSameOrigin, rateLimitByIP } from '@/lib/api-helpers';
+import { TickerField } from '@/lib/api-schemas';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
 import { EstructuraOutput } from '@/agents/estructura/schema';
 
@@ -37,7 +38,7 @@ const DebateLite = z
   .passthrough();
 
 const RequestSchema = z.object({
-  ticker: z.string().min(1).max(20).regex(/^[A-Z0-9.\-/=^]+$/i, 'ticker invalido').toUpperCase(),
+  ticker: TickerField,
   a1: A1Output.nullable(),
   a2: A2Output.nullable(),
   a3: A3Output.nullable(),

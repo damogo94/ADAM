@@ -28,6 +28,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { requireCronSecret } from '@/lib/api-helpers';
 import { fallbackDaily } from '@/lib/market/finnhub';
 import { evaluateTrade, type EvalCandle } from '@/lib/backtest/trade-eval';
 import { buildSignalTradePlan } from '@/lib/backtest/signal-plan';
@@ -53,13 +54,8 @@ interface CandidateRow {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 });
-  }
-  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  const auth = requireCronSecret(req);
+  if (auth) return auth;
 
   const admin = createSupabaseAdmin();
   const now = Date.now();
