@@ -29,7 +29,7 @@ import {
   ALIVE_CAPS,
   mandatedDirection,
 } from '@/agents/a4/compute';
-import { scoreSignal, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K, type Direction } from '@/lib/scoring';
+import { scoreSignal, volatilityThresholdPct, extractAtrPct, type Direction } from '@/lib/scoring';
 
 function loadEnv(): Record<string, string> {
   const txt = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
@@ -134,8 +134,7 @@ test('experimento Fase 1b — split de importancia + dampening A1/A2', async () 
       continue;
     }
     const initial = Number(a.initial_price);
-    const atr = a3?.operativa?.atr_actual;
-    const threshold = atr != null && initial > 0 ? Math.max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K * (Number(atr) / initial) * 100) : SIGNAL_THRESHOLD_PCT;
+    const threshold = volatilityThresholdPct(extractAtrPct(a3, initial));
     const aliveCount = [a1, a2, a3].filter((x) => x != null).length;
     const r: Row = {
       horizon: o.horizon_days, a1, a2, a3, debate,

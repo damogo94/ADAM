@@ -10,7 +10,10 @@ export const runtime = 'nodejs';
  * GET /api/watchlist → lista la watchlist default del usuario con sus items.
  * Auto-crea la lista si no existe (lazy init).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

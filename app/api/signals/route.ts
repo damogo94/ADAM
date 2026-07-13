@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimitByIP } from '@/lib/api-helpers';
 import type { SignalHistory, SignalTradeOutcome } from '@/types/db';
 
 export const runtime = 'nodejs';
@@ -16,7 +17,10 @@ export type SignalWithOutcome = SignalHistory & { outcome: SignalTradeOutcome | 
  * el admin client PERO acotados a los signal_ids del propio usuario (que ya
  * salieron de la query con RLS) → sin fuga de datos entre usuarios.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const supabase = await createSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

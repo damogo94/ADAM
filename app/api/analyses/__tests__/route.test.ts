@@ -25,10 +25,12 @@ function withReturns(b: QueryBuilderMock): BuilderWithReturns {
 
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServer: vi.fn() }));
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdmin: vi.fn() }));
+vi.mock('@/lib/api-helpers', () => ({ rateLimitByIP: vi.fn() }));
 
 import { GET } from '../route';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimitByIP } from '@/lib/api-helpers';
 
 /** operativa A3 accionable (buy swing con geometría coherente) → genera trade. */
 const A3_ACTIONABLE = {
@@ -96,12 +98,13 @@ function mount(opts: { user?: { id: string } | null; rows?: unknown[]; outcomes?
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(rateLimitByIP).mockResolvedValue(null);
 });
 
 describe('GET /api/analyses — auth', () => {
   it('401 sin usuario', async () => {
     mount({ user: null });
-    const res = await GET();
+    const res = await GET({} as never);
     expect(res.status).toBe(401);
   });
 });
@@ -109,7 +112,7 @@ describe('GET /api/analyses — auth', () => {
 describe('GET /api/analyses — dual-source outcomes por (analysis_id, source)', () => {
   it('an-both: outcome = A3 (win), estructuraOutcome = Estructura (loss) — no last-row-wins', async () => {
     mount();
-    const res = await GET();
+    const res = await GET({} as never);
     const body = await res.json();
     const byId = Object.fromEntries(body.analyses.map((a: { id: string }) => [a.id, a]));
 
@@ -119,7 +122,7 @@ describe('GET /api/analyses — dual-source outcomes por (analysis_id, source)',
 
   it('an-estru (A3 hold): el outcome de Estructura NO se mapea como outcome de A3', async () => {
     mount();
-    const res = await GET();
+    const res = await GET({} as never);
     const body = await res.json();
     const byId = Object.fromEntries(body.analyses.map((a: { id: string }) => [a.id, a]));
 
@@ -131,7 +134,7 @@ describe('GET /api/analyses — dual-source outcomes por (analysis_id, source)',
 
   it('an-a3 (solo A3): outcome de A3, estructuraOutcome null', async () => {
     mount();
-    const res = await GET();
+    const res = await GET({} as never);
     const body = await res.json();
     const byId = Object.fromEntries(body.analyses.map((a: { id: string }) => [a.id, a]));
 
@@ -144,7 +147,7 @@ describe('GET /api/analyses — dual-source outcomes por (analysis_id, source)',
 describe('GET /api/analyses — anti-fuga', () => {
   it('acota la lectura de outcomes con .in(analysis_id, <ids de las filas RLS>)', async () => {
     mount();
-    await GET();
+    await GET({} as never);
     expect(outcomesBuilder.in).toHaveBeenCalledTimes(1);
     const [col, ids] = outcomesBuilder.in.mock.calls[0] as [string, string[]];
     expect(col).toBe('analysis_id');
@@ -155,7 +158,7 @@ describe('GET /api/analyses — anti-fuga', () => {
     mount();
     outcomesBuilder.then = ((resolve: (v: unknown) => unknown) =>
       Promise.resolve({ data: null, error: { message: 'boom' } }).then(resolve)) as QueryBuilderMock['then'];
-    const res = await GET();
+    const res = await GET({} as never);
     const body = await res.json();
     for (const a of body.analyses) {
       expect(a.outcome).toBeNull();

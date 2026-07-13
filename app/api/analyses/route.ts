@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimitByIP } from '@/lib/api-helpers';
 import {
   extractTradeSummary,
   extractEstructuraTradeSummary,
@@ -69,7 +70,10 @@ const SUMMARY_COLUMNS =
  * leen con el admin client PERO acotados con `.in()` a los analysis_ids que YA
  * salieron con RLS → sin fuga entre usuarios (mismo patrón que /api/signals).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const rl = await rateLimitByIP(req, 'quote');
+  if (rl) return rl;
+
   const supabase = await createSupabaseServer();
   const {
     data: { user },
