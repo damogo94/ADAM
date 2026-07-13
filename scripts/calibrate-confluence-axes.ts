@@ -22,7 +22,7 @@ import { test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { computeConfluence, mandatedDirection } from '@/agents/a4/compute';
-import { scoreSignal, SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K, type Direction } from '@/lib/scoring';
+import { scoreSignal, volatilityThresholdPct, extractAtrPct, type Direction } from '@/lib/scoring';
 
 function loadEnv(): Record<string, string> {
   const txt = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
@@ -128,11 +128,7 @@ test('calibración K_FLOOR/G_MIN sobre histórico', async () => {
     const initial = Number(a.initial_price);
     const ret = Number(o.return_pct);
     const evalPrice = initial * (1 + ret / 100);
-    const atr = a.a3_output?.operativa?.atr_actual;
-    const threshold =
-      atr != null && initial > 0
-        ? Math.max(SIGNAL_THRESHOLD_PCT, SIGNAL_ATR_K * (Number(atr) / initial) * 100)
-        : SIGNAL_THRESHOLD_PCT;
+    const threshold = volatilityThresholdPct(extractAtrPct(a.a3_output, initial));
     const hitNet = scoreSignal({ direccion: netDir, initial_price: initial, eval_price: evalPrice, threshold_pct: threshold }).hit;
     if (o.horizon_days === 7) {
       if (hitNet) netVsOld.net++;
