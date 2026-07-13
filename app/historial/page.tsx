@@ -14,40 +14,14 @@ import {
   type TradeOutcomeSummary,
 } from '@/lib/analyses/trade-summary';
 import { horizonteLabel } from '@/lib/analyses/horizon';
+import { directionMeta } from '@/components/agent-primitives';
+import { outcomeMeta } from '@/components/signals/outcome';
+import { RESOLVED_OUTCOMES } from '@/components/signals/helpers';
 import {
   StoredAnalysisView,
   type AnalysisSummaryRow,
   type StoredAnalysis,
 } from '@/components/historial/stored-analysis-view';
-
-/**
- * Color SEMÁNTICO de dirección (es DATO, no chrome). La columna `direction`
- * persiste `A4Output.direccion` = enum positivo/negativo/neutral (NO el
- * vocabulario alcista/bajista de trend). Mapeo canónico: verdict-bar.tsx.
- */
-function dirMeta(d: string): { label: string; cls: string } {
-  if (d === 'positivo') return { label: 'ALCISTA', cls: 'text-emerald' };
-  if (d === 'negativo') return { label: 'BAJISTA', cls: 'text-rose' };
-  return { label: 'NEUTRAL', cls: 'text-ink/70' };
-}
-
-const RESOLVED = new Set(['win', 'loss', 'timeout', 'no_fill']);
-
-/** Color SEMÁNTICO del resultado del trade (es DATO): win→emerald, loss→rose… */
-function outcomeMeta(o: string): { label: string; cls: string } {
-  switch (o) {
-    case 'win':
-      return { label: 'WIN', cls: 'text-emerald border-emerald/40 bg-emerald/[0.08]' };
-    case 'loss':
-      return { label: 'LOSS', cls: 'text-rose border-rose/40 bg-rose/[0.08]' };
-    case 'timeout':
-      return { label: 'TIMEOUT', cls: 'text-amber border-amber/35 bg-amber/[0.07]' };
-    case 'no_fill':
-      return { label: 'NO FILL', cls: 'text-ink/66 border-white/15 bg-white/[0.03]' };
-    default:
-      return { label: 'NO EVALUABLE', cls: 'text-ink/66 border-white/10 bg-white/[0.02]' };
-  }
-}
 
 function fmtPrice(n: number): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
@@ -66,10 +40,13 @@ function SourceBadge({ source }: { source: TradeSource }) {
   );
 }
 
+// Badge local (tamaño text-[10px] del historial) que reutiliza el SSOT de color/
+// resolución de components/signals — mismo patrón que RadarOutcomeBadge, sin
+// duplicar outcomeMeta ni el set de resueltos.
 function OutcomeBadge({ outcome }: { outcome: TradeOutcomeSummary }) {
   const m = outcomeMeta(outcome.outcome);
   const showR =
-    RESOLVED.has(outcome.outcome) && outcome.outcome !== 'no_fill' && outcome.r_multiple != null;
+    RESOLVED_OUTCOMES.has(outcome.outcome) && outcome.outcome !== 'no_fill' && outcome.r_multiple != null;
   return (
     <span
       className={cn(
@@ -429,7 +406,7 @@ export default function HistorialScreen() {
       ) : (
         <div className="mt-2 px-4 space-y-1.5">
           {list.map((a) => {
-            const dir = dirMeta(a.direction);
+            const dir = directionMeta(a.direction);
             const pct = a.actionable_pct ?? a.confluence_pct;
             return (
               <button

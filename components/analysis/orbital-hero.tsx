@@ -115,9 +115,7 @@ export function OrbitalHero({
   const a1Dir = normalizeDirection(a1?.anomaly_type ?? null) as Dir;
   const a2Dir = normalizeDirection(a2?.regime_outlook ?? (a2?.opportunity_detected ? 'risk_on' : null)) as Dir;
   const a3Dir = normalizeDirection(a3?.tendencia?.primaria ?? null) as Dir;
-  const estRaw = estructura?.setup.direccion === 'compra' ? 'alcista'
-    : estructura?.setup.direccion === 'venta' ? 'bajista' : null;
-  const estDir = normalizeDirection(estRaw) as Dir;
+  const estDir = normalizeDirection(estructura?.setup.direccion ?? null) as Dir;
 
   const actionable =
     confluence?.actionable_pct ?? confluence?.total_pct ?? a4?.confluence.score_total_pct ?? null;
