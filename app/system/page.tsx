@@ -51,6 +51,25 @@ interface Calibration {
   by_kappa?: Record<string, CalibrationBucket>;
   // Opción C · track-record per-agente (medición; aún no repondera).
   by_agent?: Record<string, CalibrationBucket>;
+  // R9 · tasa base (siempre alcista/neutral/bajista sobre las MISMAS filas) y
+  // n efectivo por cluster (ticker + created_at ≤ gap_days). Opcionales por
+  // back-compat con el endpoint viejo.
+  base_rates?: {
+    threshold: { floor_pct: number; atr_k: number; no_atr_fallback_pct: number };
+    global: Record<string, BaseRateCell>;
+    by_ticker: Record<string, Record<string, BaseRateCell>>;
+    excluded_no_initial_price: number;
+  };
+  n_clusters?: {
+    gap_days: number;
+    by_horizon: Record<string, CalibrationBucket & { rows: number }>;
+  };
+}
+interface BaseRateCell {
+  adam: CalibrationBucket;
+  alcista: CalibrationBucket;
+  neutral: CalibrationBucket;
+  bajista: CalibrationBucket;
 }
 
 const AGENTS: { id: string; label: string; model: string; mode?: 'narrate' | 'compute' }[] = [
@@ -256,6 +275,27 @@ export default function SystemScreen() {
               <CalRow label="media" bucket={calibration!.by_kappa?.media} />
               <CalRow label="baja" bucket={calibration!.by_kappa?.baja} />
             </CalGroup>
+            {/* R9 · comparador y n honesto. Las constantes se puntúan con el
+                MISMO umbral que ADAM sobre las MISMAS filas: si ADAM no supera
+                a "siempre alcista", la tasa por fila no es evidencia de nada. */}
+            {calibration!.base_rates && (
+              <>
+                <BaseRateGroup title="tasa base · 30 días" cell={calibration!.base_rates.global['30']} />
+                <BaseRateGroup title="tasa base · 7 días" cell={calibration!.base_rates.global['7']} />
+                <BaseRateByTicker byTicker={calibration!.base_rates.by_ticker} />
+              </>
+            )}
+            {calibration!.n_clusters && (
+              <CalGroup title={`n efectivo · clusters (ticker · ≤${calibration!.n_clusters.gap_days} días)`}>
+                <CalRow label="30 días" bucket={calibration!.n_clusters.by_horizon['30']} strong />
+                <CalRow label="7 días" bucket={calibration!.n_clusters.by_horizon['7']} strong />
+                <div className="mt-1 font-mono text-[10px] leading-snug text-ink/45">
+                  n = clusters; el cluster acierta si acierta su fila más antigua. Filas por fila:{' '}
+                  {calibration!.n_clusters.by_horizon['30']?.rows ?? 0} (30d) ·{' '}
+                  {calibration!.n_clusters.by_horizon['7']?.rows ?? 0} (7d). Gap provisional, pendiente de fijar.
+                </div>
+              </CalGroup>
+            )}
           </>
         )}
       </div>
@@ -476,6 +516,71 @@ function CalGroup({ title, children }: { title: string; children: React.ReactNod
       <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/40">{title}</div>
       {children}
     </div>
+  );
+}
+
+/**
+ * Tasa base (R9): ADAM frente a las tres constantes sobre las MISMAS filas.
+ * Barras en accent/ink (métrica de desempeño, no dato de mercado direccional —
+ * "siempre alcista" es una etiqueta de estrategia, no una lectura del precio).
+ */
+function BaseRateGroup({ title, cell }: { title: string; cell?: BaseRateCell }) {
+  if (!cell) return null;
+  return (
+    <CalGroup title={title}>
+      <CalRow label="A.D.A.M." bucket={cell.adam} strong />
+      <CalRow label="s. alcista" bucket={cell.alcista} />
+      <CalRow label="s. neutral" bucket={cell.neutral} />
+      <CalRow label="s. bajista" bucket={cell.bajista} />
+    </CalGroup>
+  );
+}
+
+/** Desglose por ticker (30d y 7d), plegado: A.D.A.M. vs constantes, con n. */
+function BaseRateByTicker({ byTicker }: { byTicker: Record<string, Record<string, BaseRateCell>> }) {
+  const tickers = Object.keys(byTicker).sort();
+  if (tickers.length === 0) return null;
+  const pct = (b?: CalibrationBucket) => (b?.hit_rate_pct == null ? '—' : `${b.hit_rate_pct}%`);
+  return (
+    <details className="mt-2.5 rounded border border-white/8">
+      <summary className="cursor-pointer list-none px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/40 hover:text-ink/66 [&::-webkit-details-marker]:hidden">
+        tasa base · por ticker ({tickers.length})
+      </summary>
+      <div className="overflow-x-auto px-2 pb-2">
+        <table className="w-full font-mono text-[10px] tabular-nums">
+          <thead>
+            <tr className="text-ink/40">
+              <th className="py-0.5 text-left font-normal">ticker</th>
+              <th className="py-0.5 text-left font-normal">h</th>
+              <th className="py-0.5 text-right font-normal">n</th>
+              <th className="py-0.5 text-right font-normal text-ink/66">A.D.A.M.</th>
+              <th className="py-0.5 text-right font-normal">s. alc.</th>
+              <th className="py-0.5 text-right font-normal">s. neu.</th>
+              <th className="py-0.5 text-right font-normal">s. baj.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tickers.flatMap((t) =>
+              ['30', '7'].map((h) => {
+                const cell = byTicker[t]?.[h];
+                if (!cell || cell.adam.n === 0) return null;
+                return (
+                  <tr key={`${t}-${h}`} className="text-ink/66">
+                    <td className="py-0.5 text-ink/85">{t}</td>
+                    <td className="py-0.5">{h}d</td>
+                    <td className="py-0.5 text-right text-ink/45">{cell.adam.n}</td>
+                    <td className="py-0.5 text-right text-ink">{pct(cell.adam)}</td>
+                    <td className="py-0.5 text-right">{pct(cell.alcista)}</td>
+                    <td className="py-0.5 text-right">{pct(cell.neutral)}</td>
+                    <td className="py-0.5 text-right">{pct(cell.bajista)}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </details>
   );
 }
 
