@@ -15,6 +15,8 @@ import {
   horizonteFromTarget,
   horizonteFallback,
   medianIntervalDays,
+  vetoRegimen,
+  distanciaEntradaAtr,
   MIN_RB_RATIO,
   MIN_CANDLES_FOR_SIGNAL,
 } from '../operative';
@@ -384,6 +386,165 @@ describe('determinismo', () => {
       atr: 1.5,
     };
     expect(computeOperativa(input)).toEqual(computeOperativa(input));
+  });
+});
+
+describe('shadow tags F1/F1\'/F2 — veto_regimen (plan precisión 2026-09, R11)', () => {
+  // Escenarios base reutilizados: precio actual 100, atr 1.
+  const sellSetup = {
+    candles: flatPrice(30, 100),
+    tendencia: 'bajista' as const,
+    levels: { soportes: [90], resistencias: [102] }, // sell market en 100
+    atr: 1,
+  };
+  const buySetup = {
+    candles: flatPrice(30, 100),
+    tendencia: 'alcista' as const,
+    levels: { soportes: [98], resistencias: [110] }, // buy market en 100
+    atr: 1,
+  };
+
+  it('sell con precio > SMA200 → veto_regimen true (F1)', () => {
+    const r = computeOperativa({ ...sellSetup, sma200: 95 });
+    expect(r.signal).toBe('sell');
+    expect(r.veto_regimen).toBe(true);
+  });
+
+  it('sell con precio < SMA200 → veto_regimen false (a favor del régimen)', () => {
+    const r = computeOperativa({ ...sellSetup, sma200: 105 });
+    expect(r.signal).toBe('sell');
+    expect(r.veto_regimen).toBe(false);
+  });
+
+  it("buy con precio < SMA200 → veto_regimen true (F1' espejo)", () => {
+    const r = computeOperativa({ ...buySetup, sma200: 105 });
+    expect(r.signal).toBe('buy');
+    expect(r.veto_regimen).toBe(true);
+  });
+
+  it('buy con precio > SMA200 → veto_regimen false', () => {
+    const r = computeOperativa({ ...buySetup, sma200: 95 });
+    expect(r.signal).toBe('buy');
+    expect(r.veto_regimen).toBe(false);
+  });
+
+  it('precio exactamente en la SMA200 → false (desigualdad estricta, no veta)', () => {
+    expect(computeOperativa({ ...buySetup, sma200: 100 }).veto_regimen).toBe(false);
+    expect(computeOperativa({ ...sellSetup, sma200: 100 }).veto_regimen).toBe(false);
+  });
+
+  it('sin SMA200 (<200 velas → null) → veto_regimen null, no false', () => {
+    expect(computeOperativa({ ...sellSetup, sma200: null }).veto_regimen).toBeNull();
+    expect(computeOperativa(sellSetup).veto_regimen).toBeNull(); // ausente (back-compat)
+  });
+
+  it('hold → veto_regimen null (no hay operativa que vetar)', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'lateral',
+      levels: { soportes: [98], resistencias: [102] },
+      atr: 1,
+      sma200: 95,
+    });
+    expect(r.signal).toBe('hold');
+    expect(r.veto_regimen).toBeNull();
+  });
+
+  it('SOLO MARCA: la operativa vetada se emite IGUAL que sin SMA200', () => {
+    const conVeto = computeOperativa({ ...sellSetup, sma200: 95 });
+    const sinSma = computeOperativa(sellSetup);
+    expect(conVeto.veto_regimen).toBe(true);
+    const { veto_regimen: _v1, distancia_entrada_atr: _d1, ...planVetado } = conVeto;
+    const { veto_regimen: _v2, distancia_entrada_atr: _d2, ...planLibre } = sinSma;
+    expect(planVetado).toEqual(planLibre);
+    expect(conVeto.signal).toBe('sell');
+    expect(conVeto.entrada).toBe(100);
+  });
+
+  it('vetoRegimen — unidad: hold/null/NaN → null', () => {
+    expect(vetoRegimen('hold', 100, 95)).toBeNull();
+    expect(vetoRegimen('sell', 100, null)).toBeNull();
+    expect(vetoRegimen('sell', null, 95)).toBeNull();
+    expect(vetoRegimen('buy', 100, NaN)).toBeNull();
+    expect(vetoRegimen('sell', 100, 95)).toBe(true);
+    expect(vetoRegimen('buy', 100, 95)).toBe(false);
+  });
+});
+
+describe('shadow tag F2 — distancia_entrada_atr (plan precisión 2026-09)', () => {
+  it('entrada a mercado → 0', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'alcista',
+      levels: { soportes: [98], resistencias: [110] },
+      atr: 1,
+    });
+    expect(r.entry_type).toBe('market');
+    expect(r.distancia_entrada_atr).toBe(0);
+  });
+
+  it('buy límite: |entrada − precio| / ATR (soporte 96, precio 100, atr 1 → 4)', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'alcista',
+      levels: { soportes: [96], resistencias: [110] },
+      atr: 1,
+    });
+    expect(r.entry_type).toBe('limit');
+    expect(r.entrada).toBe(96);
+    expect(r.distancia_entrada_atr).toBeCloseTo(4, 10);
+  });
+
+  it('sell límite: |entrada − precio| / ATR (resistencia 104, precio 100, atr 2 → 2)', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'bajista',
+      levels: { soportes: [90], resistencias: [104] },
+      atr: 2,
+    });
+    expect(r.signal).toBe('sell');
+    expect(r.entry_type).toBe('limit');
+    expect(r.distancia_entrada_atr).toBeCloseTo(2, 10);
+  });
+
+  it('límite sin ATR (atr null → fallback % solo para el plan) → null, no un número inventado', () => {
+    // Con atr null el plan usa el fallback porcentual (1% → 1.0), pero la
+    // marca debe ser reproducible desde atr_actual persistido (null) → null.
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'alcista',
+      levels: { soportes: [96], resistencias: [110] },
+      atr: null,
+    });
+    expect(r.entry_type).toBe('limit');
+    expect(r.atr_actual).toBeNull();
+    expect(r.distancia_entrada_atr).toBeNull();
+  });
+
+  it('hold → null', () => {
+    const r = computeOperativa({
+      candles: flatPrice(30, 100),
+      tendencia: 'lateral',
+      levels: { soportes: [98], resistencias: [102] },
+      atr: 1,
+    });
+    expect(r.signal).toBe('hold');
+    expect(r.distancia_entrada_atr).toBeNull();
+  });
+
+  it('distanciaEntradaAtr — unidad: market 0 aunque falte ATR; atr≤0 → null', () => {
+    expect(
+      distanciaEntradaAtr({ signal: 'buy', entrada: 100, entry_type: 'market', atr_actual: null }, 100)
+    ).toBe(0);
+    expect(
+      distanciaEntradaAtr({ signal: 'buy', entrada: 96, entry_type: 'limit', atr_actual: 0 }, 100)
+    ).toBeNull();
+    expect(
+      distanciaEntradaAtr({ signal: 'buy', entrada: 96, entry_type: 'limit', atr_actual: 2 }, 100)
+    ).toBe(2);
+    expect(
+      distanciaEntradaAtr({ signal: 'hold', entrada: null, entry_type: null, atr_actual: 1 }, 100)
+    ).toBeNull();
   });
 });
 
