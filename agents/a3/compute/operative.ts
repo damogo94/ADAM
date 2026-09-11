@@ -22,6 +22,12 @@
  *   - 'market': el precio ya está pegado al nivel (≤ proximity_pct) → entrar ya.
  *   - 'limit':  esperar el retroceso/rebote al nivel (entrada = el propio nivel),
  *     siempre que esté a ≤ REACH_ATR_MULT·ATR (alcanzable dentro del horizonte).
+ *
+ * Shadow tags (plan precisión 2026-09, §4 F1/F1'/F2 + R11): `veto_regimen` y
+ * `distancia_entrada_atr` se calculan por código SOBRE el plan ya decidido y
+ * se persisten como marcas. NO filtran, NO degradan a hold, NO tocan
+ * REACH_ATR_MULT ni el sesgo buy/sell — degradar a hold borraría el rastro que
+ * queremos medir (cmt/scan descarta sin_senal, evaluate-trades filtra buy/sell).
  */
 
 import type {
@@ -48,13 +54,40 @@ export interface OperativaResult {
    *   - null:     hold (no hay plan).
    */
   entry_type: 'market' | 'limit' | null;
+  /**
+   * SHADOW TAG F1/F1' (plan precisión 2026-09, R11) — SOLO MARCA, NUNCA FILTRO.
+   * `true` si la operativa va contra el régimen mayor medido por la SMA200:
+   * (sell y precio actual > SMA200) o (buy y precio actual < SMA200).
+   * `false` si va a favor (o el precio está exactamente en la SMA200).
+   * `null` si no hay SMA200 (<200 velas) o no hay operativa (hold).
+   * La señal, entrada, stop, target y horizonte NO cambian por esta marca:
+   * existe para medir el gate en producción antes de decidir nada.
+   */
+  veto_regimen: boolean | null;
+  /**
+   * SHADOW TAG F2 (plan precisión 2026-09) — SOLO MARCA, NUNCA FILTRO.
+   * Distancia de la entrada al precio actual en múltiplos de ATR:
+   * |entrada − precio actual| / ATR. `0` para entradas a mercado (por
+   * construcción), `null` si no hay ATR (atr_actual null) o no hay plan (hold).
+   */
+  distancia_entrada_atr: number | null;
 }
+
+/** Plan geométrico sin las marcas shadow (lo que decide el compute histórico). */
+type OperativaPlan = Omit<OperativaResult, 'veto_regimen' | 'distancia_entrada_atr'>;
 
 export interface OperativaInput {
   candles: OHLCVCandle_t[];
   tendencia: TrendDirection_t;
   levels: LevelsResult;
   atr: number | null;
+  /**
+   * SMA200 (de compute, derivada SOLO de las velas; null si <200). Alimenta
+   * únicamente la marca `veto_regimen` (shadow tag F1/F1'): no participa en la
+   * decisión buy/sell/hold ni en la geometría del plan. Opcional para
+   * backward compatibility (ausente → veto_regimen null).
+   */
+  sma200?: number | null;
   /**
    * Profile derivado del ticker en compute.ts (PR5). Opcional para
    * backward compatibility: sin profile, usa los defaults históricos que
@@ -106,7 +139,62 @@ const STRUCT_STOP_BUFFER = 0.25; // colchón (ATR) bajo el soporte usado como st
 const RSI_MAX_LONG = 78; // techo anti blow-off (no entrar en clímax de compra)
 const RB_EPS = 0.01; // tolerancia anti-redondeo del gate de R/B
 
+/**
+ * Operativa = plan geométrico (lógica histórica, intacta) + marcas shadow
+ * F1/F1'/F2 calculadas POR CÓDIGO sobre ese plan. Las marcas no alteran
+ * signal/entrada/stop/target/horizonte: son telemetría persistida para medir
+ * los gates en producción sin filtrar nada (plan precisión 2026-09, §4 y §8).
+ */
 export function computeOperativa(input: OperativaInput): OperativaResult {
+  const plan = computePlan(input);
+  const currentPrice =
+    input.candles.length > 0 ? input.candles[input.candles.length - 1]!.c : null;
+  return {
+    ...plan,
+    veto_regimen: vetoRegimen(plan.signal, currentPrice, input.sma200 ?? null),
+    distancia_entrada_atr: distanciaEntradaAtr(plan, currentPrice),
+  };
+}
+
+/**
+ * SHADOW TAG F1 (veto corto sobre SMA200) + F1' (espejo obligatorio):
+ *   sell y precio > SMA200 → true · buy y precio < SMA200 → true
+ *   a favor del régimen (o precio == SMA200) → false
+ *   sin SMA200, sin precio, o hold → null (indeterminado, NO "conservado")
+ */
+export function vetoRegimen(
+  signal: Signal_t,
+  currentPrice: number | null,
+  sma200: number | null
+): boolean | null {
+  if (signal === 'hold') return null;
+  if (sma200 == null || !Number.isFinite(sma200)) return null;
+  if (currentPrice == null || !Number.isFinite(currentPrice)) return null;
+  if (signal === 'sell') return currentPrice > sma200;
+  return currentPrice < sma200;
+}
+
+/**
+ * SHADOW TAG F2: |entrada − precio actual| / ATR.
+ *   market → 0 (la entrada ES el precio actual, por construcción)
+ *   limit  → distancia en ATRs con el ATR real (`atr_actual`); null sin ATR
+ *   hold / sin entrada → null
+ * Usa `atr_actual` (el ATR crudo, el mismo que se persiste), no el fallback
+ * porcentual del plan: así la métrica es reproducible desde la fila guardada.
+ */
+export function distanciaEntradaAtr(
+  plan: Pick<OperativaPlan, 'signal' | 'entrada' | 'entry_type' | 'atr_actual'>,
+  currentPrice: number | null
+): number | null {
+  if (plan.signal === 'hold' || plan.entrada == null || plan.entry_type == null) return null;
+  if (plan.entry_type === 'market') return 0;
+  const atr = plan.atr_actual;
+  if (atr == null || !Number.isFinite(atr) || atr <= 0) return null;
+  if (currentPrice == null || !Number.isFinite(currentPrice)) return null;
+  return Math.abs(plan.entrada - currentPrice) / atr;
+}
+
+function computePlan(input: OperativaInput): OperativaPlan {
   const { candles, tendencia, levels, atr, profile } = input;
 
   // Resolución de parámetros: profile si existe, default histórico si no.
@@ -276,7 +364,7 @@ function computeLongTrendFollow(
     round: (n: number) => number;
     intervalDays: number;
   }
-): OperativaResult | null {
+): OperativaPlan | null {
   const { currentPrice, effectiveATR, minRbRatio, round, intervalDays } = ctx;
   const { fuerza, sma20, sma50, rsi, levels, atr } = input;
 

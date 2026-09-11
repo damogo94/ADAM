@@ -51,6 +51,13 @@ export const A3_OUTPUT_SCHEMA = z.object({
     // lo descartaba en silencio en la ruta runA3. nullable/optional para no
     // romper runs antiguos ni el hold (entry_type null).
     entry_type: z.enum(['market', 'limit']).nullable().optional(),
+    // Shadow tags F1/F1'/F2 (plan precisión 2026-09, R11): marcas calculadas
+    // por CÓDIGO en computeOperativa — nunca las pide el prompt @frozen ni las
+    // produce el LLM. Deben existir en AMBOS schemas (lección F8a: este objeto
+    // es strip-mode, un campo ausente aquí se pierde en silencio en runA3).
+    // nullable+optional: runs antiguos y el hold (null) siguen validando.
+    veto_regimen: z.boolean().nullable().optional(),
+    distancia_entrada_atr: z.number().nullable().optional(),
   }),
   factor_invalidacion: z.string().max(1000),
   /**
