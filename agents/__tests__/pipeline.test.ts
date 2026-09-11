@@ -348,6 +348,82 @@ describe('runADAM — happy path', () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
+// runADAM — a2TimeoutMs (R4 · plan de precisión 2026-09)
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('runADAM — a2TimeoutMs se pasa SOLO a narrateA2', () => {
+  type Opts = { traceId?: string; timeoutMs?: number } | undefined;
+
+  function captureAgents() {
+    const received: Record<'a1' | 'a2' | 'a3' | 'a4', Opts> = {
+      a1: undefined,
+      a2: undefined,
+      a3: undefined,
+      a4: undefined,
+    };
+    const agents = {
+      narrateA1: vi.fn(async (_t: string, _s: MarketSnapshot, o?: Opts) => {
+        received.a1 = o;
+        return mkA1();
+      }),
+      narrateA2: vi.fn(async (_t: string, _s: MarketSnapshot, o?: Opts) => {
+        received.a2 = o;
+        return mkA2();
+      }),
+      narrateA3: vi.fn(async (_i: unknown, o?: Opts) => {
+        received.a3 = o;
+        return mkA3();
+      }),
+      narrateA4: vi.fn(async (_i: unknown, o?: Opts) => {
+        received.a4 = o;
+        return mkA4();
+      }),
+    };
+    return { received, agents };
+  }
+
+  it('con a2TimeoutMs=45000 → narrateA2 recibe timeoutMs; A1/A3/A4 NO', async () => {
+    const { received, agents } = captureAgents();
+    await runADAM('AAPL', mkSnapshot(), {
+      a2TimeoutMs: 45_000,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agents: agents as any,
+    });
+
+    expect(agents.narrateA2).toHaveBeenCalledOnce();
+    expect(received.a2?.timeoutMs).toBe(45_000);
+    // El resto de agentes siguen con su default: ni siquiera reciben la clave.
+    expect(received.a1).not.toHaveProperty('timeoutMs');
+    expect(received.a3).not.toHaveProperty('timeoutMs');
+    expect(received.a4).not.toHaveProperty('timeoutMs');
+    // traceId sigue llegando a A2 junto con el timeout.
+    expect(typeof received.a2?.traceId).toBe('string');
+  });
+
+  it('sin a2TimeoutMs → narrateA2 no recibe la clave timeoutMs (aplica su default)', async () => {
+    const { received, agents } = captureAgents();
+    await runADAM('AAPL', mkSnapshot(), {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agents: agents as any,
+    });
+    expect(agents.narrateA2).toHaveBeenCalledOnce();
+    expect(received.a2).not.toHaveProperty('timeoutMs');
+  });
+
+  it('skipA2Narrate=true ignora a2TimeoutMs: narrateA2 NO se llama (/run intacto)', async () => {
+    const { agents } = captureAgents();
+    await runADAM('AAPL', mkSnapshot(), {
+      skipA2Narrate: true,
+      a2TimeoutMs: 45_000,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agents: agents as any,
+    });
+    expect(agents.narrateA2).not.toHaveBeenCalled();
+    expect(agents.narrateA4).toHaveBeenCalledOnce();
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
 // runADAM — resilience: fallos parciales y totales
 // ───────────────────────────────────────────────────────────────────────────
 
