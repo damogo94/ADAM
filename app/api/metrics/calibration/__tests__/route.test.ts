@@ -201,8 +201,14 @@ describe('GET /api/metrics/calibration · base_rates (R9)', () => {
     expect(g30.alcista).toMatchObject({ n: 6, hits: 4, hit_rate_pct: 66.7 });
     expect(g30.neutral).toMatchObject({ n: 6, hits: 1, hit_rate_pct: 16.7 });
     expect(g30.bajista).toMatchObject({ n: 6, hits: 1, hit_rate_pct: 16.7 });
-    // ADAM sobre las MISMAS filas (3/6) — el comparador honesto va al lado.
-    expect(g30.adam).toMatchObject({ n: 6, hits: 3, hit_rate_pct: 50 });
+    // ADAM sobre las MISMAS filas y con el MISMO umbral actual (re-puntuado, no
+    // el `hit` persistido): las 6 filas son 'positivo', así que coincide con
+    // "siempre alcista" (4/6). La fila BTC +6 lleva hit:false persistido (umbral
+    // antiguo) y es justo el caso que la celda de tasa base debe ignorar…
+    expect(g30.adam).toMatchObject({ n: 6, hits: 4, hit_rate_pct: 66.7 });
+    // …mientras que la calibración histórica (`total`) sigue usando el hit
+    // persistido: 3/6.
+    expect(body.total).toMatchObject({ n: 6, hits: 3 });
     // Ninguna fila a 7d → buckets vacíos, no NaN.
     expect(body.base_rates.global['7'].alcista).toMatchObject({ n: 0, hit_rate_pct: null });
     expect(body.base_rates.excluded_no_initial_price).toBe(0);

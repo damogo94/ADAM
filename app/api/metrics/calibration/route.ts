@@ -211,8 +211,19 @@ export async function GET() {
         const cellG = baseGlobal[h];
         const perTicker = (baseByTicker[a.ticker] ??= emptyBaseRateByHorizon());
         const cellT = perTicker[h];
-        tally(cellG.adam, r.hit);
-        tally(cellT.adam, r.hit);
+        // ADAM se re-puntúa con el MISMO umbral actual que las tres constantes
+        // (no con el `hit` persistido): filas evaluadas antes de que el cron
+        // adoptara el umbral ATR llevan el 2% fijo y no compartirían criterio
+        // con el comparador (5/964 filas divergían en prod). `total`/`by_*`
+        // siguen usando el hit persistido: son la calibración histórica.
+        const adamHit = scoreSignal({
+          direccion: dbToScoringDirection(a.direction),
+          initial_price: initial,
+          eval_price: evalPrice,
+          threshold_pct: threshold,
+        }).hit;
+        tally(cellG.adam, adamHit);
+        tally(cellT.adam, adamHit);
         for (const d of CONSTANT_DIRECTIONS) {
           const hit = scoreSignal({
             direccion: d,

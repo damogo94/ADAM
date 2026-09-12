@@ -180,7 +180,11 @@ export function vetoRegimen(
  *   limit  → distancia en ATRs con el ATR real (`atr_actual`); null sin ATR
  *   hold / sin entrada → null
  * Usa `atr_actual` (el ATR crudo, el mismo que se persiste), no el fallback
- * porcentual del plan: así la métrica es reproducible desde la fila guardada.
+ * porcentual del plan. Precio de referencia = cierre de la última vela (el
+ * mismo `currentPrice` que usa `computePlan`), que puede diferir marginalmente
+ * de `analyses_log.initial_price` (cotización en vivo con fallback al cierre):
+ * la métrica se reproduce desde `a3_output` (entrada, atr_actual, última vela),
+ * no desde `initial_price`.
  */
 export function distanciaEntradaAtr(
   plan: Pick<OperativaPlan, 'signal' | 'entrada' | 'entry_type' | 'atr_actual'>,
