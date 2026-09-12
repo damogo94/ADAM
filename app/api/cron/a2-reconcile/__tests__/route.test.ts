@@ -104,6 +104,68 @@ describe('a2-reconcile · pre-warm', () => {
   });
 });
 
+describe('a2-reconcile · timeout + conteos (R5)', () => {
+  it('narra A2 con timeoutMs=45_000 en warm y en backfill', async () => {
+    mountAdmin({
+      watchlist: [{ ticker: 'AAPL' }],
+      backfill: [
+        {
+          id: 'an-1',
+          user_id: 'u-1',
+          ticker: 'MSFT',
+          a1_output: null,
+          a3_output: VALID_A3,
+          debate_output: null,
+          created_at: '2026-06-24T00:00:00Z',
+        },
+      ],
+    });
+    await GET(req());
+    expect(narrateA2).toHaveBeenCalledTimes(2);
+    for (const call of vi.mocked(narrateA2).mock.calls) {
+      expect(call[2]).toMatchObject({ timeoutMs: 45_000 });
+    }
+  });
+
+  it('el JSON reporta warmed/backfilled/failed con conteos', async () => {
+    mountAdmin({
+      watchlist: [{ ticker: 'AAPL' }, { ticker: 'MSFT' }],
+      backfill: [
+        {
+          id: 'an-1',
+          user_id: 'u-1',
+          ticker: 'NVDA',
+          a1_output: null,
+          a3_output: VALID_A3,
+          debate_output: null,
+          created_at: '2026-06-24T00:00:00Z',
+        },
+      ],
+    });
+    // 1º warm falla (A2 caído), 2º warm OK, backfill OK.
+    vi.mocked(narrateA2)
+      .mockRejectedValueOnce(new Error('Request timed out.'))
+      .mockResolvedValue({ opportunity_detected: false } as never);
+
+    const res = await GET(req());
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body).toMatchObject({
+      warmed: 1,
+      warm_candidates: 2,
+      warm_errors: 1,
+      backfilled: 1,
+      backfill_candidates: 1,
+      backfill_errors: 0,
+      backfill_skipped: 0,
+      failed: 1,
+      budget_cut: false,
+      a2_timeout_ms: 45_000,
+    });
+    expect(typeof body.duration_ms).toBe('number');
+  });
+});
+
 describe('a2-reconcile · backfill', () => {
   it('fila null-A2 con A3 válido → narra A2 + consolida con analysisId/userId', async () => {
     mountAdmin({

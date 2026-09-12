@@ -23,9 +23,11 @@ export interface NarrateA2Options {
   traceId?: string;
   onUsage?: (u: AgentUsage) => void;
   /**
-   * Timeout per-call. Default 25s para callers dentro del pipeline.
-   * /api/agents/a2 standalone lo sube a 45s porque su lambda dedicado
-   * (60s) puede absorberlo sin riesgo.
+   * Timeout per-call. Default 25s (DEFAULT_TIMEOUT_MS de lib/anthropic.ts)
+   * para callers dentro del pipeline /run. Lo suben a 45s los callers con
+   * lambda holgado: /api/agents/a2 standalone (60s dedicados), el cron
+   * a2-reconcile y el cron watchlist-scan vía `RunADAMOptions.a2TimeoutMs`
+   * (ambos con maxDuration 300s).
    */
   timeoutMs?: number;
 }
@@ -80,7 +82,11 @@ export async function narrateA2(
     // macro_context.narrative 1000 chars + opportunity_description 600,
     // estructura ~500 tokens → total tipico ~1500-1800 tokens. 2500
     // da cushion sin invitar al modelo a alargarse y comerse el budget
-    // de timeout (visto P99 ~26-28s causando timeouts en prod).
+    // de timeout. Medido en producción (plan de precisión 2026-09, R4/R5):
+    // con el timeout por defecto de 25s A2 falla 257/260 llamadas (el P50
+    // de latencia del análisis completo ronda ~58s) — NO es un P99 de
+    // 26-28s. El default NO se sube (presupuesto 60s de /run); los callers
+    // con lambda de 300s (crons) y el standalone pasan 45s vía timeoutMs.
     maxTokens: 2500,
     onUsage,
     timeoutMs,

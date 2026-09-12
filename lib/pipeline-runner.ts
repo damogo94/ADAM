@@ -33,6 +33,15 @@ export interface RunForUserFailure {
 
 export type RunForUserOutcome = RunForUserResult | RunForUserFailure;
 
+export interface RunForUserOptions {
+  /**
+   * Timeout (ms) para la llamada inline a A2 dentro de runADAM. Se reenvía tal
+   * cual como `RunADAMOptions.a2TimeoutMs` — SOLO afecta a narrateA2. El cron
+   * watchlist-scan pasa 45_000 (lambda de 300s); sin valor, A2 usa su default.
+   */
+  a2TimeoutMs?: number;
+}
+
 /**
  * Construye la fila de `analyses_log` a partir del resultado de runADAM. SSOT del
  * shape del insert: lo comparten `/api/agents/run` (endpoint) y `runForUser` (cron
@@ -81,7 +90,8 @@ export function buildAnalysesLogRow(params: {
  */
 export async function runForUser(
   userId: string,
-  ticker: string
+  ticker: string,
+  options: RunForUserOptions = {}
 ): Promise<RunForUserOutcome> {
   try {
     // ── Data fetch + snapshot (compartido con /api/agents/run) ──
@@ -99,6 +109,7 @@ export async function runForUser(
     const usages: AgentUsage[] = [];
     const result = await runADAM(ticker, snapshot, {
       onUsage: (u) => usages.push(u),
+      ...(options.a2TimeoutMs !== undefined ? { a2TimeoutMs: options.a2TimeoutMs } : {}),
     });
 
     const tokensUsed = usages.reduce(
