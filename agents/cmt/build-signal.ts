@@ -8,7 +8,8 @@
  *   - números (entrada/stop/target/R-B/indicadores/confianza/invalidación) →
  *     del compute, con R/B≥1.5 FORZADO en código. Cero alucinación aritmética.
  *   - nivel (urgente/atención/monitorear/sin_señal) → mapeo determinista desde
- *     signal + R/B + confianza + entry_type + MTF.
+ *     signal + R/B + entry_type + distancias en ATR (ver `classifyCMTLevel`:
+ *     el nivel describe TIPO DE ENTRADA / ALCANZABILIDAD, no calidad).
  *   - setup_detected → template determinista con los hechos ya calculados.
  *
  * Beneficios: gratis (0 tokens), instantáneo (0 latencia LLM, el lambda de 60s
@@ -57,12 +58,17 @@ export function buildCMTSignal(input: CMTBuildInput): CMTOutput {
   });
 
   const op = compute.operativa;
+  // Distancias en ATR para el nivel. El ATR sale SIEMPRE del compute
+  // (`operativa.atr_actual`, ATR14 sobre el OHLCV) — nunca de |stop−entrada|,
+  // que en el generador es una función del propio ATR (stop = nivel ± ATR) y
+  // haría circular la medida. Último cierre = última vela del daily.
+  const lastClose = input.ohlcv.length > 0 ? input.ohlcv[input.ohlcv.length - 1]!.c : null;
   const level = classifyCMTLevel({
     signal: op.signal,
     rb: op.ratio_riesgo_beneficio,
-    confidence: compute.confidence,
     entryType: op.entry_type ?? null,
-    mtfDivergent: compute.mtf?.alignment === 'divergent',
+    entryDistanceAtr: distanceInAtr(op.entrada, lastClose, op.atr_actual),
+    targetDistanceAtr: distanceInAtr(op.target, op.entrada, op.atr_actual),
   });
 
   const signal: CMTOutput = {
@@ -85,27 +91,83 @@ export function buildCMTSignal(input: CMTBuildInput): CMTOutput {
 }
 
 /**
- * Mapeo determinista del nivel CMT desde el compute. Umbrales explícitos
- * (alineados con las definiciones del prompt legacy), tuneables con datos de
- * outcomes:
- *   - hold / R/B<1.5            → sin_senal (lo descarta el scan, sin persistir)
- *   - R/B≥2.5 · conf≥70 · entrada a mercado · MTF no divergente → urgente
- *   - R/B≥1.8 · conf≥50        → atencion
- *   - resto (R/B≥1.5)          → monitorear
+ * R/B mínimo para que la señal exista como tal (por debajo → `sin_senal`, el
+ * scan la descarta sin persistir). Coincide con el default del compute.
+ */
+const MIN_RB_SIGNAL = 1.5;
+
+/**
+ * Distancia máxima (en ATR) entre el último cierre y una entrada LÍMITE para
+ * considerarla alcanzable a corto plazo. Umbral de F2 del plan de precisión
+ * 2026-09: in-sample, las límite rellenadas ganadoras estaban todas a ≤1.7 ATR
+ * y por encima de 2 ATR no hubo ninguna ganada (0W/16L/12NF). Es una marca de
+ * alcanzabilidad, NO un filtro: la señal se emite igual, solo cambia el nivel.
+ */
+export const ENTRY_REACH_ATR = 2;
+
+/**
+ * Cota de coherencia target↔ventana (F3 del plan). El horizonte del compute
+ * modela el tiempo hasta el target como K² barras con K = |target−entrada|/ATR
+ * (`horizonteFromTarget`, paseo aleatorio). El cron `evaluate-signal-trades`
+ * evalúa toda señal 1D en una ventana de 30 días naturales (`WINDOW_DAYS`), así
+ * que un target a más de √30 ≈ 5.48 ATR no cabe estadísticamente en su propia
+ * ventana de evaluación. La constante se DERIVA del código (K² ↔ 30d), no se
+ * eligió mirando la muestra. Si cambia `WINDOW_DAYS`, cambia esto con él.
+ */
+export const TARGET_MAX_ATR = Math.sqrt(30);
+
+/**
+ * Mapeo determinista del nivel CMT desde el compute.
+ *
+ * SEMÁNTICA (plan de precisión 2026-09 · R10): el nivel describe el TIPO DE
+ * ENTRADA y su ALCANZABILIDAD — cuándo y si la orden puede ejecutarse y el
+ * target caber en la ventana de evaluación — y NO una prioridad de calidad.
+ * La versión anterior hacía `urgente` ≈ "venta a mercado con R/B≥2.5 y
+ * confianza≥70", que in-sample fue 0W/11L mientras el radar lo mostraba como
+ * la señal "mejor". Confianza y MTF ya viajan en `confidence_pct`/`indicators`;
+ * aquí no votan.
+ *
+ *   - hold / R/B null / R/B<1.5                 → sin_senal (no se persiste)
+ *   - K = |target−entrada|/ATR > √30 ≈ 5.48     → monitorear (target incoherente
+ *                                                  con la ventana de 30d, sea
+ *                                                  cual sea el tipo de entrada)
+ *   - entrada a mercado                          → urgente   (ejecutable hoy)
+ *   - límite a ≤ 2 ATR del último cierre         → atencion  (alcanzable)
+ *   - límite a > 2 ATR, o distancia no medible   → monitorear
+ *
+ * Las distancias las calcula `buildCMTSignal` con el ATR del compute
+ * (`operativa.atr_actual`); `null` = ATR no disponible. El enum de DB
+ * (`signal_level`) y el shape de `CMTOutput` no cambian.
  */
 export function classifyCMTLevel(p: {
   signal: 'buy' | 'sell' | 'hold';
   rb: number | null;
-  confidence: number;
   entryType: 'market' | 'limit' | null;
-  mtfDivergent: boolean;
+  /** |entrada − último cierre| / ATR. null si no hay ATR o entrada. */
+  entryDistanceAtr: number | null;
+  /** K = |target − entrada| / ATR. null si no hay ATR, target o entrada. */
+  targetDistanceAtr: number | null;
 }): CMTLevel {
-  if (p.signal === 'hold' || p.rb == null || p.rb < 1.5) return 'sin_senal';
+  if (p.signal === 'hold' || p.rb == null || p.rb < MIN_RB_SIGNAL) return 'sin_senal';
 
-  const immediate = p.entryType === 'market';
-  if (p.rb >= 2.5 && p.confidence >= 70 && immediate && !p.mtfDivergent) return 'urgente';
-  if (p.rb >= 1.8 && p.confidence >= 50) return 'atencion';
+  // Coherencia target↔ventana: aplica a cualquier tipo de entrada — una orden a
+  // mercado se rellena hoy pero su target no cabe en los 30d del cron.
+  if (p.targetDistanceAtr != null && p.targetDistanceAtr > TARGET_MAX_ATR) return 'monitorear';
+
+  if (p.entryType === 'market') return 'urgente';
+  if (p.entryType === 'limit' && p.entryDistanceAtr != null && p.entryDistanceAtr <= ENTRY_REACH_ATR) {
+    return 'atencion';
+  }
   return 'monitorear';
+}
+
+/**
+ * |a − b| / atr, o null si falta cualquier operando o el ATR no es positivo.
+ * Helper puro para las distancias del nivel; exportado para poder testearlo.
+ */
+export function distanceInAtr(a: number | null, b: number | null, atr: number | null): number | null {
+  if (a == null || b == null || atr == null || !(atr > 0)) return null;
+  return Math.abs(a - b) / atr;
 }
 
 function buildSetupDetected(c: ComputeTechnicalOutput, level: CMTLevel): string {
