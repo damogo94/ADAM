@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimitByIP } from '@/lib/api-helpers';
+import { computeTrackRecord } from '@/components/signals/helpers';
 import type { SignalHistory, SignalTradeOutcome } from '@/types/db';
 
 export const runtime = 'nodejs';
@@ -10,12 +11,20 @@ export const runtime = 'nodejs';
 export type SignalWithOutcome = SignalHistory & { outcome: SignalTradeOutcome | null };
 
 /**
- * GET /api/signals → últimas 50 signals del user autenticado + su outcome.
+ * GET /api/signals → últimas 50 signals del user autenticado + su outcome +
+ * `track` (track record por fila Y por cluster, mismo helper que la UI).
  *
  * RLS filtra las señales por user_id = auth.uid(). Los outcomes viven en
  * signal_trade_outcomes (service-role only, sin policies), así que se leen con
  * el admin client PERO acotados a los signal_ids del propio usuario (que ya
  * salieron de la query con RLS) → sin fuga de datos entre usuarios.
+ *
+ * `track` (R9): la cifra por fila está inflada por la reemisión diaria del
+ * mismo nivel (cmt/scan). `track.clusters` colapsa ticker + dirección + entrada
+ * ±1% + ≤CLUSTER_GAP_DAYS en una observación (fila más antigua = representativa)
+ * y suma el R de esas representativas. Se calcula con `computeTrackRecord`
+ * (components/signals/helpers.ts) — el MISMO helper que usa el radar — para que
+ * API y UI publiquen el mismo número.
  */
 export async function GET(req: NextRequest) {
   const rl = await rateLimitByIP(req, 'quote');
@@ -68,5 +77,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ signals: merged, stats });
+  // Track record por fila y por cluster — ver docstring. Solo cuenta filas
+  // resueltas (win/loss/timeout); no_fill y en seguimiento quedan fuera.
+  const track = computeTrackRecord(merged);
+
+  return NextResponse.json({ signals: merged, stats, track });
 }

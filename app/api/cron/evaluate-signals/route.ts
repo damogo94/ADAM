@@ -47,6 +47,16 @@ export async function GET(req: NextRequest) {
     // Maturity cutoff: analisis con initial_price_at <= (now - horizon dias)
     const cutoffISO = new Date(now - horizon * 86_400_000).toISOString();
 
+    // HORIZONTE EFECTIVO = [h, h+1) días, NO exactamente h. El cron corre 1x/día
+    // y puntúa con el precio ACTUAL (fallbackQuote) en la primera ejecución en
+    // que initial_price_at <= now - h. Como entre ejecuciones pasan 24h, la
+    // antigüedad real de la fila al puntuar cae en [h, h+1) días (p.ej. "7d" mide
+    // entre 7.0 y 8.0 días; "30d" entre 30.0 y 31.0). Solo se desvía si la fila
+    // se saltó (quote_unavailable, error) y se recoge en un run posterior: ahí
+    // puede superar h+1. La antigüedad real es auditable como
+    // signal_outcomes.evaluated_at − analyses_log.initial_price_at.
+    // Cualquier tasa por horizonte (calibración, tasa base) hereda esta ventana.
+
     // Trae candidatos: con initial_price_at <= cutoff, que NO tengan ya
     // outcome para este horizon. Postgrest no soporta NOT EXISTS limpio
     // con embedding; hacemos dos queries y diffeamos en memoria.

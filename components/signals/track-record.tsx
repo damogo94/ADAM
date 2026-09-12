@@ -45,11 +45,55 @@ export function TrackRecordPanel({ track }: { track: TrackRecord }) {
                     </span>
                   </>
                 )}
+                {track.sumR != null && (
+                  <>
+                    {' · Σ '}
+                    <RSpan r={track.sumR} />
+                  </>
+                )}
               </div>
+              {/* Cifra por fila = una fila por reemisión diaria del mismo nivel.
+                  El n efectivo es el número de clusters (ticker + dirección +
+                  entrada ±1% + ≤3 días); cada cluster cuenta por su fila más
+                  antigua. Texto sobrio: es una nota de medición, no un juicio. */}
+              <ClusterLine c={track.clusters} />
             </>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** R con color semántico (dato de resultado, no chrome). */
+function RSpan({ r }: { r: number }) {
+  return (
+    <span className={cn('font-medium tabular-nums', r >= 0 ? 'text-emerald' : 'text-rose')}>
+      {r >= 0 ? '+' : ''}
+      {r.toFixed(1)}R
+    </span>
+  );
+}
+
+function ClusterLine({ c }: { c: TrackRecord['clusters'] }) {
+  return (
+    <div className="mt-1 font-mono text-[11px] leading-snug text-ink/45">
+      <span className="text-ink/66">
+        por cluster · n={c.n} · {c.win}W/{c.loss}L
+        {c.timeout > 0 ? `/${c.timeout}T` : ''}
+        {c.hitRate != null ? ` · ${c.hitRate}%` : ''}
+        {c.sumR != null && (
+          <>
+            {' · Σ '}
+            <RSpan r={c.sumR} />
+          </>
+        )}
+      </span>
+      {' — '}
+      la cifra por fila cuenta cada reemisión diaria del mismo nivel; el cluster
+      agrupa ticker + dirección + entrada ±{c.entryTolerancePct}% + ≤{c.gapDays} días
+      y cuenta por su fila más antigua
+      {c.unclustered > 0 ? ` (${c.unclustered} sin cluster)` : ''}.
     </div>
   );
 }
