@@ -12,7 +12,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['scripts/**/*.ts'],
-    exclude: ['node_modules', '.next'],
+    // scripts/lib = helpers puros de los harnesses (gates/stats, ADR-0006) y sus
+    // tests unitarios: no son harnesses (vitest fallaría con "no test suite") y
+    // sus __tests__ ya corren en el `pnpm test` normal (vitest.config.ts).
+    exclude: ['node_modules', '.next', 'scripts/lib/**'],
     testTimeout: 120000,
   },
   resolve: {
