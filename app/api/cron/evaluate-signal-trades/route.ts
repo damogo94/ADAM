@@ -10,7 +10,8 @@
  * niveles completos (entry/stop/target NOT NULL), timeframe '1D' y SIN fila en
  * signal_trade_outcomes:
  *   1. infiere la dirección de la geometría (lib/backtest/signal-plan); degenerada
- *      → not_evaluable (terminal, no se reintenta).
+ *      → not_evaluable (terminal, no se reintenta). Lo mismo si `entry_type` es
+ *      NULL/desconocido: sin tipo de entrada no hay plan (ver abajo).
  *   2. fetcha velas diarias (Yahoo, 1y) y las acota a (emitted_at, ventana].
  *   3. corre evaluateTrade() — función pura (lib/backtest/trade-eval, reutilizada).
  *   4. si resuelve → persiste; si sigue 'pending' → reintenta mañana.
@@ -20,8 +21,17 @@
  * determinista (buildCMTSignal) ya solo emite '1D' — el intraday alimenta el MTF,
  * no genera señales 1H — así que el filtro queda como back-compat defensivo.
  *
- * entry_type siempre 'market': CMT no expone tipo de entrada → asumimos entrada
- * al entry_price en la emisión.
+ * entry_type (migración 0019 + R1 del plan de precisión 2026-09): la señal lleva
+ * `entry_type` ('market' | 'limit' | NULL en filas viejas). Se pasa TAL CUAL a
+ * `buildSignalTradePlan`, que NUNCA degrada a 'market': un límite solo se rellena
+ * si una vela posterior toca el nivel (si no → no_fill), y un NULL no produce
+ * plan → se persiste `not_evaluable` (terminal). Asumir 'market' fabricaba fills
+ * fantasma (13 filas en producción; purga en scripts/sql/2026-09-11-purge-phantom-cmt-fills.sql).
+ *
+ * Re-evaluación: la selección de candidatas NO acota `emitted_at` — cualquier
+ * señal 1D con niveles y SIN fila en signal_trade_outcomes vuelve a entrar. Así,
+ * borrar una fila de outcome basta para que el cron la re-evalúe al día siguiente
+ * (con el único límite de que Yahoo `1y` aún cubra la ventana de la señal).
  *
  * Seguridad: CRON_SECRET (Bearer). service_role bypassa RLS.
  */
@@ -31,7 +41,7 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { requireCronSecret } from '@/lib/api-helpers';
 import { fallbackDaily } from '@/lib/market/finnhub';
 import { evaluateTrade, type EvalCandle } from '@/lib/backtest/trade-eval';
-import { buildSignalTradePlan } from '@/lib/backtest/signal-plan';
+import { buildSignalTradePlan, inferSignalDirection } from '@/lib/backtest/signal-plan';
 import * as Sentry from '@sentry/nextjs';
 
 export const runtime = 'nodejs';
@@ -59,7 +69,7 @@ export async function GET(req: NextRequest) {
 
   const admin = createSupabaseAdmin();
   const now = Date.now();
-  const resolved: { signal_id: string; outcome: string }[] = [];
+  const resolved: { signal_id: string; outcome: string; reason?: string }[] = [];
   const skipped: { signal_id: string; reason: string }[] = [];
   let pendingCount = 0;
 
@@ -112,12 +122,17 @@ export async function GET(req: NextRequest) {
     const windowEndMs = startMs + WINDOW_DAYS * DAY_MS;
     const windowElapsed = now >= windowEndMs;
 
-    // Dirección inferida de la geometría. Degenerada → not_evaluable terminal.
-    // entry_type real (limit/market): una orden límite no rellenada NO es un trade.
+    // Dirección inferida de la geometría + entry_type REAL de la señal. Sin plan
+    // (geometría degenerada, o entry_type NULL/desconocido — nunca se asume
+    // 'market') → not_evaluable terminal. Se persiste la dirección inferida (si
+    // la hay) y entry_type null para que la fila sea auditable: distingue "sin
+    // tipo de entrada" de "geometría rota" sin tocar el enum de outcome.
     const plan = buildSignalTradePlan(c.entry_price, c.stop_loss, c.target_price, c.entry_type);
     if (!plan) {
-      await persist(admin, c, {
-        direction: null,
+      const direction = inferSignalDirection(c.entry_price, c.stop_loss, c.target_price);
+      const reason = direction ? 'entry_type_unknown' : 'degenerate_geometry';
+      const insErr = await persist(admin, c, {
+        direction,
         entry_type: null,
         outcome: 'not_evaluable',
         exit_price: null,
@@ -125,7 +140,15 @@ export async function GET(req: NextRequest) {
         r_multiple: null,
         resolved_days: null,
       });
-      resolved.push({ signal_id: c.id, outcome: 'not_evaluable' });
+      if (insErr && insErr.code !== '23505') {
+        // eslint-disable-next-line no-console
+        console.error('[cron] evaluate-signal-trades insert failed:', insErr.message);
+        Sentry.captureMessage('cron evaluate-signal-trades insert failed', {
+          extra: { signal_id: c.id, error: insErr.message },
+        });
+        continue;
+      }
+      resolved.push({ signal_id: c.id, outcome: 'not_evaluable', reason });
       continue;
     }
 
