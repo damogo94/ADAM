@@ -151,3 +151,45 @@ con este ADR — si alguien cambia un umbral, el test rompe y el cambio exige un
 - No re-correr con umbrales distintos sobre el mismo test; una segunda versión de umbrales = ADR-007 con holdout
   de régimen distinto.
 - No leer los 23 CMT / 21 QQQ pendientes para ajustar nada.
+
+---
+
+## Resultado (2026-09-12) — añadido tras la corrida; el bloque hasheado de arriba NO se ha tocado
+
+Corrida: `scripts/out/multiregime-2026-09-11.{json,md}` (run_at real 2026-09-12; hash de umbrales verificado
+en runtime = el de este ADR). Sanity buy legacy: **PASS** en offset 1 (gross +0.069R, neto@10/40 +0.026R); offset 0
+dio +0.105R / +0.060R (una vela de desplazamiento mueve la media ~0.04R → N efectivo ≪ N; las cifras puntuales de
+ADR-004 se leen con esa varianza).
+
+**Decisión mecánica · F1∪F3 → descartado.** No es candidato a paper-trading:
+
+| criterio | resultado |
+|---|---|
+| Primario (neto@20/80 rellenado, IC95 lo > 0) | **FALLA**: media −0.313R, IC95 [−0.527, −0.085], N=403, rellenados 197, n_eff 187 |
+| Conservación bull (Δ ≥ −0.05R) | ok (+0.142) |
+| Conservación bear | **FALLA** (−0.172) |
+| Conservación lateral | **FALLA** (−0.392) |
+| Supera "ningún corto" (0R) | no |
+| Supera "ningún corto en index_etf/commodity" (−0.311R) | no |
+
+El corto de producción (`A3_LONG_TREND_FOLLOW=OFF`, compute idéntico a prod) tiene expectativa **negativa
+multi-régimen incluso gross** (−0.240R sobre 425 planes rellenados; net@20/80 −0.337R, IC95 [−0.487, −0.167]) y en
+los tres regímenes. F1∪F3 vetó 315 planes (28 ganadores, ΣR +91.9; 172 perdedores, ΣR −172) y no rescata la
+expectativa. Todo ello es **cota superior** (sin CRSP faltan los deslistados a cero). Exploratorios: nada rechaza H0
+tras Holm; con signo a favor pero no significativos, F1' espejo en la rama buy stub (Δ +0.030R, p=0.13) y F2@3
+(Δ +0.031R por plan emitido, p=0.13) — solo hipótesis para un ADR-007 con holdout de régimen distinto, no para
+re-testear sobre esta corrida.
+
+**Consecuencia:** F1/F2/F3 quedan como *shadow tags* informativos en `a3_output.operativa` (`veto_regimen`,
+`distancia_entrada_atr`; bloque R11 del plan) y como niveles de alcanzabilidad en el CMT (R10). Ningún flag de
+presentación, ninguna operativa filtrada, nada tradeable.
+
+## Fe de erratas (2026-09-12) — solape de ventana con la muestra vetada
+
+Este ADR veta la muestra live may–ago 2026 como test, pero la ventana del harness termina en `run_at`
+(2026-09-12): los planes swing/intradía emitidos hasta ~2026-08-13 y los posicionales hasta ~2026-05-15 del mismo
+periodo que generó las hipótesis entran en el conjunto evaluado. El solape es pequeño respecto a 10 años de
+datos y NO se ha corregido a posteriori para no tocar la corrida pre-registrada. Para ADR-007: fijar `window_end`
+en el bloque hasheado (p.ej. 2026-04-30) y reportar la corrida de esta v1 como "con solape". Una corrida de
+robustez con `period2 = 2026-04-30` puede ejecutarse y reportarse como tal (más estricta, sin tunear nada), pero
+no sustituye al primario ya registrado.

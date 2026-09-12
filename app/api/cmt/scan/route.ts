@@ -301,7 +301,17 @@ async function handleManual(selectedTickers: string[] | null = null) {
     .eq('user_id', user.id)
     .eq('is_default', true)
     .maybeSingle<{ id: string }>();
-  if (!watchlist) return NextResponse.json({ scanned: 0, persisted: 0, results: [] });
+  // Mismo contrato que el return normal del path manual (incluye deduped/selected)
+  // para que el consumidor no tenga que tratar dos shapes del mismo endpoint.
+  if (!watchlist) {
+    return NextResponse.json({
+      scanned: 0,
+      persisted: 0,
+      deduped: 0,
+      selected: selectedTickers !== null,
+      results: [],
+    });
+  }
 
   const { data: items } = await supabase
     .from('watchlist_items')

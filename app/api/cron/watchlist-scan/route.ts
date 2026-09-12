@@ -48,10 +48,12 @@ import { isCryptoTicker } from '@/lib/market/crypto-registry';
 export const runtime = 'nodejs';
 // Vercel maxDuration es por invocación (300s aquí; los crons corren con ese
 // techo, no con los 60s de las lambdas de usuario). Un ticker con A2 a 45s
-// cuesta ~75s worst-case (ver el presupuesto en agents/pipeline.ts), así que
-// caben ~3 tickers por corrida dentro de TIME_BUDGET_MS. Lo que no cabe se
-// marca `skipped_budget` y lo retoma el siguiente cron (el skip de "recent
-// analysis" maneja la idempotencia).
+// cuesta ~75s worst-case sin reintentos y ~90s si el SDK reintenta A2 (ver el
+// presupuesto en agents/pipeline.ts), así que caben ~3 tickers por corrida
+// dentro de TIME_BUDGET_MS. Lo que no cabe se marca `skipped_budget` y lo
+// retoma el siguiente cron (el skip de "recent analysis" maneja la
+// idempotencia). Pendiente (T3): contrastar `duration_ms` real por ticker tras
+// recargar crédito y ajustar EST_MS_PER_TICKER con datos.
 export const maxDuration = 300;
 
 const CAP_TICKERS_PER_USER = 10;
@@ -69,10 +71,13 @@ const A2_TIMEOUT_MS = 45_000;
  * R6 · Presupuesto de tiempo, como en a2-reconcile: corta antes de que Vercel
  * mate el lambda (300s). EST_MS_PER_TICKER es el worst-case de una corrida
  * completa con A2 a 45s (~5s datos + 45s A1/A2/A3 en paralelo + ~15s Debate
- * + ~6s A4 + overhead) — ver agents/pipeline.ts.
+ * + ~6s A4 + overhead ≈ 75s) MÁS el margen del reintento del SDK sobre A2
+ * (maxRetries:1 en lib/anthropic.ts sí reintenta timeouts → hasta ~90s). Con
+ * 240s de presupuesto siguen cabiendo 3 tickers; el último aceptado arranca
+ * como tarde a ~150s y termina antes de los 300s aunque Debate o A4 reintenten.
  */
 const TIME_BUDGET_MS = 240_000;
-const EST_MS_PER_TICKER = 75_000;
+const EST_MS_PER_TICKER = 90_000;
 
 interface UserRow {
   user_id: string;

@@ -71,6 +71,11 @@ order by s.emitted_at;
 -- / 39 no_fill / 2 timeout (n=89).
 --
 -- ─────────────────────────────────────────────────────────────────────────────
+-- ORDEN OBLIGATORIO: (b0) ANTES de (b). Si (b) ya corrió sin (b0), el cron habrá
+-- escrito 'not_evaluable' (terminal: existencia de fila = resuelto) para las 4
+-- señales NULL y el UPDATE posterior NO las re-evaluará. En ese caso, tras (b0),
+-- repetir (b) acotado a esos 4 signal_id (delete ... where signal_id in (...)).
+-- ─────────────────────────────────────────────────────────────────────────────
 -- (b0) OPCIONAL, ANTES DEL DELETE — recuperar el entry_type de las 4 señales NULL.
 --      Se emitieron el 2026-07-11 21:08 (misma pasada del cron), DESPUÉS de que
 --      corriera el backfill de 0019, por lo que quedaron sin rellenar aunque su
