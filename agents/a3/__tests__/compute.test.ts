@@ -142,6 +142,61 @@ describe('computeTechnical — reglas operativas', () => {
   });
 });
 
+describe('computeTechnical — shadow tags F1/F1\'/F2 (solo marcas, R11)', () => {
+  it('<200 velas (sma200 null) → veto_regimen null aunque haya operativa', () => {
+    const out = computeTechnical({
+      ticker: 'TEST',
+      ohlcv: linearDown(100, 200, 1),
+      timeframe: '1D',
+    });
+    expect(out.medias.sma200).toBeNull();
+    expect(out.operativa.veto_regimen).toBeNull();
+  });
+
+  it('≥200 velas → veto_regimen coherente con signal × (precio vs sma200) del propio output', () => {
+    // Serie bajista larga: precio actual por debajo de la SMA200. Si emite sell
+    // va a favor del régimen (false); si emite buy va en contra (true); hold → null.
+    const ohlcv = linearDown(250, 400, 1);
+    const out = computeTechnical({ ticker: 'TEST', ohlcv, timeframe: '1D' });
+    const price = ohlcv[ohlcv.length - 1]!.c;
+    const sma200 = out.medias.sma200!;
+    expect(sma200).not.toBeNull();
+    expect(price).toBeLessThan(sma200);
+    const { signal, veto_regimen } = out.operativa;
+    if (signal === 'hold') expect(veto_regimen).toBeNull();
+    else if (signal === 'sell') expect(veto_regimen).toBe(false);
+    else expect(veto_regimen).toBe(true);
+  });
+
+  it('distancia_entrada_atr coherente con entry_type (market → 0, limit → |Δ|/ATR, hold → null)', () => {
+    const scenarios = [linearUp(250, 100, 0.5), linearDown(250, 400, 1), sideways(100, 95, 105)];
+    for (const ohlcv of scenarios) {
+      const out = computeTechnical({ ticker: 'TEST', ohlcv, timeframe: '1D' });
+      const op = out.operativa;
+      const price = ohlcv[ohlcv.length - 1]!.c;
+      if (op.signal === 'hold') {
+        expect(op.distancia_entrada_atr).toBeNull();
+      } else if (op.entry_type === 'market') {
+        expect(op.distancia_entrada_atr).toBe(0);
+      } else {
+        expect(op.distancia_entrada_atr).toBeCloseTo(
+          Math.abs(op.entrada! - price) / op.atr_actual!,
+          10
+        );
+      }
+    }
+  });
+
+  it('las marcas viajan en el output y pasan el schema strict (no se pierden en el merge)', () => {
+    const out = computeTechnical({ ticker: 'TEST', ohlcv: linearUp(250, 100, 0.5), timeframe: '1D' });
+    expect('veto_regimen' in out.operativa).toBe(true);
+    expect('distancia_entrada_atr' in out.operativa).toBe(true);
+    const parsed = A3WithoutNarrative.parse(out);
+    expect(parsed.operativa.veto_regimen).toBe(out.operativa.veto_regimen);
+    expect(parsed.operativa.distancia_entrada_atr).toBe(out.operativa.distancia_entrada_atr);
+  });
+});
+
 describe('computeTechnical — campos específicos', () => {
   it('serie alcista → tendencia primaria alcista', () => {
     const out = computeTechnical({

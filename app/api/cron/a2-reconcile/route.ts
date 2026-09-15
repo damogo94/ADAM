@@ -55,6 +55,20 @@ const WARM_CAP = 20; // tickers distintos de watchlist a pre-calentar
 const BACKFILL_CAP = 12; // filas null-A2 a rellenar por ejecución
 const BACKFILL_WINDOW_HOURS = 72; // < 7d (horizonte mínimo de signal_outcomes)
 const TIME_BUDGET_MS = 240_000; // corta antes de que Vercel mate el lambda (300s)
+/**
+ * R5 · Timeout por llamada a narrateA2. Antes 30s: medido en prod, A2/Sonnet a
+ * 25-30s fallaba en la inmensa mayoría de llamadas (257/260 a 25s) → el cron
+ * calentó solo 34 filas en ~36 días. 45s es el único valor con evidencia de
+ * funcionar (app/api/agents/a2/route.ts). Este lambda tiene 300s, así que el
+ * presupuesto aguanta; el corte por TIME_BUDGET_MS deja hueco para una llamada
+ * entera (con el retry del SDK, worst-case ~2× el timeout).
+ */
+const A2_TIMEOUT_MS = 45_000;
+
+/** True si ya no cabe una llamada más a A2 dentro del presupuesto. */
+function budgetExhausted(t0: number): boolean {
+  return Date.now() - t0 + A2_TIMEOUT_MS > TIME_BUDGET_MS;
+}
 
 /**
  * Snapshot stub para narrateA2 — solo macro_snapshot se lee (ver
@@ -93,14 +107,20 @@ export async function GET(req: NextRequest) {
   // ── FASE A · PRE-WARM ──────────────────────────────────────────────────────
   let warmed = 0;
   let warmErrors = 0;
+  let warmCandidates = 0;
+  let budgetCut = false;
   try {
     const { data: items } = await admin.from('watchlist_items').select('ticker');
     const tickers = [...new Set((items ?? []).map((i) => i.ticker))].slice(0, WARM_CAP);
+    warmCandidates = tickers.length;
     for (const ticker of tickers) {
-      if (Date.now() - t0 > TIME_BUDGET_MS) break;
+      if (budgetExhausted(t0)) {
+        budgetCut = true;
+        break;
+      }
       try {
         // narrateA2 mira caché primero: hit → 0 tokens; miss → narra + persiste.
-        await narrateA2(ticker, macroStub(ticker, macro), { timeoutMs: 30_000 });
+        await narrateA2(ticker, macroStub(ticker, macro), { timeoutMs: A2_TIMEOUT_MS });
         warmed++;
       } catch {
         warmErrors++;
@@ -116,6 +136,7 @@ export async function GET(req: NextRequest) {
   let backfilled = 0;
   let backfillErrors = 0;
   let backfillSkipped = 0;
+  let backfillCandidates = 0;
   try {
     const cutoffISO = new Date(Date.now() - BACKFILL_WINDOW_HOURS * 3_600_000).toISOString();
     const { data: rows, error } = await admin
@@ -133,8 +154,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    backfillCandidates = rows?.length ?? 0;
     for (const row of rows ?? []) {
-      if (Date.now() - t0 > TIME_BUDGET_MS) break;
+      if (budgetExhausted(t0)) {
+        budgetCut = true;
+        break;
+      }
 
       // a3 es obligatorio para que A4 tenga la pata técnica; sin él, skip.
       const a3Parsed = A3Output.safeParse(row.a3_output);
@@ -155,7 +180,7 @@ export async function GET(req: NextRequest) {
 
       let a2: A2Output_t | null = null;
       try {
-        a2 = await narrateA2(row.ticker, macroStub(row.ticker, macro), { timeoutMs: 30_000 });
+        a2 = await narrateA2(row.ticker, macroStub(row.ticker, macro), { timeoutMs: A2_TIMEOUT_MS });
       } catch {
         // A2 no disponible ahora → no podemos rellenar esta fila; reintento futuro.
         backfillErrors++;
@@ -189,18 +214,28 @@ export async function GET(req: NextRequest) {
   }
 
   const durationMs = Date.now() - t0;
+  const failed = warmErrors + backfillErrors;
+  // Resumen con conteos (R5): Vercel Hobby no retiene logs, así que el JSON de
+  // respuesta es la fuente que ve el owner al disparar el cron a mano; el log
+  // queda para el runtime log en caliente.
   // eslint-disable-next-line no-console
   console.log(
-    `[cron] a2-reconcile done · warmed=${warmed}(err=${warmErrors}) · ` +
-      `backfilled=${backfilled}(err=${backfillErrors},skip=${backfillSkipped}) · ${durationMs}ms`
+    `[cron] a2-reconcile done · warmed=${warmed}/${warmCandidates} (err=${warmErrors}) · ` +
+      `backfilled=${backfilled}/${backfillCandidates} (err=${backfillErrors},skip=${backfillSkipped}) · ` +
+      `failed=${failed} · budget_cut=${budgetCut} · timeout=${A2_TIMEOUT_MS}ms · ${durationMs}ms`
   );
 
   return NextResponse.json({
     warmed,
+    warm_candidates: warmCandidates,
     warm_errors: warmErrors,
     backfilled,
+    backfill_candidates: backfillCandidates,
     backfill_errors: backfillErrors,
     backfill_skipped: backfillSkipped,
+    failed,
+    budget_cut: budgetCut,
+    a2_timeout_ms: A2_TIMEOUT_MS,
     duration_ms: durationMs,
   });
 }

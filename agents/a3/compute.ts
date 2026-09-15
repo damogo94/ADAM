@@ -146,6 +146,11 @@ export function computeTechnical(
     sma20,
     sma50,
     rsi: rsi14,
+    // Shadow tag F1/F1' (plan precisión 2026-09, R11): la SMA200 (derivada de
+    // las mismas velas, null si <200) solo alimenta la MARCA `veto_regimen`;
+    // no decide ni filtra la operativa. El precio actual sale de la última
+    // vela dentro de computeOperativa. Aislamiento de A3 intacto.
+    sma200,
   });
 
   // ── Multi-timeframe (opcional, solo si hay intraday suficiente) ──

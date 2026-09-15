@@ -80,12 +80,30 @@ export async function narrateA3(
   });
 
   // 2. LLM narrate — solo prosa
+  //
+  // Los shadow tags de la operativa (`veto_regimen`, `distancia_entrada_atr`;
+  // plan de precisión 2026-09, R11/F1/F2) son MARCAS de medición, no un juicio
+  // sobre la operativa: se persisten pero NO se enseñan al narrador. Si Haiku
+  // los viera, podría narrar "operativa vetada por régimen" y eso sería un
+  // filtro de presentación implícito (plan §4/§8: ningún gate filtra ni
+  // presenta hasta validación fuera de muestra). Derivan del OHLCV, así que el
+  // aislamiento no está en juego; es una decisión de producto. El merge final
+  // (paso 3) usa `computeOut` completo, con las marcas.
+  const {
+    veto_regimen: _vetoRegimen,
+    distancia_entrada_atr: _distanciaEntradaAtr,
+    ...operativaParaNarrar
+  } = computeOut.operativa;
+  void _vetoRegimen;
+  void _distanciaEntradaAtr;
+  const computeParaNarrar = { ...computeOut, operativa: operativaParaNarrar };
+
   const userMessage = [
     `# FECHA ACTUAL: ${todayISO()}`,
     `# TRACE: ${traceId ?? 'no-trace'}`,
     'Análisis técnico YA CALCULADO. Tu tarea: escribir SOLO la narrativa.',
     '',
-    JSON.stringify(computeOut, null, 2),
+    JSON.stringify(computeParaNarrar, null, 2),
   ].join('\n');
 
   let narrative: string;

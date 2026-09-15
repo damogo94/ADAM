@@ -6,7 +6,9 @@ yarn.lock
 
 # Next.js
 .next/
-out/
+# Anclado a la raíz: `out/` sin anclar ignoraba también scripts/out/, que es
+# salida VERSIONADA por diseño (resultados del harness multi-régimen, ADR-0006).
+/out/
 next-env.d.ts
 
 # Production

@@ -403,6 +403,21 @@ export const A3Output = z
         // nivel), 'limit' (esperar retroceso/rebote al nivel), null (hold).
         // nullable+optional para back-compat con runs anteriores.
         entry_type: z.enum(['market', 'limit']).nullable().optional(),
+        /**
+         * Shadow tags (plan precisión 2026-09, §4 F1/F1'/F2 + R11) — SOLO
+         * MARCAS persistidas para medir los gates en producción; NUNCA filtran
+         * ni alteran signal/entrada/stop/target/horizonte. Las calcula
+         * computeOperativa por código (OHLCV-only: SMA200 y precio salen de las
+         * propias velas → aislamiento de A3 intacto); el LLM no las produce.
+         *   veto_regimen: (sell y precio > SMA200) o (buy y precio < SMA200);
+         *                 null sin SMA200 (<200 velas) o en hold.
+         *   distancia_entrada_atr: |entrada − precio| / ATR; 0 en market,
+         *                 null sin ATR o en hold.
+         * nullable+optional por back-compat con runs anteriores. Espejo
+         * obligatorio en agents/a3/schema.ts (lección F8a).
+         */
+        veto_regimen: z.boolean().nullable().optional(),
+        distancia_entrada_atr: z.number().nullable().optional(),
       })
       .strict(),
     factor_invalidacion: z.string().max(1000),

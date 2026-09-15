@@ -4,6 +4,18 @@
  * Usado por /system. Calcula hit-rate global y por bucket (direccion,
  * confianza, confluence) en una sola lectura. Joins en memoria porque el
  * volumen esperado es bajo (decenas-cientos de outcomes en v1).
+ *
+ * R9 (plan de precisión 2026-09): una tasa por fila sin comparador ni n honesto
+ * no dice nada. El JSON añade:
+ *   - `base_rates`: sobre las MISMAS filas evaluadas, el acierto que habría
+ *     tenido "siempre alcista" / "siempre neutral" / "siempre bajista" a 7d y
+ *     30d, global y por ticker, junto al acierto real de ADAM (`adam`). Mismo
+ *     criterio de hit que el cron (`scoreSignal` + umbral `max(2%, k·ATR%)`;
+ *     sin ATR en la fila → piso 2%, exactamente el fallback del cron).
+ *   - `n_clusters`: n efectivo colapsando análisis del mismo ticker cuyo
+ *     `created_at` dista ≤ CLUSTER_GAP_DAYS del anterior (regla de cadena) en
+ *     un solo cluster; un cluster acierta si acierta su fila más antigua.
+ * Ninguno de los dos cambia cómo se puntúa: son lecturas adicionales.
  */
 
 import { NextResponse } from 'next/server';
@@ -15,7 +27,16 @@ import {
   directionOfA3,
   directionOfEstructura,
 } from '@/agents/a4/compute';
-import { scoreSignal, dbToScoringDirection, extractAtrPct, volatilityThresholdPct } from '@/lib/scoring';
+import {
+  scoreSignal,
+  dbToScoringDirection,
+  extractAtrPct,
+  volatilityThresholdPct,
+  SIGNAL_THRESHOLD_PCT,
+  SIGNAL_ATR_K,
+  type Direction,
+} from '@/lib/scoring';
+import { clusterByGap, CLUSTER_GAP_DAYS } from '@/components/signals/helpers';
 import { A1Output, A2Output, A3Output } from '@/agents/shared/types';
 import { EstructuraOutput } from '@/agents/estructura/schema';
 
@@ -32,6 +53,37 @@ function finalize(b: Bucket): Bucket {
   b.hit_rate_pct = b.n === 0 ? null : Math.round((b.hits / b.n) * 1000) / 10;
   return b;
 }
+
+function tally(b: Bucket, hit: boolean): void {
+  b.n++;
+  if (hit) b.hits++;
+}
+
+const HORIZON_KEYS = ['7', '30'] as const;
+type HorizonKey = (typeof HORIZON_KEYS)[number];
+
+/** Tasa base de una celda: las tres constantes + el acierto real de ADAM en las mismas filas. */
+type BaseRateCell = { adam: Bucket; alcista: Bucket; neutral: Bucket; bajista: Bucket };
+type BaseRateByHorizon = Record<HorizonKey, BaseRateCell>;
+
+function emptyBaseRateCell(): BaseRateCell {
+  return { adam: emptyBucket(), alcista: emptyBucket(), neutral: emptyBucket(), bajista: emptyBucket() };
+}
+function emptyBaseRateByHorizon(): BaseRateByHorizon {
+  return { '7': emptyBaseRateCell(), '30': emptyBaseRateCell() };
+}
+function finalizeBaseRateByHorizon(b: BaseRateByHorizon): BaseRateByHorizon {
+  for (const h of HORIZON_KEYS) {
+    const cell = b[h];
+    finalize(cell.adam);
+    finalize(cell.alcista);
+    finalize(cell.neutral);
+    finalize(cell.bajista);
+  }
+  return b;
+}
+
+const CONSTANT_DIRECTIONS: Direction[] = ['alcista', 'neutral', 'bajista'];
 
 function confluenceBucket(pct: number): '0-30' | '31-60' | '61-100' {
   if (pct <= 30) return '0-30';
@@ -59,7 +111,7 @@ export async function GET() {
   const { data: rows, error } = await admin
     .from('signal_outcomes')
     .select(
-      'analysis_id, horizon_days, hit, return_pct, analyses_log!inner(direction, confidence, confluence_pct, actionable_pct, kappa, initial_price, a1_output, a2_output, a3_output, estructura_output)'
+      'analysis_id, horizon_days, hit, return_pct, analyses_log!inner(ticker, created_at, direction, confidence, confluence_pct, actionable_pct, kappa, initial_price, a1_output, a2_output, a3_output, estructura_output)'
     )
     .limit(5000);
 
@@ -73,6 +125,8 @@ export async function GET() {
     hit: boolean;
     return_pct: number;
     analyses_log: {
+      ticker: string;
+      created_at: string;
       direction: string;
       confidence: string;
       confluence_pct: number;
@@ -86,6 +140,14 @@ export async function GET() {
     };
   };
   const data = (rows ?? []) as Row[];
+
+  // ── R9 · tasa base (mismas filas, mismo criterio de hit que el cron) ──────
+  const baseGlobal = emptyBaseRateByHorizon();
+  const baseByTicker: Record<string, BaseRateByHorizon> = {};
+  // Filas sin initial_price: no se puede reconstruir eval_price ni el umbral ATR
+  // (el cron nunca las evalúa — las filtra con initial_price IS NOT NULL — así
+  // que en la práctica es 0; se reporta por honestidad).
+  let baseExcluded = 0;
 
   const by_horizon: ByKey = { '7': emptyBucket(), '30': emptyBucket() };
   const by_direction: ByKey = {
@@ -136,6 +198,45 @@ export async function GET() {
     if (bh) {
       bh.n++;
       if (r.hit) bh.hits++;
+    }
+
+    // Tasa base: ¿qué habría acertado una constante en ESTA fila? Reconstruye
+    // eval_price desde return_pct y usa el MISMO umbral que el cron (ATR desde
+    // a3_output con el extractor tolerante; sin ATR → piso SIGNAL_THRESHOLD_PCT).
+    if (h === '7' || h === '30') {
+      const initial = a.initial_price;
+      if (initial != null && initial > 0) {
+        const evalPrice = initial * (1 + r.return_pct / 100);
+        const threshold = volatilityThresholdPct(extractAtrPct(a.a3_output, initial));
+        const cellG = baseGlobal[h];
+        const perTicker = (baseByTicker[a.ticker] ??= emptyBaseRateByHorizon());
+        const cellT = perTicker[h];
+        // ADAM se re-puntúa con el MISMO umbral actual que las tres constantes
+        // (no con el `hit` persistido): filas evaluadas antes de que el cron
+        // adoptara el umbral ATR llevan el 2% fijo y no compartirían criterio
+        // con el comparador (5/964 filas divergían en prod). `total`/`by_*`
+        // siguen usando el hit persistido: son la calibración histórica.
+        const adamHit = scoreSignal({
+          direccion: dbToScoringDirection(a.direction),
+          initial_price: initial,
+          eval_price: evalPrice,
+          threshold_pct: threshold,
+        }).hit;
+        tally(cellG.adam, adamHit);
+        tally(cellT.adam, adamHit);
+        for (const d of CONSTANT_DIRECTIONS) {
+          const hit = scoreSignal({
+            direccion: d,
+            initial_price: initial,
+            eval_price: evalPrice,
+            threshold_pct: threshold,
+          }).hit;
+          tally(cellG[d], hit);
+          tally(cellT[d], hit);
+        }
+      } else {
+        baseExcluded++;
+      }
     }
     const bd = by_direction[dbToScoringDirection(a.direction)];
     if (bd) {
@@ -218,6 +319,40 @@ export async function GET() {
   for (const k of Object.keys(by_kappa)) finalize(by_kappa[k]!);
   for (const k of Object.keys(by_agent)) finalize(by_agent[k]!);
 
+  finalizeBaseRateByHorizon(baseGlobal);
+  for (const t of Object.keys(baseByTicker)) finalizeBaseRateByHorizon(baseByTicker[t]!);
+
+  // ── R9 · n efectivo por cluster ──────────────────────────────────────────
+  // Por horizonte (cada análisis tiene hasta una fila por horizonte): agrupa por
+  // ticker, encadena por created_at con gap ≤ CLUSTER_GAP_DAYS respecto a la fila
+  // anterior del cluster, y el cluster acierta si acierta su fila MÁS ANTIGUA.
+  // `n` = clusters (el n honesto); `rows` = filas por fila que colapsaron.
+  const n_clusters: {
+    gap_days: number;
+    by_horizon: Record<HorizonKey, Bucket & { rows: number }>;
+  } = {
+    gap_days: CLUSTER_GAP_DAYS,
+    by_horizon: {
+      '7': { ...emptyBucket(), rows: 0 },
+      '30': { ...emptyBucket(), rows: 0 },
+    },
+  };
+  for (const h of HORIZON_KEYS) {
+    const rowsH = data.filter((r) => r.analyses_log && String(r.horizon_days) === h);
+    const clusters = clusterByGap(rowsH, {
+      keyOf: (r) => r.analyses_log.ticker,
+      timeOf: (r) => Date.parse(r.analyses_log.created_at),
+    });
+    const b = n_clusters.by_horizon[h];
+    b.rows = rowsH.length;
+    for (const cl of clusters) {
+      const oldest = cl[0];
+      if (!oldest) continue;
+      tally(b, oldest.hit);
+    }
+    finalize(b);
+  }
+
   return NextResponse.json({
     total,
     by_horizon,
@@ -227,5 +362,13 @@ export async function GET() {
     by_actionable,
     by_kappa,
     by_agent,
+    base_rates: {
+      // Umbral documentado para que el lector sepa con qué criterio se puntuó.
+      threshold: { floor_pct: SIGNAL_THRESHOLD_PCT, atr_k: SIGNAL_ATR_K, no_atr_fallback_pct: SIGNAL_THRESHOLD_PCT },
+      global: baseGlobal,
+      by_ticker: baseByTicker,
+      excluded_no_initial_price: baseExcluded,
+    },
+    n_clusters,
   });
 }

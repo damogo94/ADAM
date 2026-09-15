@@ -90,6 +90,17 @@ export interface RunADAMOptions {
    * Default false → tests y callers legacy ejecutan narrateA2 como fallback.
    */
   skipA2Narrate?: boolean;
+  /**
+   * Timeout (ms) SOLO para la llamada inline a narrateA2 (cuando toca narrar:
+   * cache miss y sin skipA2Narrate). No afecta a A1/A3/Debate/A4 ni al
+   * DEFAULT_TIMEOUT_MS global de lib/anthropic.ts. Lo usa el cron
+   * watchlist-scan (lambda de 300s) para dar a A2/Sonnet 45s — el único valor
+   * con evidencia (app/api/agents/a2/route.ts) — porque a 25s A2 fallaba en
+   * ~87% de las filas del cron (288/332 nulls, R4 del plan de precisión).
+   * Sin valor → narrateA2 aplica su default (25s), que es lo que sigue
+   * usando /api/agents/run vía skipA2Narrate (nunca narra A2 inline).
+   */
+  a2TimeoutMs?: number;
 }
 
 /**
@@ -214,15 +225,26 @@ export async function runADAM(
   //
   // Para el cron (runForUser) y callers legacy NO hay lambda externo que
   // caliente el cache, así que A2 SÍ se narra. La clave: la arrancamos ANTES
-  // del allSettled de A1/A3 para que las tres llamadas solapen (~max 25s) en
-  // vez de correr A2 en serie después (lo que sumaba ~12s+25s y rebasaba el
-  // budget). Paralelizada: ~max(25s) + Debate(~15s) + A4(~6s) ≈ 46s, con
-  // cushion para los 60s de Hobby. Adjuntamos .then/.catch al crear el
-  // promise para no arriesgar un unhandledRejection mientras esperamos A1/A3.
+  // del allSettled de A1/A3 para que las tres llamadas solapen en vez de
+  // correr A2 en serie después. Adjuntamos .then/.catch al crear el promise
+  // para no arriesgar un unhandledRejection mientras esperamos A1/A3.
+  //
+  // Presupuesto por caller:
+  //   - Callers legacy/tests (sin a2TimeoutMs): A2 a 25s (default) →
+  //     ~max(25s) + Debate(~15s) + A4(~6s) ≈ 46s, con cushion para 60s Hobby.
+  //   - Cron watchlist-scan (a2TimeoutMs=45s, lambda maxDuration=300s, NO 60s):
+  //     ~5s datos + max(A1 ~12s, A3 ~12s, A2 45s) + Debate(~15s) + A4(~6s)
+  //     ≈ 71s worst-case por ticker (≈75s con overhead). Ese ~75s es la
+  //     estimación que usa el TIME_BUDGET_MS del cron para cortar a tiempo.
+  const a2Options = {
+    traceId,
+    onUsage,
+    ...(options.a2TimeoutMs !== undefined ? { timeoutMs: options.a2TimeoutMs } : {}),
+  };
   const a2NarratePromise:
     | Promise<{ ok: true; value: A2Output_t } | { ok: false; error: unknown }>
     | null = runA2Narrate
-    ? timed('A2', traceId, () => A.narrateA2(ticker, snapshot, { traceId, onUsage }))
+    ? timed('A2', traceId, () => A.narrateA2(ticker, snapshot, a2Options))
         .then((value) => ({ ok: true as const, value }))
         .catch((error) => ({ ok: false as const, error }))
     : null;
@@ -286,9 +308,10 @@ export async function runADAM(
   }
 
   // ── Step 3: Debate condicional
-  // El bloque paralelo es A1+A3 (~12s) en /run, o A1+A2+A3 (~25s) en el cron,
-  // dejando budget para Debate (~15s) + A4 (~6s). Worst case ~46s, con
-  // cushion para los 60s de Hobby. Budget-aware skip removido por innecesario.
+  // El bloque paralelo es A1+A3 (~12s) en /run (60s Hobby), o A1+A2+A3 en el
+  // cron (~45s con a2TimeoutMs, lambda de 300s), dejando budget para Debate
+  // (~15s) + A4 (~6s). Worst case ~46s en /run y ~71s por ticker en el cron.
+  // Budget-aware skip removido por innecesario.
   let debate: DebateOutput | null = null;
   let debateRan = false;
   if (needsDebate(a1, a2)) {
