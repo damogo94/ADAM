@@ -71,6 +71,14 @@ order by s.emitted_at;
 -- / 39 no_fill / 2 timeout (n=89).
 --
 -- ─────────────────────────────────────────────────────────────────────────────
+-- EJECUTADO en producción el 2026-09-15 con aprobación del owner, como UNA sola
+-- sentencia atómica (CTEs data-modifying: (b0) y (b) sobre el mismo snapshot):
+--   UPDATE 4 (GC=F ×2 → limit · XRP → limit · SPY → market) · DELETE 13.
+--   Verificación posterior: phantom restantes 0 · señales con entry_type NULL 0
+--   · 46 señales sin outcome (las 13 purgadas + pendientes) a la espera del cron.
+--   Track record por fila tras la purga: 7W / 44L / 39 no_fill · ΣR −23.1.
+-- Volver a ejecutar es inocuo (idempotente: 0 filas).
+-- ─────────────────────────────────────────────────────────────────────────────
 -- ORDEN OBLIGATORIO: (b0) ANTES de (b). Si (b) ya corrió sin (b0), el cron habrá
 -- escrito 'not_evaluable' (terminal: existencia de fila = resuelto) para las 4
 -- señales NULL y el UPDATE posterior NO las re-evaluará. En ese caso, tras (b0),
